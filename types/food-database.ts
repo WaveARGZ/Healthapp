@@ -1,30 +1,41 @@
 import type { MealFoodItem } from "@/types/meal";
 
-export interface OfficialFood {
-  code: string;
-  group: string;
+export interface FoodLibraryItem {
+  id: string;
   name: string;
-  calories: number;
-  proteinG?: number;
-  fatG?: number;
-  carbsG?: number;
+  category: string;
+  aliases: string;
+  suggestedGrams: number;
+  sourceDataset: string;
+  fdcId: number;
+  sourceDescription: string;
+  per100g: {
+    calories: number;
+    proteinG: number;
+    fatG: number;
+    carbsG: number;
+  };
 }
 
-export interface OfficialFoodDataset {
+export interface FoodLibraryDataset {
   version: string;
   sourceName: string;
   sourceUrl: string;
-  sourceDataUrl: string;
+  license: string;
   basis: string;
-  foods: OfficialFood[];
+  foods: FoodLibraryItem[];
 }
 
-export function officialFoodToMealItem(food: OfficialFood): Omit<MealFoodItem, "id"> {
+export function foodToMealItem(food: FoodLibraryItem, grams: number): Omit<MealFoodItem, "id"> {
+  const factor = grams / 100;
+  const roundOne = (value: number) => Math.round(value * factor * 10) / 10;
   return {
-    name: `${food.name}（可食部100g）`,
-    calories: food.calories,
-    proteinG: food.proteinG,
-    fatG: food.fatG,
-    carbsG: food.carbsG,
+    name: `${food.name}（${grams}g）`,
+    calories: Math.round(food.per100g.calories * factor),
+    proteinG: roundOne(food.per100g.proteinG),
+    fatG: roundOne(food.per100g.fatG),
+    carbsG: roundOne(food.per100g.carbsG),
+    sourceFdcId: food.fdcId,
+    portionGrams: grams,
   };
 }

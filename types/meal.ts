@@ -14,6 +14,10 @@ export interface MealFoodItem {
   proteinG?: number;
   fatG?: number;
   carbsG?: number;
+  /** The USDA FoodData Central row used for the initial nutrient values. */
+  sourceFdcId?: number;
+  /** Weight used for the initial nutrient calculation; the user can edit it before adding. */
+  portionGrams?: number;
 }
 
 export interface FoodPhotoPrediction {

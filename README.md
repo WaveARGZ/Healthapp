@@ -20,8 +20,8 @@
 - 食事記録
   - 朝食 / 昼食 / 夕食 / 間食を選択し、料理を複数追加
   - 料理別のカロリー・PFCと食事合計を記録
-  - 文部科学省「日本食品標準成分表（八訂）増補2023年」の食品を検索し、可食部100g当たりの公式栄養値を入力
-  - 写真を端末内の無料AIで解析し、料理候補と標準量ベースの栄養素を追加
+  - USDA FoodData Centralから選んだ169件の料理・食品を日本語で検索し、食べた重さからPFCを計算
+  - 写真を端末内の無料AIで解析し、料理候補と同じ食品データに基づく栄養素を追加
   - 正解として確定した料理名・予測候補・写真を端末内に最大150件保存し、以後の候補順位に反映
   - 履歴表示・削除
 - 体重記録と一覧
@@ -47,8 +47,10 @@ lib/
   api/                  # UIが依存する永続化インターフェースと合成ルート
   auth/                 # 将来のCognito連携用インターフェース
   storage/              # localStorage実装
+  data/                 # 料理・食品の選定一覧と生成済みの栄養データ
   utils/                # 日付・IDのユーティリティ
 types/                  # User / Workout / Meal / Progressの型定義
+scripts/                # 公開データから食品ライブラリを再生成するスクリプト
 ```
 
 ## 起動方法
@@ -77,7 +79,15 @@ npm run build
 
 食事写真のAI候補だけは、`@huggingface/transformers` の公開ONNXモデルをブラウザ内で実行します。初回は約200MBのモデルをダウンロードしてブラウザキャッシュに保存しますが、料理写真を推論APIへ送信しません。正解データと写真は `lib/food-ai/food-learning.ts` からこの端末の IndexedDB へ保存されます。
 
-このMVPの「学習」は、確定データに基づく個人向け候補順位の補正です。モデルの再学習（ファインチューニング）は端末内では行わず、収集したラベル付き写真をエクスポートして、将来ローカルPCまたはAWS上で学習する段階を想定しています。栄養素も現時点では標準量の目安なので、保存前に編集・確認してください。
+食事のカロリー・PFCは、[USDA FoodData Central](https://fdc.nal.usda.gov/) の [FNDDS 2021–2023](https://fdc.nal.usda.gov/download-datasets/) と SR Legacy 2018 の100g当たりの値を使用します。データは CC0 1.0 で公開され、商用アプリへの利用も認められています。各料理にはFDC ID、元の英語名、データ系列を保持し、検索画面から元データを確認できます。日本語名と検索用別名、1食の初期目安量はBodyMakeによる編集です。料理の調理法や商品差、実際に食べた重さによって栄養値が変わるため、保存前に分量と値を確認してください。
+
+日本語の選定一覧は `lib/data/food-selections.mjs`、生成済みデータは `lib/data/food-library.json` です。再生成する場合は上記のUSDAダウンロードページから `FoodData_Central_survey_food_json_2024-10-31.zip` と `FoodData_Central_sr_legacy_food_json_2018-04.zip` を取得し、次を実行します。
+
+```bash
+npm run generate:food-data -- /path/to/FoodData_Central_survey_food_json_2024-10-31.zip /path/to/FoodData_Central_sr_legacy_food_json_2018-04.zip
+```
+
+再生成には `unzip` コマンドが必要です。このMVPの「学習」は、確定データに基づく個人向け候補順位の補正です。モデルの再学習（ファインチューニング）は端末内では行わず、収集したラベル付き写真をエクスポートして、将来ローカルPCまたはAWS上で学習する段階を想定しています。
 
 AWS連携時に主に変更する箇所は次のとおりです。
 

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
-import { OfficialFoodSearch } from "@/components/meals/official-food-search";
+import { FoodLibrarySearch } from "@/components/meals/food-library-search";
 import { PageHeader } from "@/components/ui/page-header";
 import { PhotoMealAnalyzer } from "@/components/meals/photo-meal-analyzer";
 import { bodyMakeClient } from "@/lib/api/client";
@@ -40,7 +40,7 @@ export function MealRecorder() {
     const nextFood = { ...food, id: createId("food") };
     setFoods((current) => current.length === 1 && !current[0].name ? [nextFood] : [...current, nextFood]);
   }
-  function addOfficialFood(food: Omit<MealFoodItem, "id">) {
+  function addLibraryFood(food: Omit<MealFoodItem, "id">) {
     const nextFood = { ...food, id: createId("food") };
     setFoods((current) => current.length === 1 && !current[0].name ? [nextFood] : [...current, nextFood]);
   }
@@ -65,7 +65,7 @@ export function MealRecorder() {
         <div className="mt-4 grid grid-cols-4 gap-2">{mealTypes.map(([value, label]) => <button key={value} type="button" onClick={() => setMealType(value)} className={`min-h-12 rounded-xl px-1 text-[11px] font-bold transition ${mealType === value ? "bg-[var(--sage-deep)] text-white shadow-sm" : "bg-[var(--sand)] text-[var(--muted)]"}`}>{label}</button>)}</div>
         <div className="mt-6 flex items-center justify-between"><div><p className="text-sm font-bold text-[var(--ink)]">{mealTypeLabels[mealType]}のメニュー</p><p className="mt-1 text-xs text-[var(--muted)]">食べた料理をひとつずつ追加します。</p></div><span className="grid size-9 place-items-center rounded-xl bg-[#fff3e9] text-[#b46f42]"><Icon name="leaf" className="size-4" /></span></div>
         <PhotoMealAnalyzer onAddFood={addPhotoFood} />
-        <OfficialFoodSearch onAddFood={addOfficialFood} />
+        <FoodLibrarySearch onAddFood={addLibraryFood} />
         <div className="mt-4 space-y-3">{foods.map((food, index) => <div key={food.id} className="rounded-2xl border border-[var(--line)] bg-[#fdfdfc] p-4"><div className="mb-3 flex items-center justify-between"><p className="text-xs font-bold tracking-[0.08em] text-[var(--sage-deep)]">メニュー {index + 1}</p>{foods.length > 1 ? <button type="button" aria-label="このメニューを削除" onClick={() => removeFood(food.id)} className="inline-flex items-center gap-1 text-xs font-bold text-[var(--coral)]"><Icon name="trash" className="size-3.5" />削除</button> : null}</div><FieldLabel htmlFor={`food-${food.id}`}>料理名</FieldLabel><TextInput id={`food-${food.id}`} value={food.name} onChange={(event) => updateFood(food.id, { name: event.target.value })} placeholder="例：ご飯（白ごはん 100g）" /><div className="mt-3 grid grid-cols-2 gap-2"><div><FieldLabel htmlFor={`calories-${food.id}`}>カロリー kcal</FieldLabel><TextInput id={`calories-${food.id}`} type="number" min="0" inputMode="numeric" value={food.calories ?? ""} onChange={(event) => updateFood(food.id, { calories: event.target.value ? Number(event.target.value) : undefined })} placeholder="156" /></div><div className="grid grid-cols-3 gap-1.5"><div><FieldLabel htmlFor={`protein-${food.id}`}>P</FieldLabel><TextInput id={`protein-${food.id}`} type="number" min="0" step="0.1" inputMode="decimal" value={food.proteinG ?? ""} onChange={(event) => updateFood(food.id, { proteinG: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" /></div><div><FieldLabel htmlFor={`fat-${food.id}`}>F</FieldLabel><TextInput id={`fat-${food.id}`} type="number" min="0" step="0.1" inputMode="decimal" value={food.fatG ?? ""} onChange={(event) => updateFood(food.id, { fatG: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" /></div><div><FieldLabel htmlFor={`carbs-${food.id}`}>C</FieldLabel><TextInput id={`carbs-${food.id}`} type="number" min="0" step="0.1" inputMode="decimal" value={food.carbsG ?? ""} onChange={(event) => updateFood(food.id, { carbsG: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" /></div></div></div></div>)}</div>
         <Button type="button" variant="secondary" className="mt-4 w-full border-dashed text-[var(--sage-deep)]" onClick={() => setFoods((current) => [...current, newFood()])}><Icon name="plus" className="size-4" />メニューを追加</Button>
         <div className="mt-5 rounded-xl bg-[var(--sand)] px-4 py-3"><p className="text-[10px] font-bold tracking-[0.08em] text-[var(--muted)]">この食事の合計</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-[var(--ink)]"><span>{totals.calories ?? "--"} kcal</span><span>P {totals.proteinG ?? "--"}g</span><span>F {totals.fatG ?? "--"}g</span><span>C {totals.carbsG ?? "--"}g</span></div></div>

@@ -1,0 +1,2713 @@
+{
+  "version": "usda-fndds-2021-2023-sr-legacy-2018-v1",
+  "sourceName": "USDA FoodData Central",
+  "sourceUrl": "https://fdc.nal.usda.gov/",
+  "license": "CC0 1.0 Universal",
+  "basis": "100g当たり。1食の初期目安量はBodyMake独自設定で変更できます。",
+  "foods": [
+    {
+      "id": "rice",
+      "name": "白ごはん",
+      "category": "ごはん・米料理",
+      "aliases": "白米 ご飯 ライス",
+      "suggestedGrams": 150,
+      "sourceDataset": "SR Legacy 2018",
+      "fdcId": 168932,
+      "sourceDescription": "Rice, white, short-grain, cooked, unenriched",
+      "per100g": {
+        "calories": 130,
+        "proteinG": 2.36,
+        "fatG": 0.19,
+        "carbsG": 28.7
+      }
+    },
+    {
+      "id": "brown-rice",
+      "name": "玄米ごはん",
+      "category": "ごはん・米料理",
+      "aliases": "玄米 飯",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708414,
+      "sourceDescription": "Rice, brown, cooked, no added fat",
+      "per100g": {
+        "calories": 123,
+        "proteinG": 2.43,
+        "fatG": 1.11,
+        "carbsG": 25.8
+      }
+    },
+    {
+      "id": "sticky-rice",
+      "name": "もち米ごはん",
+      "category": "ごはん・米料理",
+      "aliases": "もち米",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708422,
+      "sourceDescription": "Rice, white, cooked, glutinous",
+      "per100g": {
+        "calories": 96,
+        "proteinG": 2.01,
+        "fatG": 0.19,
+        "carbsG": 21
+      }
+    },
+    {
+      "id": "rice-fried-vegetable",
+      "name": "野菜チャーハン",
+      "category": "ごはん・米料理",
+      "aliases": "炒飯 焼き飯",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708951,
+      "sourceDescription": "Rice, fried, meatless",
+      "per100g": {
+        "calories": 174,
+        "proteinG": 3.84,
+        "fatG": 3.19,
+        "carbsG": 32.5
+      }
+    },
+    {
+      "id": "rice-fried-chicken",
+      "name": "鶏肉チャーハン",
+      "category": "ごはん・米料理",
+      "aliases": "炒飯 チキン",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708953,
+      "sourceDescription": "Rice, fried, with chicken",
+      "per100g": {
+        "calories": 173,
+        "proteinG": 7.28,
+        "fatG": 3.66,
+        "carbsG": 27.6
+      }
+    },
+    {
+      "id": "rice-fried-pork",
+      "name": "豚肉チャーハン",
+      "category": "ごはん・米料理",
+      "aliases": "炒飯",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708954,
+      "sourceDescription": "Rice, fried, with pork",
+      "per100g": {
+        "calories": 179,
+        "proteinG": 7.56,
+        "fatG": 4.16,
+        "carbsG": 27.6
+      }
+    },
+    {
+      "id": "rice-fried-shrimp",
+      "name": "海老チャーハン",
+      "category": "ごはん・米料理",
+      "aliases": "炒飯 エビ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708956,
+      "sourceDescription": "Rice, fried, with shrimp",
+      "per100g": {
+        "calories": 166,
+        "proteinG": 6.68,
+        "fatG": 2.97,
+        "carbsG": 27.8
+      }
+    },
+    {
+      "id": "rice-chicken-plain",
+      "name": "鶏肉とごはん",
+      "category": "ごはん・米料理",
+      "aliases": "チキンライス",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706537,
+      "sourceDescription": "Chicken or turkey and rice, no sauce",
+      "per100g": {
+        "calories": 149,
+        "proteinG": 6.46,
+        "fatG": 5.84,
+        "carbsG": 17
+      }
+    },
+    {
+      "id": "rice-chicken-soy",
+      "name": "鶏肉とごはん（しょうゆ味）",
+      "category": "ごはん・米料理",
+      "aliases": "照り焼き チキン",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706542,
+      "sourceDescription": "Chicken or turkey and rice with soy-based sauce",
+      "per100g": {
+        "calories": 162,
+        "proteinG": 12,
+        "fatG": 9.21,
+        "carbsG": 8.01
+      }
+    },
+    {
+      "id": "beef-bowl",
+      "name": "牛肉とごはん（しょうゆ味）",
+      "category": "ごはん・米料理",
+      "aliases": "牛丼 牛肉 ライス",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706497,
+      "sourceDescription": "Beef and rice with soy-based sauce",
+      "per100g": {
+        "calories": 178,
+        "proteinG": 13.6,
+        "fatG": 10.3,
+        "carbsG": 7.96
+      }
+    },
+    {
+      "id": "rice-black-beans",
+      "name": "黒豆と白ごはん",
+      "category": "ごはん・米料理",
+      "aliases": "豆 ライス",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708994,
+      "sourceDescription": "Black beans and white rice",
+      "per100g": {
+        "calories": 160,
+        "proteinG": 6.01,
+        "fatG": 4.32,
+        "carbsG": 24.4
+      }
+    },
+    {
+      "id": "curry-rice",
+      "name": "ビーフカレーライス",
+      "category": "ごはん・米料理",
+      "aliases": "カレー 牛肉",
+      "suggestedGrams": 350,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706389,
+      "sourceDescription": "Beef curry with rice",
+      "per100g": {
+        "calories": 119,
+        "proteinG": 5.61,
+        "fatG": 4.05,
+        "carbsG": 15.1
+      }
+    },
+    {
+      "id": "curry-rice-chicken",
+      "name": "チキンカレーライス",
+      "category": "ごはん・米料理",
+      "aliases": "カレー 鶏肉",
+      "suggestedGrams": 350,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706438,
+      "sourceDescription": "Chicken curry with rice",
+      "per100g": {
+        "calories": 116,
+        "proteinG": 4.96,
+        "fatG": 4,
+        "carbsG": 15.1
+      }
+    },
+    {
+      "id": "curry-rice-vegetable",
+      "name": "野菜カレーライス",
+      "category": "ごはん・米料理",
+      "aliases": "カレー",
+      "suggestedGrams": 350,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2710068,
+      "sourceDescription": "Vegetable curry with rice",
+      "per100g": {
+        "calories": 103,
+        "proteinG": 2.03,
+        "fatG": 3.27,
+        "carbsG": 16.5
+      }
+    },
+    {
+      "id": "miso-soup",
+      "name": "味噌汁・豆腐のスープ",
+      "category": "和食・アジア料理",
+      "aliases": "みそ汁",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707455,
+      "sourceDescription": "Soup, miso or tofu",
+      "per100g": {
+        "calories": 24,
+        "proteinG": 2.21,
+        "fatG": 0.85,
+        "carbsG": 2.3
+      }
+    },
+    {
+      "id": "sushi",
+      "name": "寿司（種類未指定）",
+      "category": "和食・アジア料理",
+      "aliases": "すし",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708959,
+      "sourceDescription": "Sushi, NFS",
+      "per100g": {
+        "calories": 94,
+        "proteinG": 2.92,
+        "fatG": 0.67,
+        "carbsG": 18.4
+      }
+    },
+    {
+      "id": "sushi-salmon",
+      "name": "サーモン握り寿司",
+      "category": "和食・アジア料理",
+      "aliases": "鮭 すし",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708969,
+      "sourceDescription": "Sushi, topped with salmon",
+      "per100g": {
+        "calories": 107,
+        "proteinG": 8.92,
+        "fatG": 1.74,
+        "carbsG": 13.4
+      }
+    },
+    {
+      "id": "sushi-tuna",
+      "name": "マグロ握り寿司",
+      "category": "和食・アジア料理",
+      "aliases": "まぐろ 鮪 すし",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708971,
+      "sourceDescription": "Sushi, topped with tuna",
+      "per100g": {
+        "calories": 100,
+        "proteinG": 9.66,
+        "fatG": 0.29,
+        "carbsG": 13.4
+      }
+    },
+    {
+      "id": "sushi-shrimp",
+      "name": "海老握り寿司",
+      "category": "和食・アジア料理",
+      "aliases": "えび エビ すし",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708970,
+      "sourceDescription": "Sushi, topped with shrimp",
+      "per100g": {
+        "calories": 103,
+        "proteinG": 9.1,
+        "fatG": 0.7,
+        "carbsG": 13.9
+      }
+    },
+    {
+      "id": "sushi-egg",
+      "name": "玉子握り寿司",
+      "category": "和食・アジア料理",
+      "aliases": "卵 すし",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708972,
+      "sourceDescription": "Sushi, topped with egg",
+      "per100g": {
+        "calories": 119,
+        "proteinG": 7.32,
+        "fatG": 5.23,
+        "carbsG": 10.2
+      }
+    },
+    {
+      "id": "sushi-california",
+      "name": "カリフォルニアロール",
+      "category": "和食・アジア料理",
+      "aliases": "巻き寿司",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708961,
+      "sourceDescription": "Sushi roll, California",
+      "per100g": {
+        "calories": 94,
+        "proteinG": 2.92,
+        "fatG": 0.67,
+        "carbsG": 18.4
+      }
+    },
+    {
+      "id": "sushi-salmon-roll",
+      "name": "サーモンロール",
+      "category": "和食・アジア料理",
+      "aliases": "巻き寿司",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708963,
+      "sourceDescription": "Sushi roll, salmon",
+      "per100g": {
+        "calories": 103,
+        "proteinG": 6.88,
+        "fatG": 1.28,
+        "carbsG": 15.3
+      }
+    },
+    {
+      "id": "sushi-tuna-roll",
+      "name": "ツナロール",
+      "category": "和食・アジア料理",
+      "aliases": "巻き寿司",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708965,
+      "sourceDescription": "Sushi roll tuna",
+      "per100g": {
+        "calories": 97,
+        "proteinG": 7.4,
+        "fatG": 0.26,
+        "carbsG": 15.3
+      }
+    },
+    {
+      "id": "ramen",
+      "name": "ラーメン",
+      "category": "和食・アジア料理",
+      "aliases": "中華麺",
+      "suggestedGrams": 500,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709153,
+      "sourceDescription": "Ramen bowl, NFS",
+      "per100g": {
+        "calories": 127,
+        "proteinG": 7.13,
+        "fatG": 4.57,
+        "carbsG": 14
+      }
+    },
+    {
+      "id": "ramen-chicken",
+      "name": "鶏肉ラーメン",
+      "category": "和食・アジア料理",
+      "aliases": "チキン 麺",
+      "suggestedGrams": 500,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709155,
+      "sourceDescription": "Ramen bowl with chicken",
+      "per100g": {
+        "calories": 126,
+        "proteinG": 7.04,
+        "fatG": 3.86,
+        "carbsG": 15.4
+      }
+    },
+    {
+      "id": "ramen-vegetable",
+      "name": "野菜ラーメン",
+      "category": "和食・アジア料理",
+      "aliases": "ベジタリアン 麺",
+      "suggestedGrams": 500,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709157,
+      "sourceDescription": "Ramen bowl, vegetarian",
+      "per100g": {
+        "calories": 108,
+        "proteinG": 4.01,
+        "fatG": 3.33,
+        "carbsG": 15.6
+      }
+    },
+    {
+      "id": "soba",
+      "name": "そば（ゆで）",
+      "category": "和食・アジア料理",
+      "aliases": "蕎麦",
+      "suggestedGrams": 200,
+      "sourceDataset": "SR Legacy 2018",
+      "fdcId": 168907,
+      "sourceDescription": "Noodles, japanese, soba, cooked",
+      "per100g": {
+        "calories": 99,
+        "proteinG": 5.06,
+        "fatG": 0.1,
+        "carbsG": 21.4
+      }
+    },
+    {
+      "id": "tempura-vegetable",
+      "name": "野菜の天ぷら",
+      "category": "和食・アジア料理",
+      "aliases": "てんぷら",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2710065,
+      "sourceDescription": "Vegetable tempura",
+      "per100g": {
+        "calories": 239,
+        "proteinG": 3.81,
+        "fatG": 15.8,
+        "carbsG": 20.4
+      }
+    },
+    {
+      "id": "teriyaki-chicken",
+      "name": "鶏肉の照り焼き",
+      "category": "和食・アジア料理",
+      "aliases": "チキン テリヤキ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706433,
+      "sourceDescription": "Chicken or turkey with teriyaki",
+      "per100g": {
+        "calories": 163,
+        "proteinG": 25.7,
+        "fatG": 5.96,
+        "carbsG": 1.62
+      }
+    },
+    {
+      "id": "teriyaki-steak",
+      "name": "牛ステーキの照り焼き",
+      "category": "和食・アジア料理",
+      "aliases": "牛肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706387,
+      "sourceDescription": "Steak teriyaki",
+      "per100g": {
+        "calories": 198,
+        "proteinG": 28.9,
+        "fatG": 8.25,
+        "carbsG": 1.94
+      }
+    },
+    {
+      "id": "teriyaki-shrimp",
+      "name": "海老の照り焼き",
+      "category": "和食・アジア料理",
+      "aliases": "エビ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706462,
+      "sourceDescription": "Shrimp teriyaki",
+      "per100g": {
+        "calories": 120,
+        "proteinG": 21.6,
+        "fatG": 1.56,
+        "carbsG": 3.34
+      }
+    },
+    {
+      "id": "pad-thai",
+      "name": "パッタイ",
+      "category": "和食・アジア料理",
+      "aliases": "タイ 焼きそば",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708804,
+      "sourceDescription": "Pad Thai, NFS",
+      "per100g": {
+        "calories": 154,
+        "proteinG": 8.13,
+        "fatG": 7.5,
+        "carbsG": 14.4
+      }
+    },
+    {
+      "id": "pad-thai-chicken",
+      "name": "鶏肉のパッタイ",
+      "category": "和食・アジア料理",
+      "aliases": "タイ チキン",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708806,
+      "sourceDescription": "Pad Thai with chicken",
+      "per100g": {
+        "calories": 154,
+        "proteinG": 8.13,
+        "fatG": 7.5,
+        "carbsG": 14.4
+      }
+    },
+    {
+      "id": "pho-meat",
+      "name": "肉入りフォー",
+      "category": "和食・アジア料理",
+      "aliases": "ベトナム 米麺",
+      "suggestedGrams": 450,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707124,
+      "sourceDescription": "Soup, pho, with meat",
+      "per100g": {
+        "calories": 77,
+        "proteinG": 5.81,
+        "fatG": 3.33,
+        "carbsG": 5.6
+      }
+    },
+    {
+      "id": "lo-mein-chicken",
+      "name": "鶏肉の中華焼きそば",
+      "category": "和食・アジア料理",
+      "aliases": "ローメン チキン",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708803,
+      "sourceDescription": "Lo mein, with chicken",
+      "per100g": {
+        "calories": 130,
+        "proteinG": 9.15,
+        "fatG": 3.15,
+        "carbsG": 16.2
+      }
+    },
+    {
+      "id": "pasta",
+      "name": "トマトソースパスタ",
+      "category": "麺・パスタ",
+      "aliases": "スパゲッティ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708831,
+      "sourceDescription": "Pasta with tomato-based sauce, home recipe",
+      "per100g": {
+        "calories": 106,
+        "proteinG": 3.69,
+        "fatG": 1.2,
+        "carbsG": 19.9
+      }
+    },
+    {
+      "id": "pasta-meat",
+      "name": "ミートソースパスタ",
+      "category": "麺・パスタ",
+      "aliases": "ボロネーゼ スパゲッティ",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708838,
+      "sourceDescription": "Pasta with tomato-based sauce and meat, home recipe",
+      "per100g": {
+        "calories": 125,
+        "proteinG": 5.86,
+        "fatG": 2.58,
+        "carbsG": 19.2
+      }
+    },
+    {
+      "id": "pasta-tomato-cheese",
+      "name": "トマトとチーズのパスタ",
+      "category": "麺・パスタ",
+      "aliases": "スパゲッティ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708826,
+      "sourceDescription": "Pasta with tomato-based sauce and cheese",
+      "per100g": {
+        "calories": 119,
+        "proteinG": 3.74,
+        "fatG": 4.83,
+        "carbsG": 15
+      }
+    },
+    {
+      "id": "pasta-vegetable",
+      "name": "野菜入りトマトパスタ",
+      "category": "麺・パスタ",
+      "aliases": "スパゲッティ",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708834,
+      "sourceDescription": "Pasta with tomato-based sauce, and added vegetables, home recipe",
+      "per100g": {
+        "calories": 104,
+        "proteinG": 3.74,
+        "fatG": 1.06,
+        "carbsG": 19.6
+      }
+    },
+    {
+      "id": "pasta-cream",
+      "name": "クリームソースパスタ",
+      "category": "麺・パスタ",
+      "aliases": "クリームパスタ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708856,
+      "sourceDescription": "Pasta with cream sauce, home recipe",
+      "per100g": {
+        "calories": 154,
+        "proteinG": 4.03,
+        "fatG": 7.7,
+        "carbsG": 16.8
+      }
+    },
+    {
+      "id": "pasta-cream-meat",
+      "name": "肉入りクリームパスタ",
+      "category": "麺・パスタ",
+      "aliases": "クリームパスタ",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708862,
+      "sourceDescription": "Pasta with cream sauce and meat, home recipe",
+      "per100g": {
+        "calories": 164,
+        "proteinG": 6.14,
+        "fatG": 7.87,
+        "carbsG": 16.7
+      }
+    },
+    {
+      "id": "pasta-plain",
+      "name": "ゆでパスタ",
+      "category": "麺・パスタ",
+      "aliases": "スパゲッティ 麺",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708357,
+      "sourceDescription": "Pasta, cooked",
+      "per100g": {
+        "calories": 157,
+        "proteinG": 5.76,
+        "fatG": 0.92,
+        "carbsG": 30.7
+      }
+    },
+    {
+      "id": "rice-noodles",
+      "name": "ゆで米麺",
+      "category": "麺・パスタ",
+      "aliases": "ビーフン フォー",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708356,
+      "sourceDescription": "Rice noodles, cooked",
+      "per100g": {
+        "calories": 107,
+        "proteinG": 1.78,
+        "fatG": 0.2,
+        "carbsG": 23.9
+      }
+    },
+    {
+      "id": "mac-cheese",
+      "name": "マカロニチーズ",
+      "category": "麺・パスタ",
+      "aliases": "マカロニ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708811,
+      "sourceDescription": "Macaroni or noodles with cheese",
+      "per100g": {
+        "calories": 223,
+        "proteinG": 8.68,
+        "fatG": 10.5,
+        "carbsG": 23.1
+      }
+    },
+    {
+      "id": "lasagna-meat",
+      "name": "ミートラザニア",
+      "category": "麺・パスタ",
+      "aliases": "ラザニア",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708753,
+      "sourceDescription": "Lasagna with meat, home recipe",
+      "per100g": {
+        "calories": 206,
+        "proteinG": 13.6,
+        "fatG": 10.9,
+        "carbsG": 13.1
+      }
+    },
+    {
+      "id": "lasagna-vegetable",
+      "name": "野菜のラザニア",
+      "category": "麺・パスタ",
+      "aliases": "ラザニア",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708759,
+      "sourceDescription": "Lasagna, meatless, with vegetables",
+      "per100g": {
+        "calories": 188,
+        "proteinG": 11.2,
+        "fatG": 9.38,
+        "carbsG": 14.5
+      }
+    },
+    {
+      "id": "chow-mein-chicken",
+      "name": "鶏肉の中華炒め麺",
+      "category": "麺・パスタ",
+      "aliases": "焼きそば チャウメン",
+      "suggestedGrams": 300,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706687,
+      "sourceDescription": "Chicken or turkey chow mein or chop suey with noodles",
+      "per100g": {
+        "calories": 131,
+        "proteinG": 9.91,
+        "fatG": 5.43,
+        "carbsG": 11.2
+      }
+    },
+    {
+      "id": "chicken-breast",
+      "name": "鶏むね肉のグリル（皮なし）",
+      "category": "肉料理",
+      "aliases": "チキン 鶏胸肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705968,
+      "sourceDescription": "Chicken breast, grilled without sauce, skin not eaten",
+      "per100g": {
+        "calories": 176,
+        "proteinG": 29.6,
+        "fatG": 5.45,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "chicken-breast-roast",
+      "name": "鶏むね肉のロースト（皮なし）",
+      "category": "肉料理",
+      "aliases": "チキン",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705956,
+      "sourceDescription": "Chicken breast, baked, broiled, or roasted, skin not eaten, from raw",
+      "per100g": {
+        "calories": 161,
+        "proteinG": 30.2,
+        "fatG": 3.52,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "chicken-fried",
+      "name": "フライドチキン（胸肉）",
+      "category": "肉料理",
+      "aliases": "揚げ鶏 鶏肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705973,
+      "sourceDescription": "Chicken breast, fried, coated, skin / coating eaten, from raw",
+      "per100g": {
+        "calories": 243,
+        "proteinG": 21.5,
+        "fatG": 14.1,
+        "carbsG": 6.01
+      }
+    },
+    {
+      "id": "chicken-nuggets",
+      "name": "チキンナゲット",
+      "category": "肉料理",
+      "aliases": "ナゲット",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706092,
+      "sourceDescription": "Chicken nuggets, NFS",
+      "per100g": {
+        "calories": 307,
+        "proteinG": 15.9,
+        "fatG": 20.4,
+        "carbsG": 14.9
+      }
+    },
+    {
+      "id": "chicken-curry",
+      "name": "チキンカレー（ごはんなし）",
+      "category": "肉料理",
+      "aliases": "カレー",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706437,
+      "sourceDescription": "Chicken curry",
+      "per100g": {
+        "calories": 107,
+        "proteinG": 6.48,
+        "fatG": 6.48,
+        "carbsG": 6.54
+      }
+    },
+    {
+      "id": "beef-steak-sirloin",
+      "name": "牛サーロインステーキ（脂身込み）",
+      "category": "肉料理",
+      "aliases": "牛肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705833,
+      "sourceDescription": "Beef, steak, sirloin, lean and fat eaten",
+      "per100g": {
+        "calories": 262,
+        "proteinG": 26.2,
+        "fatG": 16.6,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "beef-steak-lean",
+      "name": "牛サーロインステーキ（赤身）",
+      "category": "肉料理",
+      "aliases": "牛肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705834,
+      "sourceDescription": "Beef, steak, sirloin, lean only eaten",
+      "per100g": {
+        "calories": 216,
+        "proteinG": 28,
+        "fatG": 11.3,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "beef-steak-ribeye",
+      "name": "牛リブアイステーキ",
+      "category": "肉料理",
+      "aliases": "牛肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705829,
+      "sourceDescription": "Beef, steak, ribeye, lean and fat eaten",
+      "per100g": {
+        "calories": 289,
+        "proteinG": 23.5,
+        "fatG": 21.6,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "hamburger-steak",
+      "name": "牛ひき肉のパティ",
+      "category": "肉料理",
+      "aliases": "ハンバーグ パテ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705855,
+      "sourceDescription": "Beef, ground, patty",
+      "per100g": {
+        "calories": 272,
+        "proteinG": 25.4,
+        "fatG": 18.2,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "beef-roast",
+      "name": "牛肉のポットロースト",
+      "category": "肉料理",
+      "aliases": "煮込み牛肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705848,
+      "sourceDescription": "Beef, pot roast",
+      "per100g": {
+        "calories": 251,
+        "proteinG": 28.4,
+        "fatG": 15.4,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "beef-curry",
+      "name": "ビーフカレー（ごはんなし）",
+      "category": "肉料理",
+      "aliases": "カレー",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706388,
+      "sourceDescription": "Beef curry",
+      "per100g": {
+        "calories": 113,
+        "proteinG": 7.57,
+        "fatG": 6.57,
+        "carbsG": 6.53
+      }
+    },
+    {
+      "id": "beef-meatballs",
+      "name": "ミートボールのソース煮",
+      "category": "肉料理",
+      "aliases": "肉団子",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706467,
+      "sourceDescription": "Meatballs, NS as to type of meat, with sauce",
+      "per100g": {
+        "calories": 186,
+        "proteinG": 18,
+        "fatG": 12,
+        "carbsG": 0.15
+      }
+    },
+    {
+      "id": "pork-chop",
+      "name": "ポークチョップ",
+      "category": "肉料理",
+      "aliases": "豚肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705867,
+      "sourceDescription": "Pork, chop, lean and fat eaten",
+      "per100g": {
+        "calories": 195,
+        "proteinG": 27,
+        "fatG": 9.17,
+        "carbsG": 0.01
+      }
+    },
+    {
+      "id": "pork-chop-breaded",
+      "name": "衣付きポークチョップ",
+      "category": "肉料理",
+      "aliases": "豚肉 フライ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705870,
+      "sourceDescription": "Pork, chop, coated, lean and fat eaten",
+      "per100g": {
+        "calories": 229,
+        "proteinG": 25.1,
+        "fatG": 10.6,
+        "carbsG": 7.16
+      }
+    },
+    {
+      "id": "pork-tenderloin",
+      "name": "豚ヒレ肉",
+      "category": "肉料理",
+      "aliases": "豚肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705877,
+      "sourceDescription": "Pork, tenderloin",
+      "per100g": {
+        "calories": 134,
+        "proteinG": 24.6,
+        "fatG": 3.38,
+        "carbsG": 0.09
+      }
+    },
+    {
+      "id": "pork-roast",
+      "name": "ローストポーク",
+      "category": "肉料理",
+      "aliases": "豚肉",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705882,
+      "sourceDescription": "Pork, roast",
+      "per100g": {
+        "calories": 181,
+        "proteinG": 26.6,
+        "fatG": 7.49,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "bacon",
+      "name": "ベーコン（焼き）",
+      "category": "肉料理",
+      "aliases": "豚肉",
+      "suggestedGrams": 40,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705889,
+      "sourceDescription": "Pork bacon, smoked or cured, cooked",
+      "per100g": {
+        "calories": 468,
+        "proteinG": 33.9,
+        "fatG": 35.1,
+        "carbsG": 1.7
+      }
+    },
+    {
+      "id": "sausage",
+      "name": "ソーセージ",
+      "category": "肉料理",
+      "aliases": "ウインナー",
+      "suggestedGrams": 80,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706190,
+      "sourceDescription": "Sausage, NFS",
+      "per100g": {
+        "calories": 325,
+        "proteinG": 18.5,
+        "fatG": 27.2,
+        "carbsG": 1.42
+      }
+    },
+    {
+      "id": "grilled-salmon",
+      "name": "焼き鮭",
+      "category": "魚介料理",
+      "aliases": "サーモン",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706287,
+      "sourceDescription": "Fish, salmon, grilled",
+      "per100g": {
+        "calories": 259,
+        "proteinG": 25.9,
+        "fatG": 16.5,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "salmon-baked",
+      "name": "鮭のオーブン焼き",
+      "category": "魚介料理",
+      "aliases": "サーモン",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706286,
+      "sourceDescription": "Fish, salmon, baked or broiled",
+      "per100g": {
+        "calories": 274,
+        "proteinG": 25.4,
+        "fatG": 18.4,
+        "carbsG": 0.01
+      }
+    },
+    {
+      "id": "salmon-smoked",
+      "name": "スモークサーモン",
+      "category": "魚介料理",
+      "aliases": "鮭",
+      "suggestedGrams": 80,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706292,
+      "sourceDescription": "Fish, salmon, smoked",
+      "per100g": {
+        "calories": 117,
+        "proteinG": 18.3,
+        "fatG": 4.32,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "tuna-sashimi",
+      "name": "マグロ（生）",
+      "category": "魚介料理",
+      "aliases": "鮪 刺身",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706308,
+      "sourceDescription": "Fish, tuna, raw",
+      "per100g": {
+        "calories": 109,
+        "proteinG": 24.4,
+        "fatG": 0.49,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "tuna-cooked",
+      "name": "加熱したマグロ",
+      "category": "魚介料理",
+      "aliases": "鮪",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706310,
+      "sourceDescription": "Fish, tuna, cooked",
+      "per100g": {
+        "calories": 176,
+        "proteinG": 30.3,
+        "fatG": 5.14,
+        "carbsG": 0.01
+      }
+    },
+    {
+      "id": "tuna-canned",
+      "name": "ツナ缶",
+      "category": "魚介料理",
+      "aliases": "まぐろ",
+      "suggestedGrams": 70,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706311,
+      "sourceDescription": "Fish, tuna, canned",
+      "per100g": {
+        "calories": 85,
+        "proteinG": 19,
+        "fatG": 0.94,
+        "carbsG": 0.08
+      }
+    },
+    {
+      "id": "mackerel-grilled",
+      "name": "焼きサバ",
+      "category": "魚介料理",
+      "aliases": "鯖 さば",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706265,
+      "sourceDescription": "Fish, mackerel, grilled",
+      "per100g": {
+        "calories": 221,
+        "proteinG": 25.4,
+        "fatG": 12.3,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "cod-grilled",
+      "name": "タラのグリル",
+      "category": "魚介料理",
+      "aliases": "鱈",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706242,
+      "sourceDescription": "Fish, cod, grilled",
+      "per100g": {
+        "calories": 108,
+        "proteinG": 19.4,
+        "fatG": 2.79,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "cod-fried",
+      "name": "白身魚のフライ（タラ）",
+      "category": "魚介料理",
+      "aliases": "魚フライ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706244,
+      "sourceDescription": "Fish, cod, fried",
+      "per100g": {
+        "calories": 217,
+        "proteinG": 13.5,
+        "fatG": 12.5,
+        "carbsG": 11.7
+      }
+    },
+    {
+      "id": "shrimp-grilled",
+      "name": "海老のグリル",
+      "category": "魚介料理",
+      "aliases": "えび エビ",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706362,
+      "sourceDescription": "Shrimp, grilled",
+      "per100g": {
+        "calories": 110,
+        "proteinG": 17.3,
+        "fatG": 3.55,
+        "carbsG": 1.16
+      }
+    },
+    {
+      "id": "shrimp-boiled",
+      "name": "ゆで海老",
+      "category": "魚介料理",
+      "aliases": "えび エビ",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706363,
+      "sourceDescription": "Shrimp, steamed or boiled",
+      "per100g": {
+        "calories": 90,
+        "proteinG": 17.2,
+        "fatG": 1.28,
+        "carbsG": 1.15
+      }
+    },
+    {
+      "id": "shrimp-fried",
+      "name": "海老フライ",
+      "category": "魚介料理",
+      "aliases": "えび エビ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706364,
+      "sourceDescription": "Shrimp, fried",
+      "per100g": {
+        "calories": 218,
+        "proteinG": 12.3,
+        "fatG": 12.9,
+        "carbsG": 12.4
+      }
+    },
+    {
+      "id": "shrimp-garlic",
+      "name": "海老のガーリック炒め",
+      "category": "魚介料理",
+      "aliases": "シュリンプスキャンピ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706458,
+      "sourceDescription": "Shrimp scampi",
+      "per100g": {
+        "calories": 192,
+        "proteinG": 15.4,
+        "fatG": 13,
+        "carbsG": 2.27
+      }
+    },
+    {
+      "id": "sardines-canned",
+      "name": "イワシ缶",
+      "category": "魚介料理",
+      "aliases": "鰯 いわし",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706293,
+      "sourceDescription": "Fish, sardines, canned",
+      "per100g": {
+        "calories": 208,
+        "proteinG": 24.6,
+        "fatG": 11.4,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "boiled-egg",
+      "name": "ゆで卵",
+      "category": "卵・大豆・豆",
+      "aliases": "卵 玉子",
+      "suggestedGrams": 55,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707154,
+      "sourceDescription": "Egg, whole, boiled or poached",
+      "per100g": {
+        "calories": 143,
+        "proteinG": 12.4,
+        "fatG": 9.96,
+        "carbsG": 0.96
+      }
+    },
+    {
+      "id": "fried-egg",
+      "name": "目玉焼き（油なし）",
+      "category": "卵・大豆・豆",
+      "aliases": "卵 玉子",
+      "suggestedGrams": 55,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707156,
+      "sourceDescription": "Egg, whole, fried no added fat",
+      "per100g": {
+        "calories": 143,
+        "proteinG": 12.4,
+        "fatG": 9.93,
+        "carbsG": 0.96
+      }
+    },
+    {
+      "id": "scrambled-egg",
+      "name": "スクランブルエッグ（油なし）",
+      "category": "卵・大豆・豆",
+      "aliases": "卵 玉子",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707205,
+      "sourceDescription": "Egg omelet or scrambled egg, no added fat",
+      "per100g": {
+        "calories": 143,
+        "proteinG": 12.4,
+        "fatG": 9.93,
+        "carbsG": 0.96
+      }
+    },
+    {
+      "id": "omelette",
+      "name": "チーズオムレツ（油なし）",
+      "category": "卵・大豆・豆",
+      "aliases": "卵 玉子",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707212,
+      "sourceDescription": "Egg omelet or scrambled egg, with cheese, no added fat",
+      "per100g": {
+        "calories": 171,
+        "proteinG": 13.4,
+        "fatG": 12.3,
+        "carbsG": 1.49
+      }
+    },
+    {
+      "id": "egg-white",
+      "name": "卵白（加熱）",
+      "category": "卵・大豆・豆",
+      "aliases": "白身",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707170,
+      "sourceDescription": "Egg, white, cooked, no added fat",
+      "per100g": {
+        "calories": 52,
+        "proteinG": 10.7,
+        "fatG": 0,
+        "carbsG": 2.35
+      }
+    },
+    {
+      "id": "tofu",
+      "name": "木綿豆腐",
+      "category": "卵・大豆・豆",
+      "aliases": "豆腐",
+      "suggestedGrams": 150,
+      "sourceDataset": "SR Legacy 2018",
+      "fdcId": 172448,
+      "sourceDescription": "Tofu, firm, prepared with calcium sulfate and magnesium chloride (nigari)",
+      "per100g": {
+        "calories": 78,
+        "proteinG": 9.04,
+        "fatG": 4.17,
+        "carbsG": 2.85
+      }
+    },
+    {
+      "id": "tofu-soft",
+      "name": "やわらかい豆腐",
+      "category": "卵・大豆・豆",
+      "aliases": "ソフト豆腐",
+      "suggestedGrams": 150,
+      "sourceDataset": "SR Legacy 2018",
+      "fdcId": 172449,
+      "sourceDescription": "Tofu, soft, prepared with calcium sulfate and magnesium chloride (nigari)",
+      "per100g": {
+        "calories": 61,
+        "proteinG": 7.17,
+        "fatG": 3.69,
+        "carbsG": 1.18
+      }
+    },
+    {
+      "id": "tofu-fried",
+      "name": "揚げ豆腐",
+      "category": "卵・大豆・豆",
+      "aliases": "厚揚げ",
+      "suggestedGrams": 100,
+      "sourceDataset": "SR Legacy 2018",
+      "fdcId": 172451,
+      "sourceDescription": "Tofu, fried",
+      "per100g": {
+        "calories": 270,
+        "proteinG": 18.8,
+        "fatG": 20.2,
+        "carbsG": 8.86
+      }
+    },
+    {
+      "id": "natto",
+      "name": "納豆",
+      "category": "卵・大豆・豆",
+      "aliases": "なっとう",
+      "suggestedGrams": 50,
+      "sourceDataset": "SR Legacy 2018",
+      "fdcId": 172443,
+      "sourceDescription": "Natto",
+      "per100g": {
+        "calories": 211,
+        "proteinG": 19.4,
+        "fatG": 11,
+        "carbsG": 12.7
+      }
+    },
+    {
+      "id": "edamame",
+      "name": "枝豆（調理済み）",
+      "category": "卵・大豆・豆",
+      "aliases": "えだまめ",
+      "suggestedGrams": 100,
+      "sourceDataset": "SR Legacy 2018",
+      "fdcId": 168411,
+      "sourceDescription": "Edamame, frozen, prepared",
+      "per100g": {
+        "calories": 121,
+        "proteinG": 11.9,
+        "fatG": 5.2,
+        "carbsG": 8.91
+      }
+    },
+    {
+      "id": "hummus",
+      "name": "フムス",
+      "category": "卵・大豆・豆",
+      "aliases": "ひよこ豆 ペースト",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707402,
+      "sourceDescription": "Hummus, plain",
+      "per100g": {
+        "calories": 243,
+        "proteinG": 7.35,
+        "fatG": 17.1,
+        "carbsG": 14.9
+      }
+    },
+    {
+      "id": "chickpeas",
+      "name": "ひよこ豆（ゆで・油なし）",
+      "category": "卵・大豆・豆",
+      "aliases": "ガルバンゾ",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707416,
+      "sourceDescription": "Chickpeas, from dried, no added fat",
+      "per100g": {
+        "calories": 163,
+        "proteinG": 8.81,
+        "fatG": 2.58,
+        "carbsG": 27.3
+      }
+    },
+    {
+      "id": "black-beans",
+      "name": "黒豆（ゆで・油なし）",
+      "category": "卵・大豆・豆",
+      "aliases": "ブラックビーンズ",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707361,
+      "sourceDescription": "Black beans, from dried, no added fat",
+      "per100g": {
+        "calories": 131,
+        "proteinG": 8.81,
+        "fatG": 0.54,
+        "carbsG": 23.6
+      }
+    },
+    {
+      "id": "lentils",
+      "name": "レンズ豆（ゆで・油なし）",
+      "category": "卵・大豆・豆",
+      "aliases": "豆",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707425,
+      "sourceDescription": "Lentils, from dried, no added fat",
+      "per100g": {
+        "calories": 115,
+        "proteinG": 8.97,
+        "fatG": 0.38,
+        "carbsG": 20
+      }
+    },
+    {
+      "id": "salad",
+      "name": "グリーンサラダ（ドレッシングなし）",
+      "category": "野菜・サラダ",
+      "aliases": "レタス 生野菜",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709822,
+      "sourceDescription": "Lettuce, salad with assorted vegetables including tomatoes and/or carrots, no dressing",
+      "per100g": {
+        "calories": 24,
+        "proteinG": 1.07,
+        "fatG": 0.2,
+        "carbsG": 4.58
+      }
+    },
+    {
+      "id": "salad-avocado",
+      "name": "アボカド入りサラダ（ドレッシングなし）",
+      "category": "野菜・サラダ",
+      "aliases": "生野菜",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709824,
+      "sourceDescription": "Lettuce, salad with avocado, tomato, and/or carrots, with or without other vegetables, no dressing",
+      "per100g": {
+        "calories": 54,
+        "proteinG": 1.29,
+        "fatG": 3.39,
+        "carbsG": 5.5
+      }
+    },
+    {
+      "id": "salad-egg",
+      "name": "卵入りサラダ（ドレッシングなし）",
+      "category": "野菜・サラダ",
+      "aliases": "生野菜",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709826,
+      "sourceDescription": "Lettuce, salad with egg, tomato, and/or carrots, with or without other vegetables, no dressing",
+      "per100g": {
+        "calories": 50,
+        "proteinG": 3.4,
+        "fatG": 2.31,
+        "carbsG": 3.88
+      }
+    },
+    {
+      "id": "salad-chicken",
+      "name": "チキンサラダ（ドレッシングなし）",
+      "category": "野菜・サラダ",
+      "aliases": "鶏肉",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706810,
+      "sourceDescription": "Chicken or turkey garden salad, chicken and/or turkey, tomato and/or carrots, other vegetables, no dressing",
+      "per100g": {
+        "calories": 64,
+        "proteinG": 10.1,
+        "fatG": 1.33,
+        "carbsG": 3.04
+      }
+    },
+    {
+      "id": "salad-caesar",
+      "name": "シーザーサラダ（ドレッシングなし）",
+      "category": "野菜・サラダ",
+      "aliases": "レタス",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709591,
+      "sourceDescription": "Caesar salad, with romaine, no dressing",
+      "per100g": {
+        "calories": 77,
+        "proteinG": 4,
+        "fatG": 3.41,
+        "carbsG": 7.49
+      }
+    },
+    {
+      "id": "salad-potato",
+      "name": "ポテトサラダ（卵・マヨネーズ入り）",
+      "category": "野菜・サラダ",
+      "aliases": "じゃがいも",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709532,
+      "sourceDescription": "Potato salad with egg, made with mayonnaise",
+      "per100g": {
+        "calories": 157,
+        "proteinG": 1.96,
+        "fatG": 9.4,
+        "carbsG": 16.2
+      }
+    },
+    {
+      "id": "salad-coleslaw",
+      "name": "コールスロー",
+      "category": "野菜・サラダ",
+      "aliases": "キャベツ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709815,
+      "sourceDescription": "Coleslaw",
+      "per100g": {
+        "calories": 117,
+        "proteinG": 0.94,
+        "fatG": 7.98,
+        "carbsG": 10.4
+      }
+    },
+    {
+      "id": "salad-tomato-cucumber",
+      "name": "トマトとキュウリのサラダ（油入り）",
+      "category": "野菜・サラダ",
+      "aliases": "きゅうり",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709756,
+      "sourceDescription": "Tomato and cucumber salad made with tomato, cucumber, oil, and vinegar",
+      "per100g": {
+        "calories": 122,
+        "proteinG": 0.52,
+        "fatG": 10.2,
+        "carbsG": 6.35
+      }
+    },
+    {
+      "id": "broccoli",
+      "name": "ブロッコリー（生）",
+      "category": "野菜・サラダ",
+      "aliases": "ブロッコリ",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709643,
+      "sourceDescription": "Broccoli, raw",
+      "per100g": {
+        "calories": 39,
+        "proteinG": 2.57,
+        "fatG": 0.34,
+        "carbsG": 6.27
+      }
+    },
+    {
+      "id": "carrots",
+      "name": "ニンジン（生）",
+      "category": "野菜・サラダ",
+      "aliases": "人参 にんじん",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709660,
+      "sourceDescription": "Carrots, raw",
+      "per100g": {
+        "calories": 44,
+        "proteinG": 0.87,
+        "fatG": 0.24,
+        "carbsG": 9.68
+      }
+    },
+    {
+      "id": "tomatoes",
+      "name": "トマト（生）",
+      "category": "野菜・サラダ",
+      "aliases": "とまと",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709719,
+      "sourceDescription": "Tomatoes, raw",
+      "per100g": {
+        "calories": 20,
+        "proteinG": 0.82,
+        "fatG": 0.31,
+        "carbsG": 4.04
+      }
+    },
+    {
+      "id": "cucumber",
+      "name": "キュウリ（生）",
+      "category": "野菜・サラダ",
+      "aliases": "きゅうり",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709784,
+      "sourceDescription": "Cucumber, raw",
+      "per100g": {
+        "calories": 16,
+        "proteinG": 0.62,
+        "fatG": 0.18,
+        "carbsG": 2.95
+      }
+    },
+    {
+      "id": "spinach",
+      "name": "ほうれん草（生）",
+      "category": "野菜・サラダ",
+      "aliases": "ホウレンソウ",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709614,
+      "sourceDescription": "Spinach, raw",
+      "per100g": {
+        "calories": 27,
+        "proteinG": 2.85,
+        "fatG": 0.62,
+        "carbsG": 2.41
+      }
+    },
+    {
+      "id": "avocado",
+      "name": "アボカド（生）",
+      "category": "野菜・サラダ",
+      "aliases": "あぼかど",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709223,
+      "sourceDescription": "Avocado, raw",
+      "per100g": {
+        "calories": 160,
+        "proteinG": 2,
+        "fatG": 14.7,
+        "carbsG": 8.53
+      }
+    },
+    {
+      "id": "potato-baked",
+      "name": "焼きじゃがいも",
+      "category": "野菜・サラダ",
+      "aliases": "ベイクドポテト",
+      "suggestedGrams": 180,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709383,
+      "sourceDescription": "Potato, baked, NFS",
+      "per100g": {
+        "calories": 93,
+        "proteinG": 1.95,
+        "fatG": 0.1,
+        "carbsG": 21.4
+      }
+    },
+    {
+      "id": "potato-mashed",
+      "name": "マッシュポテト（牛乳入り）",
+      "category": "野菜・サラダ",
+      "aliases": "じゃがいも",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709496,
+      "sourceDescription": "Potato, mashed, from fresh, made with milk",
+      "per100g": {
+        "calories": 114,
+        "proteinG": 2.15,
+        "fatG": 4.07,
+        "carbsG": 17.6
+      }
+    },
+    {
+      "id": "potato-fries",
+      "name": "フライドポテト",
+      "category": "野菜・サラダ",
+      "aliases": "ポテトフライ",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709456,
+      "sourceDescription": "Potato, french fries, NFS",
+      "per100g": {
+        "calories": 225,
+        "proteinG": 2.5,
+        "fatG": 14.1,
+        "carbsG": 23.2
+      }
+    },
+    {
+      "id": "sweet-potato",
+      "name": "焼きさつまいも（油なし）",
+      "category": "野菜・サラダ",
+      "aliases": "サツマイモ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709699,
+      "sourceDescription": "Sweet potato, baked, no added fat",
+      "per100g": {
+        "calories": 82,
+        "proteinG": 1.64,
+        "fatG": 0.39,
+        "carbsG": 18
+      }
+    },
+    {
+      "id": "bread",
+      "name": "食パン（白）",
+      "category": "パン・軽食",
+      "aliases": "トースト",
+      "suggestedGrams": 60,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707598,
+      "sourceDescription": "Bread, white",
+      "per100g": {
+        "calories": 267,
+        "proteinG": 9.43,
+        "fatG": 3.59,
+        "carbsG": 49.2
+      }
+    },
+    {
+      "id": "bread-whole-wheat",
+      "name": "全粒粉パン",
+      "category": "パン・軽食",
+      "aliases": "全粒パン",
+      "suggestedGrams": 60,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707709,
+      "sourceDescription": "Bread, whole wheat",
+      "per100g": {
+        "calories": 254,
+        "proteinG": 12.3,
+        "fatG": 3.55,
+        "carbsG": 43.1
+      }
+    },
+    {
+      "id": "bagel",
+      "name": "ベーグル",
+      "category": "パン・軽食",
+      "aliases": "パン",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707684,
+      "sourceDescription": "Bagel",
+      "per100g": {
+        "calories": 264,
+        "proteinG": 10.6,
+        "fatG": 1.32,
+        "carbsG": 52.4
+      }
+    },
+    {
+      "id": "croissant",
+      "name": "クロワッサン",
+      "category": "パン・軽食",
+      "aliases": "パン",
+      "suggestedGrams": 60,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707678,
+      "sourceDescription": "Croissant",
+      "per100g": {
+        "calories": 406,
+        "proteinG": 8.2,
+        "fatG": 21,
+        "carbsG": 45.8
+      }
+    },
+    {
+      "id": "pancakes",
+      "name": "パンケーキ（プレーン）",
+      "category": "パン・軽食",
+      "aliases": "ホットケーキ",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708294,
+      "sourceDescription": "Pancakes, NFS",
+      "per100g": {
+        "calories": 282,
+        "proteinG": 7.41,
+        "fatG": 12.1,
+        "carbsG": 35.3
+      }
+    },
+    {
+      "id": "waffle",
+      "name": "ワッフル（プレーン）",
+      "category": "パン・軽食",
+      "aliases": "ワッフル",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708312,
+      "sourceDescription": "Waffle, NFS",
+      "per100g": {
+        "calories": 309,
+        "proteinG": 7.42,
+        "fatG": 9.49,
+        "carbsG": 48.4
+      }
+    },
+    {
+      "id": "french-toast",
+      "name": "フレンチトースト",
+      "category": "パン・軽食",
+      "aliases": "トースト",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708335,
+      "sourceDescription": "French toast, plain",
+      "per100g": {
+        "calories": 273,
+        "proteinG": 10.4,
+        "fatG": 11.4,
+        "carbsG": 32.3
+      }
+    },
+    {
+      "id": "hamburger",
+      "name": "ハンバーガー",
+      "category": "パン・軽食",
+      "aliases": "バーガー",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706920,
+      "sourceDescription": "Hamburger, NFS",
+      "per100g": {
+        "calories": 288,
+        "proteinG": 17.5,
+        "fatG": 14.4,
+        "carbsG": 20.7
+      }
+    },
+    {
+      "id": "cheeseburger",
+      "name": "チーズバーガー",
+      "category": "パン・軽食",
+      "aliases": "バーガー",
+      "suggestedGrams": 220,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706888,
+      "sourceDescription": "Cheeseburger, NFS",
+      "per100g": {
+        "calories": 296,
+        "proteinG": 17.9,
+        "fatG": 16.2,
+        "carbsG": 18.7
+      }
+    },
+    {
+      "id": "hotdog",
+      "name": "ホットドッグ",
+      "category": "パン・軽食",
+      "aliases": "ソーセージ パン",
+      "suggestedGrams": 180,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707056,
+      "sourceDescription": "Hot dog sandwich, NFS, on white bun",
+      "per100g": {
+        "calories": 296,
+        "proteinG": 10.8,
+        "fatG": 17.4,
+        "carbsG": 23.7
+      }
+    },
+    {
+      "id": "sandwich-egg",
+      "name": "たまごサンド",
+      "category": "パン・軽食",
+      "aliases": "卵サンド",
+      "suggestedGrams": 180,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707307,
+      "sourceDescription": "Egg sandwich on white bread",
+      "per100g": {
+        "calories": 228,
+        "proteinG": 10.5,
+        "fatG": 9.05,
+        "carbsG": 26.1
+      }
+    },
+    {
+      "id": "sandwich-tuna",
+      "name": "ツナサンド",
+      "category": "パン・軽食",
+      "aliases": "サンドイッチ",
+      "suggestedGrams": 180,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707034,
+      "sourceDescription": "Tuna salad sandwich on white",
+      "per100g": {
+        "calories": 218,
+        "proteinG": 9.86,
+        "fatG": 11.8,
+        "carbsG": 18.3
+      }
+    },
+    {
+      "id": "sandwich-turkey",
+      "name": "ターキーサンド",
+      "category": "パン・軽食",
+      "aliases": "サンドイッチ",
+      "suggestedGrams": 180,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2706981,
+      "sourceDescription": "Turkey sandwich on white",
+      "per100g": {
+        "calories": 189,
+        "proteinG": 12,
+        "fatG": 3.68,
+        "carbsG": 26.5
+      }
+    },
+    {
+      "id": "pizza",
+      "name": "チーズピザ",
+      "category": "パン・軽食",
+      "aliases": "ピッツァ",
+      "suggestedGrams": 180,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708614,
+      "sourceDescription": "Pizza, cheese, from restaurant or fast food, NS as to type of crust",
+      "per100g": {
+        "calories": 266,
+        "proteinG": 11.4,
+        "fatG": 9.69,
+        "carbsG": 33.3
+      }
+    },
+    {
+      "id": "pizza-pepperoni",
+      "name": "ペパロニピザ",
+      "category": "パン・軽食",
+      "aliases": "ピッツァ",
+      "suggestedGrams": 180,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708638,
+      "sourceDescription": "Pizza with pepperoni, from restaurant or fast food, NS as to type of crust",
+      "per100g": {
+        "calories": 282,
+        "proteinG": 11.7,
+        "fatG": 11.9,
+        "carbsG": 32
+      }
+    },
+    {
+      "id": "pizza-vegetable",
+      "name": "野菜ピザ",
+      "category": "パン・軽食",
+      "aliases": "ピッツァ",
+      "suggestedGrams": 180,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708627,
+      "sourceDescription": "Pizza, cheese, with vegetables, from restaurant or fast food, medium crust",
+      "per100g": {
+        "calories": 242,
+        "proteinG": 10.3,
+        "fatG": 8.69,
+        "carbsG": 30.7
+      }
+    },
+    {
+      "id": "taco-beef",
+      "name": "ビーフタコス",
+      "category": "パン・軽食",
+      "aliases": "タコ",
+      "suggestedGrams": 180,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708515,
+      "sourceDescription": "Taco, corn tortilla, beef, cheese",
+      "per100g": {
+        "calories": 249,
+        "proteinG": 15.5,
+        "fatG": 13.9,
+        "carbsG": 15.3
+      }
+    },
+    {
+      "id": "burrito-chicken",
+      "name": "チキンブリトー",
+      "category": "パン・軽食",
+      "aliases": "メキシコ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708543,
+      "sourceDescription": "Burrito, chicken, cheese",
+      "per100g": {
+        "calories": 244,
+        "proteinG": 13.7,
+        "fatG": 8.06,
+        "carbsG": 28.3
+      }
+    },
+    {
+      "id": "soup-chicken-noodle",
+      "name": "チキンヌードルスープ",
+      "category": "スープ",
+      "aliases": "鶏肉 スープ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709149,
+      "sourceDescription": "Soup, chicken noodle",
+      "per100g": {
+        "calories": 53,
+        "proteinG": 3.84,
+        "fatG": 1.4,
+        "carbsG": 6.21
+      }
+    },
+    {
+      "id": "soup-tomato",
+      "name": "トマトスープ",
+      "category": "スープ",
+      "aliases": "スープ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709757,
+      "sourceDescription": "Soup, tomato",
+      "per100g": {
+        "calories": 19,
+        "proteinG": 0.65,
+        "fatG": 0.41,
+        "carbsG": 3.64
+      }
+    },
+    {
+      "id": "soup-vegetable",
+      "name": "野菜スープ",
+      "category": "スープ",
+      "aliases": "スープ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2710113,
+      "sourceDescription": "Soup, vegetable",
+      "per100g": {
+        "calories": 27,
+        "proteinG": 0.84,
+        "fatG": 0.45,
+        "carbsG": 5.08
+      }
+    },
+    {
+      "id": "soup-minestrone",
+      "name": "ミネストローネ",
+      "category": "スープ",
+      "aliases": "野菜スープ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2710114,
+      "sourceDescription": "Soup, minestrone",
+      "per100g": {
+        "calories": 40,
+        "proteinG": 1.71,
+        "fatG": 0.5,
+        "carbsG": 7.3
+      }
+    },
+    {
+      "id": "soup-lentil",
+      "name": "レンズ豆のスープ",
+      "category": "スープ",
+      "aliases": "豆 スープ",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707462,
+      "sourceDescription": "Soup, lentil",
+      "per100g": {
+        "calories": 60,
+        "proteinG": 3.82,
+        "fatG": 0.69,
+        "carbsG": 10.2
+      }
+    },
+    {
+      "id": "soup-pho",
+      "name": "フォー（肉なし）",
+      "category": "スープ",
+      "aliases": "ベトナム 米麺",
+      "suggestedGrams": 450,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707125,
+      "sourceDescription": "Soup, pho, no meat",
+      "per100g": {
+        "calories": 37,
+        "proteinG": 1.42,
+        "fatG": 0.93,
+        "carbsG": 5.9
+      }
+    },
+    {
+      "id": "banana",
+      "name": "バナナ",
+      "category": "果物",
+      "aliases": "ばなな",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709224,
+      "sourceDescription": "Banana, raw",
+      "per100g": {
+        "calories": 97,
+        "proteinG": 0.74,
+        "fatG": 0.28,
+        "carbsG": 22.7
+      }
+    },
+    {
+      "id": "apple",
+      "name": "りんご",
+      "category": "果物",
+      "aliases": "リンゴ 林檎",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709215,
+      "sourceDescription": "Apple, raw",
+      "per100g": {
+        "calories": 61,
+        "proteinG": 0.17,
+        "fatG": 0.15,
+        "carbsG": 14.8
+      }
+    },
+    {
+      "id": "orange",
+      "name": "オレンジ",
+      "category": "果物",
+      "aliases": "みかん",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709171,
+      "sourceDescription": "Orange, raw",
+      "per100g": {
+        "calories": 50,
+        "proteinG": 0.92,
+        "fatG": 0.14,
+        "carbsG": 11.8
+      }
+    },
+    {
+      "id": "pear",
+      "name": "洋なし",
+      "category": "果物",
+      "aliases": "梨 なし",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709254,
+      "sourceDescription": "Pear, raw",
+      "per100g": {
+        "calories": 59,
+        "proteinG": 0.37,
+        "fatG": 0.15,
+        "carbsG": 15.2
+      }
+    },
+    {
+      "id": "grapes",
+      "name": "ぶどう",
+      "category": "果物",
+      "aliases": "ブドウ 葡萄",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709237,
+      "sourceDescription": "Grapes, raw",
+      "per100g": {
+        "calories": 83,
+        "proteinG": 0.9,
+        "fatG": 0.2,
+        "carbsG": 19.4
+      }
+    },
+    {
+      "id": "strawberries",
+      "name": "いちご",
+      "category": "果物",
+      "aliases": "イチゴ 苺",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709283,
+      "sourceDescription": "Strawberries, raw",
+      "per100g": {
+        "calories": 36,
+        "proteinG": 0.64,
+        "fatG": 0.22,
+        "carbsG": 7.96
+      }
+    },
+    {
+      "id": "blueberries",
+      "name": "ブルーベリー",
+      "category": "果物",
+      "aliases": "ベリー",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709275,
+      "sourceDescription": "Blueberries, raw",
+      "per100g": {
+        "calories": 64,
+        "proteinG": 0.7,
+        "fatG": 0.31,
+        "carbsG": 14.6
+      }
+    },
+    {
+      "id": "watermelon",
+      "name": "スイカ",
+      "category": "果物",
+      "aliases": "すいか",
+      "suggestedGrams": 150,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709270,
+      "sourceDescription": "Watermelon, raw",
+      "per100g": {
+        "calories": 30,
+        "proteinG": 0.61,
+        "fatG": 0.15,
+        "carbsG": 7.55
+      }
+    },
+    {
+      "id": "pineapple",
+      "name": "パイナップル",
+      "category": "果物",
+      "aliases": "パイン",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709260,
+      "sourceDescription": "Pineapple, raw",
+      "per100g": {
+        "calories": 60,
+        "proteinG": 0.46,
+        "fatG": 0.21,
+        "carbsG": 14.1
+      }
+    },
+    {
+      "id": "milk-whole",
+      "name": "牛乳（全脂）",
+      "category": "乳製品・飲み物",
+      "aliases": "ミルク",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705385,
+      "sourceDescription": "Milk, whole",
+      "per100g": {
+        "calories": 61,
+        "proteinG": 3.27,
+        "fatG": 3.2,
+        "carbsG": 4.63
+      }
+    },
+    {
+      "id": "milk-lowfat",
+      "name": "牛乳（低脂肪・2%）",
+      "category": "乳製品・飲み物",
+      "aliases": "ミルク",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705386,
+      "sourceDescription": "Milk, reduced fat (2%)",
+      "per100g": {
+        "calories": 50,
+        "proteinG": 3.36,
+        "fatG": 1.9,
+        "carbsG": 4.9
+      }
+    },
+    {
+      "id": "milk-skim",
+      "name": "無脂肪牛乳",
+      "category": "乳製品・飲み物",
+      "aliases": "スキムミルク",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705388,
+      "sourceDescription": "Milk, fat free (skim)",
+      "per100g": {
+        "calories": 34,
+        "proteinG": 3.43,
+        "fatG": 0.08,
+        "carbsG": 4.92
+      }
+    },
+    {
+      "id": "soy-milk",
+      "name": "豆乳（無糖）",
+      "category": "乳製品・飲み物",
+      "aliases": "ソイミルク",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705405,
+      "sourceDescription": "Soy milk, unsweetened",
+      "per100g": {
+        "calories": 38,
+        "proteinG": 3.55,
+        "fatG": 2.12,
+        "carbsG": 1.29
+      }
+    },
+    {
+      "id": "almond-milk",
+      "name": "アーモンドミルク（無糖）",
+      "category": "乳製品・飲み物",
+      "aliases": "植物性ミルク",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705409,
+      "sourceDescription": "Almond milk, unsweetened",
+      "per100g": {
+        "calories": 15,
+        "proteinG": 0.55,
+        "fatG": 1.22,
+        "carbsG": 0.34
+      }
+    },
+    {
+      "id": "yogurt",
+      "name": "ギリシャヨーグルト（無脂肪・プレーン）",
+      "category": "乳製品・飲み物",
+      "aliases": "ヨーグルト",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705424,
+      "sourceDescription": "Yogurt, Greek, nonfat milk, plain",
+      "per100g": {
+        "calories": 59,
+        "proteinG": 10.3,
+        "fatG": 0.37,
+        "carbsG": 3.64
+      }
+    },
+    {
+      "id": "yogurt-whole",
+      "name": "プレーンヨーグルト（全脂）",
+      "category": "乳製品・飲み物",
+      "aliases": "ヨーグルト",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705418,
+      "sourceDescription": "Yogurt, whole milk, plain",
+      "per100g": {
+        "calories": 78,
+        "proteinG": 3.82,
+        "fatG": 4.48,
+        "carbsG": 5.57
+      }
+    },
+    {
+      "id": "cheese-cheddar",
+      "name": "チェダーチーズ",
+      "category": "乳製品・飲み物",
+      "aliases": "チーズ",
+      "suggestedGrams": 30,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705709,
+      "sourceDescription": "Cheese, Cheddar",
+      "per100g": {
+        "calories": 409,
+        "proteinG": 23.3,
+        "fatG": 34,
+        "carbsG": 2.44
+      }
+    },
+    {
+      "id": "cheese-mozzarella",
+      "name": "モッツァレラチーズ",
+      "category": "乳製品・飲み物",
+      "aliases": "チーズ",
+      "suggestedGrams": 30,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705722,
+      "sourceDescription": "Cheese, Mozzarella, NFS",
+      "per100g": {
+        "calories": 296,
+        "proteinG": 23.7,
+        "fatG": 20.4,
+        "carbsG": 4.44
+      }
+    },
+    {
+      "id": "protein-shake",
+      "name": "たんぱく質入りフルーツスムージー",
+      "category": "乳製品・飲み物",
+      "aliases": "プロテイン スムージー",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705515,
+      "sourceDescription": "Fruit smoothie, with whole fruit and dairy, added protein",
+      "per100g": {
+        "calories": 79,
+        "proteinG": 7.35,
+        "fatG": 1.24,
+        "carbsG": 10
+      }
+    },
+    {
+      "id": "smoothie-fruit",
+      "name": "フルーツスムージー",
+      "category": "乳製品・飲み物",
+      "aliases": "果物",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705514,
+      "sourceDescription": "Fruit smoothie, with whole fruit and dairy",
+      "per100g": {
+        "calories": 66,
+        "proteinG": 2.32,
+        "fatG": 1.1,
+        "carbsG": 12
+      }
+    },
+    {
+      "id": "coffee",
+      "name": "ブラックコーヒー",
+      "category": "乳製品・飲み物",
+      "aliases": "珈琲",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2710375,
+      "sourceDescription": "Coffee, brewed",
+      "per100g": {
+        "calories": 1,
+        "proteinG": 0.12,
+        "fatG": 0.02,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "green-tea",
+      "name": "緑茶（無糖）",
+      "category": "乳製品・飲み物",
+      "aliases": "お茶",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2710490,
+      "sourceDescription": "Tea, hot, leaf, green",
+      "per100g": {
+        "calories": 1,
+        "proteinG": 0.22,
+        "fatG": 0,
+        "carbsG": 0
+      }
+    },
+    {
+      "id": "black-tea",
+      "name": "紅茶（無糖）",
+      "category": "乳製品・飲み物",
+      "aliases": "お茶",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2710488,
+      "sourceDescription": "Tea, hot, leaf, black",
+      "per100g": {
+        "calories": 1,
+        "proteinG": 0,
+        "fatG": 0,
+        "carbsG": 0.3
+      }
+    },
+    {
+      "id": "orange-juice",
+      "name": "オレンジジュース100%",
+      "category": "乳製品・飲み物",
+      "aliases": "果汁",
+      "suggestedGrams": 200,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709186,
+      "sourceDescription": "Orange juice, 100%, NFS",
+      "per100g": {
+        "calories": 47,
+        "proteinG": 0.77,
+        "fatG": 0.34,
+        "carbsG": 10.2
+      }
+    },
+    {
+      "id": "cola",
+      "name": "コーラ",
+      "category": "乳製品・飲み物",
+      "aliases": "炭酸",
+      "suggestedGrams": 250,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2710541,
+      "sourceDescription": "Soft drink, cola",
+      "per100g": {
+        "calories": 42,
+        "proteinG": 0,
+        "fatG": 0.25,
+        "carbsG": 10.4
+      }
+    },
+    {
+      "id": "almonds",
+      "name": "アーモンド（無塩）",
+      "category": "菓子・間食",
+      "aliases": "ナッツ",
+      "suggestedGrams": 30,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707489,
+      "sourceDescription": "Almonds, unsalted",
+      "per100g": {
+        "calories": 607,
+        "proteinG": 20.3,
+        "fatG": 54,
+        "carbsG": 20.4
+      }
+    },
+    {
+      "id": "peanut-butter",
+      "name": "ピーナッツバター",
+      "category": "菓子・間食",
+      "aliases": "ナッツ",
+      "suggestedGrams": 20,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707537,
+      "sourceDescription": "Peanut butter",
+      "per100g": {
+        "calories": 598,
+        "proteinG": 22.2,
+        "fatG": 51.4,
+        "carbsG": 22.3
+      }
+    },
+    {
+      "id": "popcorn",
+      "name": "ポップコーン（油・バターなし）",
+      "category": "菓子・間食",
+      "aliases": "とうもろこし",
+      "suggestedGrams": 30,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708219,
+      "sourceDescription": "Popcorn, air-popped, no butter added",
+      "per100g": {
+        "calories": 385,
+        "proteinG": 12.9,
+        "fatG": 4.52,
+        "carbsG": 77.5
+      }
+    },
+    {
+      "id": "potato-chips",
+      "name": "ポテトチップス（プレーン）",
+      "category": "菓子・間食",
+      "aliases": "スナック",
+      "suggestedGrams": 50,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2709422,
+      "sourceDescription": "Potato chips, plain",
+      "per100g": {
+        "calories": 532,
+        "proteinG": 6.39,
+        "fatG": 34,
+        "carbsG": 53.8
+      }
+    },
+    {
+      "id": "cookie",
+      "name": "チョコチップクッキー",
+      "category": "菓子・間食",
+      "aliases": "クッキー",
+      "suggestedGrams": 50,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707909,
+      "sourceDescription": "Cookie, chocolate chip",
+      "per100g": {
+        "calories": 492,
+        "proteinG": 5.1,
+        "fatG": 24.7,
+        "carbsG": 65.4
+      }
+    },
+    {
+      "id": "ice-cream",
+      "name": "バニラアイスクリーム",
+      "category": "菓子・間食",
+      "aliases": "アイス",
+      "suggestedGrams": 100,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2705630,
+      "sourceDescription": "Ice cream, vanilla",
+      "per100g": {
+        "calories": 207,
+        "proteinG": 3.5,
+        "fatG": 11,
+        "carbsG": 23.6
+      }
+    },
+    {
+      "id": "cheesecake",
+      "name": "チーズケーキ",
+      "category": "菓子・間食",
+      "aliases": "ケーキ",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707861,
+      "sourceDescription": "Cheesecake, plain",
+      "per100g": {
+        "calories": 399,
+        "proteinG": 5.29,
+        "fatG": 26.5,
+        "carbsG": 34.8
+      }
+    },
+    {
+      "id": "chocolate-cake",
+      "name": "チョコレートケーキ（クリームなし）",
+      "category": "菓子・間食",
+      "aliases": "ケーキ",
+      "suggestedGrams": 120,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2707868,
+      "sourceDescription": "Cake or cupcake, chocolate, no icing",
+      "per100g": {
+        "calories": 303,
+        "proteinG": 5.08,
+        "fatG": 13.2,
+        "carbsG": 43.3
+      }
+    },
+    {
+      "id": "doughnut",
+      "name": "ドーナツ",
+      "category": "菓子・間食",
+      "aliases": "ドーナッツ",
+      "suggestedGrams": 80,
+      "sourceDataset": "FNDDS 2021–2023",
+      "fdcId": 2708062,
+      "sourceDescription": "Doughnut, NFS",
+      "per100g": {
+        "calories": 426,
+        "proteinG": 5.52,
+        "fatG": 22.9,
+        "carbsG": 49.5
+      }
+    }
+  ]
+}
