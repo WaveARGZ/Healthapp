@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { RecordActions } from "@/components/ui/record-actions";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
@@ -37,9 +37,8 @@ export function WeightRecorder() {
     <PageHeader title="体重" description="日付と体重を入力して保存。" />
     {latest && <div className="mb-8 flex items-center justify-between border-y border-[var(--ink)] py-6"><div><p className="text-xs text-[var(--muted)]">最新の記録</p><p className="metric mt-2 text-5xl font-medium">{latest.weightKg}<span className="ml-2 text-sm text-[var(--muted)]">kg</span></p></div><p className="text-xs text-[var(--muted)]">{formatDate(latest.measuredOn)}</p></div>}
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 gap-5 min-[360px]:grid-cols-2"><div><FieldLabel htmlFor="weight-date">日付</FieldLabel><TextInput id="weight-date" type="date" value={measuredOn} onChange={(event) => setMeasuredOn(event.target.value)} required /></div><div><FieldLabel htmlFor="weight-value">体重 (kg)</FieldLabel><TextInput id="weight-value" type="number" min="20" max="400" step="0.1" inputMode="decimal" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="例：62.5" required className="metric" /></div></div>
-      <Button type="submit" className="w-full" disabled={isSaving}>{isSaving ? "保存中…" : "体重を保存"}</Button>
-      {notice && <p role="status" className="text-sm text-[var(--sage-deep)]">{notice}</p>}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2"><div><FieldLabel htmlFor="weight-date">日付</FieldLabel><TextInput id="weight-date" type="date" value={measuredOn} onChange={(event) => setMeasuredOn(event.target.value)} required /></div><div><FieldLabel htmlFor="weight-value">体重 (kg)</FieldLabel><TextInput id="weight-value" type="number" min="20" max="400" step="0.1" inputMode="decimal" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="例：62.5" required className="metric" /></div></div>
+      <RecordActions label={isSaving ? "保存中…" : "体重を保存"} summary={weightKg ? `${weightKg} kg` : "体重の記録"} disabled={isSaving || !weightKg} notice={notice} />
     </form>
     <section className="mt-12"><div className="mb-4 flex items-center justify-between"><h2 className="section-title">これまでの記録</h2><span className="text-xs text-[var(--muted)]">{entries.length}件</span></div>
       {entries.length === 0 ? <EmptyState description="保存した体重はここに表示されます。" /> : <div className="border-t border-[var(--line)]">{entries.map((entry) => <div key={entry.id} className="flex items-center gap-3 border-b border-[var(--line)] py-3"><p className="flex-1 text-xs text-[var(--muted)]">{formatDate(entry.measuredOn)}</p><p className="metric text-xl font-medium">{entry.weightKg}<span className="ml-1 text-xs text-[var(--muted)]">kg</span></p><button type="button" aria-label="この体重記録を削除" onClick={() => void deleteEntry(entry.id)} className="delete-button"><Icon name="trash" className="size-4" /></button></div>)}</div>}

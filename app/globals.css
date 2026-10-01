@@ -16,6 +16,8 @@
   --coral-soft: #fbefec;
   --background: var(--canvas);
   --foreground: var(--ink);
+  --page-gutter: 16px;
+  --mobile-nav-height: 68px;
 }
 
 @theme inline {
@@ -35,6 +37,8 @@ body {
 * { -webkit-tap-highlight-color: transparent; }
 button, input, select, textarea { font-family: inherit; }
 button:not(:disabled), summary, select { cursor: pointer; }
+input, select, textarea { scroll-margin-block: 24px 180px; }
+html { scroll-padding-bottom: 180px; }
 :focus-visible { outline: 2px solid var(--sage-deep); outline-offset: 4px; }
 ::selection { background: #d8e4ca; color: var(--ink); }
 
@@ -49,13 +53,72 @@ button:not(:disabled), summary, select { cursor: pointer; }
   .delete-button:hover { color: var(--coral); background: var(--coral-soft); }
   .text-link { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sage-deep); }
   .text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
-  .setup-page { min-height: 100dvh; padding: 24px 20px 48px; background: var(--canvas); }
+  .setup-page { min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); background: var(--canvas); }
   .setup-content { margin: 0 auto; width: 100%; max-width: 480px; }
   .setup-heading { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 28px; }
   .setup-title { margin-top: 12px; font-size: 28px; line-height: 1.6; font-weight: 700; letter-spacing: -.025em; }
   .setup-step { font-size: 12px; font-weight: 600; color: var(--sage-deep); }
   .choice-tab { min-height: 48px; border-bottom: 2px solid transparent; padding: 8px 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
   .choice-tab[aria-pressed="true"] { border-color: var(--sage-deep); color: var(--sage-deep); }
+  .safe-gutters { padding-left: max(var(--page-gutter), env(safe-area-inset-left)); padding-right: max(var(--page-gutter), env(safe-area-inset-right)); }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .app-content {
+    padding: 24px max(var(--page-gutter), env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) max(var(--page-gutter), env(safe-area-inset-left));
+  }
+  .app-content[data-recording="true"] { padding-bottom: calc(220px + env(safe-area-inset-bottom)); }
+  .mobile-nav { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+  .record-actions {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+    z-index: 20;
+    border-top: 1px solid var(--line);
+    background: white;
+    padding: 12px max(var(--page-gutter), env(safe-area-inset-right)) 12px max(var(--page-gutter), env(safe-area-inset-left));
+  }
+  .exercise-dialog {
+    position: fixed;
+    inset-inline: 0;
+    top: var(--visual-top, 0px);
+    height: var(--visual-height, 100dvh);
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    background: rgb(0 0 0 / .3);
+  }
+  .exercise-dialog-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    background: white;
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  @media (min-width: 640px) {
+    .app-content { padding-top: 32px; }
+    .exercise-dialog { align-items: center; padding: 16px; }
+    .exercise-dialog-panel { max-width: 576px; max-height: 100%; border-radius: 8px; padding-top: 0; }
+  }
+  @media (max-width: 1023px) {
+    [data-keyboard-open="true"] .mobile-nav { display: none; }
+    [data-keyboard-open="true"] .record-actions { position: static; margin-top: 24px; border: 0; padding: 0; }
+  }
+  @media (max-height: 500px) and (max-width: 1023px) {
+    .record-actions { position: static; margin-top: 24px; border: 0; padding: 0; }
+    .app-content[data-recording="true"] { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  }
+  @media (min-width: 1024px) {
+    .app-content, .app-content[data-recording="true"] { padding: 40px 0; }
+    .record-actions { position: static; margin-top: 24px; border: 0; padding: 0; }
+    .exercise-dialog-panel { max-height: min(740px, 88dvh); }
+  }
+}
+
+@media (min-width: 640px) {
+  :root { --page-gutter: 32px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

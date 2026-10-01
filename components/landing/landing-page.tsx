@@ -10,12 +10,12 @@ const features: Array<{ number: string; icon: IconName; title: string; text: str
 
 export function LandingPage() {
   return <main className="min-h-dvh bg-white">
-    <header className="border-b border-[var(--line)]">
-      <div className="mx-auto flex min-h-20 max-w-6xl items-center justify-between px-5 sm:px-8">
+    <header className="safe-top border-b border-[var(--line)]">
+      <div className="mx-auto flex min-h-20 max-w-6xl items-center justify-between safe-gutters">
         <Logo /><Link href="/login" className="text-link text-[var(--ink)]">ログイン<Icon name="arrow-right" className="size-4" /></Link>
       </div>
     </header>
-    <section className="mx-auto grid max-w-6xl gap-12 px-5 pb-16 pt-12 sm:px-8 sm:py-20 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:py-24">
+    <section className="mx-auto grid max-w-6xl gap-12 safe-gutters pb-16 pt-12 sm:py-20 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:py-24">
       <div>
         <p className="mb-6 flex items-center gap-3 text-xs font-semibold tracking-wider text-[var(--sage-deep)]"><span className="h-px w-8 bg-current" />身体づくりの記録帳</p>
         <h1 className="text-[clamp(2.15rem,5vw,3.5rem)] font-bold leading-[1.65] tracking-[-0.05em]">理想の身体を、<br />見える目標に。</h1>
@@ -34,11 +34,11 @@ export function LandingPage() {
       </div>
     </section>
     <section className="border-t border-[var(--line)]">
-      <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
+      <div className="mx-auto max-w-6xl safe-gutters py-12 sm:py-16">
         <h2 className="text-2xl font-bold tracking-tight">記録することは、シンプルに。</h2>
         <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">{features.map((item) => <div key={item.number} className="border-t border-[var(--line)] pt-5"><div className="flex items-center justify-between"><span className="metric text-xs text-[var(--muted)]">{item.number}</span><Icon name={item.icon} className="size-5 text-[var(--sage-deep)]" /></div><h3 className="mt-6 text-base font-bold">{item.title}</h3><p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.text}</p></div>)}</div>
       </div>
     </section>
-    <footer className="border-t border-[var(--line)]"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-6 text-[11px] text-[var(--muted)] sm:px-8"><span>BodyMake</span><span>現在はこのブラウザ内に記録を保存します。</span></div></footer>
+    <footer className="border-t border-[var(--line)]"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 safe-gutters safe-bottom pt-6 text-[11px] text-[var(--muted)]"><span>BodyMake</span><span>現在はこのブラウザ内に記録を保存します。</span></div></footer>
   </main>;
 }

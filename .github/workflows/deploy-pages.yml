@@ -36,6 +36,9 @@ jobs:
       - name: Build static site
         run: npm run build
 
+      - name: Verify mobile keyboard detection
+        run: npm run test:mobile-viewport
+
       - name: Verify exported pages and logo paths
         run: npm run test:static-ui
 

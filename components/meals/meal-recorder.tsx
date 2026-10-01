@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { FoodLibrarySearch } from "@/components/meals/food-library-search";
+import { RecordActions } from "@/components/ui/record-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { PhotoMealAnalyzer } from "@/components/meals/photo-meal-analyzer";
 import { bodyMakeClient } from "@/lib/api/client";
@@ -94,14 +95,13 @@ export function MealRecorder() {
         <Button type="button" variant="secondary" className="mt-4 w-full" onClick={() => setFoods((current) => [...current, newFood()])}><Icon name="plus" className="size-4" />もう一品追加</Button>
       </section>
 
-      <div className="mt-6 border-y border-[var(--ink)] py-5"><p className="mb-4 text-xs font-semibold">この食事の合計</p><dl className="grid grid-cols-4 gap-2">{([
+      <div className="mt-6 border-y border-[var(--ink)] py-5"><p className="mb-4 text-xs font-semibold">この食事の合計</p><dl className="grid grid-cols-2 gap-4 min-[400px]:grid-cols-4">{([
         ["カロリー", totals.calories, "kcal"],
         ["たんぱく質", totals.proteinG, "g"],
         ["脂質", totals.fatG, "g"],
         ["炭水化物", totals.carbsG, "g"],
       ] as const).map(([label, value, unit]) => <div key={label}><dt className="text-[10px] text-[var(--muted)]">{label}</dt><dd className="metric mt-2 text-xl font-semibold sm:text-2xl">{value === undefined ? "—" : Math.round(value * 10) / 10}<span className="ml-1 text-[10px] font-normal text-[var(--muted)]">{unit}</span></dd></div>)}</dl></div>
-      <Button type="submit" className="mt-6 w-full" disabled={isSaving || !foods.some((food) => food.name.trim())}>{isSaving ? "保存中…" : `${mealTypeLabels[mealType]}を保存`}</Button>
-      {notice && <p role="status" className="mt-3 text-sm text-[var(--sage-deep)]">{notice}</p>}
+      <RecordActions label={isSaving ? "保存中…" : `${mealTypeLabels[mealType]}を保存`} summary={`${foods.filter((food) => food.name.trim()).length} 品`} disabled={isSaving || !foods.some((food) => food.name.trim())} notice={notice} />
     </form>
     <section className="mt-12"><div className="mb-4 flex items-center justify-between"><h2 className="section-title">最近の食事</h2><span className="text-xs text-[var(--muted)]">{history.length}件</span></div>
       {history.length === 0 ? <EmptyState description="保存した食事はここに表示されます。" /> : <div className="border-t border-[var(--line)]">{history.map((entry) => <article key={entry.id} className="border-b border-[var(--line)] py-5">

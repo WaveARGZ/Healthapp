@@ -4,4 +4,4 @@ import { WeightRecorder } from "@/components/progress/weight-recorder";
 
 export const metadata: Metadata = { title: "体重記録 | BodyMake" };
 
-export default function WeightPage() { return <AppShell><WeightRecorder /></AppShell>; }
+export default function WeightPage() { return <AppShell recording><WeightRecorder /></AppShell>; }

@@ -113,8 +113,8 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     </label>
     <p className="mt-1.5 text-[10px] text-[var(--muted)]">ひらがな・カタカナ、別名でも検索できます。</p>
     <select aria-label="食品のカテゴリ" value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} className="mt-2 h-12 w-full rounded border border-[var(--line)] bg-white px-3 text-base font-semibold text-[var(--ink)] outline-none">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-    {(catalogStatus === "idle" || catalogStatus === "error") && <button type="button" onClick={() => { setShowAll(true); setVisibleCount(30); loadExtendedCatalog(); }} className="mt-3 text-xs font-bold text-[var(--sage-deep)] underline underline-offset-2">{catalogStatus === "error" ? "詳細データを再読み込み" : "日本の食品成分表を読み込む"}</button>}
-    {catalogStatus === "loaded" && !showAll && <button type="button" onClick={() => { setShowAll(true); clearSelection(); }} className="mt-3 text-xs font-bold text-[var(--sage-deep)] underline underline-offset-2">全食品の一覧を見る</button>}
+    {(catalogStatus === "idle" || catalogStatus === "error") && <button type="button" onClick={() => { setShowAll(true); setVisibleCount(30); loadExtendedCatalog(); }} className="text-link mt-1 underline underline-offset-2">{catalogStatus === "error" ? "詳細データを再読み込み" : "日本の食品成分表を読み込む"}</button>}
+    {catalogStatus === "loaded" && !showAll && <button type="button" onClick={() => { setShowAll(true); clearSelection(); }} className="text-link mt-1 underline underline-offset-2">全食品の一覧を見る</button>}
     {catalogStatus === "loading" && <p className="mt-3 text-xs text-[var(--muted)]" role="status">詳細データを読み込み中…</p>}
     {catalogStatus === "loaded" && <p className="mt-3 text-[10px] leading-4 text-[var(--muted)]">同じ日本語名の食品は1行にまとめています。部位や調理法で栄養が異なる場合は、追加前に候補を選んでください。</p>}
     {results.usedFuzzy && <p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs text-[var(--sage-deep)]" role="status">入力に近い候補を表示しています。品目を確認してから追加してください。</p>}
@@ -128,7 +128,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
         </button>;
       })}
     </div> : <p className="mt-3 text-xs text-[var(--muted)]">{catalogStatus === "loading" ? "詳細データの読み込み後に再度検索します。" : "見つかりませんでした。別名や短い料理名でも検索してみてください。"}</p>}
-    {results.groups.length > shownGroups.length && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="mt-3 w-full rounded border border-[var(--line)] bg-white px-3 py-2.5 text-xs font-bold text-[var(--sage-deep)]">さらに30品目表示</button>}
+    {results.groups.length > shownGroups.length && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="mt-3 min-h-11 w-full rounded border border-[var(--line)] bg-white px-3 py-2.5 text-xs font-bold text-[var(--sage-deep)]">さらに30品目表示</button>}
     {activeGroup && <div className="mt-3 rounded bg-white p-3">
       <p className="text-sm font-bold text-[var(--ink)]">{activeGroup.name}</p>
       {activeGroup.variants.length > 1 && <div className="mt-3">
@@ -142,16 +142,16 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
           </button>)}
         </div>
         {variantResults.length === 0 && <p className="mt-2 text-xs text-[var(--muted)]">一致する候補がありません。</p>}
-        {variantResults.length > visibleVariants && <button type="button" onClick={() => setVisibleVariants((count) => count + 10)} className="mt-2 text-xs font-bold text-[var(--sage-deep)] underline underline-offset-2">さらに候補を表示</button>}
+        {variantResults.length > visibleVariants && <button type="button" onClick={() => setVisibleVariants((count) => count + 10)} className="text-link mt-2 underline underline-offset-2">さらに候補を表示</button>}
       </div>}
       {selectedFood && nutrition ? <div className="mt-3 border-t border-[var(--line)] pt-3">
         <p className="text-xs font-bold text-[var(--ink)]">選択中：{selectedFood.name}</p>
         {selectedFood.foodCode && <p className="mt-2 text-[11px] text-[var(--muted)]">食品番号：{selectedFood.foodCode}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2"><label htmlFor="food-portion-grams" className="shrink-0 text-xs font-bold text-[var(--ink)]">食べた量</label><input id="food-portion-grams" type="number" min="1" max="3000" step="1" inputMode="numeric" value={grams || ""} onChange={(event) => setGrams(Number(event.target.value))} className="form-input h-11 w-24" /><span className="text-xs text-[var(--muted)]">g（初期目安 {selectedFood.suggestedGrams}g）</span></div>
         <p className="mt-3 text-xs font-bold text-[var(--ink)]">{nutrition.calories} kcal · P {nutrition.proteinG}g / F {nutrition.fatG}g / C {nutrition.carbsG}g</p>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><a href={sourceLink(selectedFood)} target="_blank" rel="noreferrer" className="text-[10px] font-semibold text-[var(--sage-deep)] underline underline-offset-2">出典を見る{selectedFood.foodCode ? `（食品番号 ${selectedFood.foodCode}）` : ""}</a><Button type="button" onClick={addSelectedFood} disabled={!Number.isFinite(grams) || grams <= 0 || grams > 3000}>この食品を追加</Button></div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><a href={sourceLink(selectedFood)} target="_blank" rel="noreferrer" className="text-link underline underline-offset-2">出典を見る{selectedFood.foodCode ? `（食品番号 ${selectedFood.foodCode}）` : ""}</a><Button type="button" onClick={addSelectedFood} disabled={!Number.isFinite(grams) || grams <= 0 || grams > 3000}>この食品を追加</Button></div>
       </div> : null}
     </div>}
-    <details className="mt-4 text-[11px] leading-6 text-[var(--muted)]"><summary>栄養データと出典について</summary><p className="mt-2">定番料理{library.foods.length}件・日本の食品成分表{catalogStatus === "loaded" ? extendedFoods.length.toLocaleString() : "約2,500"}件。表示値は可食部100gを基準に計算します。</p><p className="mt-2">詳細データの出典：<a href="https://www.mext.go.jp/a_menu/syokuhinseibun/mext_00001.html" target="_blank" rel="noreferrer" className="font-bold text-[var(--sage-deep)] underline underline-offset-2">日本食品標準成分表（八訂）増補2023年</a>。定番料理の一部は<a href={library.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-[var(--sage-deep)] underline underline-offset-2">米国農務省の食品データ</a>に基づきます。調理方法・商品によって値は変わります。</p></details>
+    <details className="mt-4 text-[11px] leading-6 text-[var(--muted)]"><summary className="min-h-11 py-3">栄養データと出典について</summary><p className="mt-2">定番料理{library.foods.length}件・日本の食品成分表{catalogStatus === "loaded" ? extendedFoods.length.toLocaleString() : "約2,500"}件。表示値は可食部100gを基準に計算します。</p><p className="mt-2">詳細データの出典：<a href="https://www.mext.go.jp/a_menu/syokuhinseibun/mext_00001.html" target="_blank" rel="noreferrer" className="font-bold text-[var(--sage-deep)] underline underline-offset-2">日本食品標準成分表（八訂）増補2023年</a>。定番料理の一部は<a href={library.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-[var(--sage-deep)] underline underline-offset-2">米国農務省の食品データ</a>に基づきます。調理方法・商品によって値は変わります。</p></details>
   </section>;
 }

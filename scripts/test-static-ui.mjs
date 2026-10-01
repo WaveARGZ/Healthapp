@@ -13,6 +13,12 @@ for (const page of pages) {
   const html = await readFile(resolve("out", page, "index.html"), "utf8");
   assert.match(html, /<html[^>]*lang="ja"/, `${page}: Japanese document`);
   assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1, `${page}: one page title`);
+  const viewport = html.match(/<meta name="viewport" content="([^"]+)"/)?.[1];
+  assert.ok(viewport, `${page}: mobile viewport`);
+  assert.match(viewport, /width=device-width/);
+  assert.match(viewport, /viewport-fit=cover/);
+  assert.match(viewport, /interactive-widget=resizes-content/);
+  assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1(?:,|$)/, `${page}: zoom remains available`);
   const logo = html.match(/<a[^>]*aria-label="BodyMake ホーム"[^>]*>([\s\S]*?)<\/a>/);
   assert.ok(logo, `${page}: brand link`);
   const image = logo[1].match(/<img[^>]*src="([^"]+)"/);
@@ -27,6 +33,13 @@ for (const page of pages) {
     assert.equal((nav.match(/<a /g) ?? []).length, 5, `${page}: five destinations`);
     assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1, `${page}: active destination`);
   }
+  if (["workouts", "meals", "weight"].includes(page)) {
+    assert.match(html, /<main[^>]*data-recording="true"/, `${page}: content clears the dock`);
+    const form = html.match(/<form[\s\S]*?<\/form>/)?.[0];
+    assert.ok(form, `${page}: record form`);
+    assert.match(form, /data-record-actions="true"/, `${page}: save action remains in its form`);
+    assert.equal((form.match(/type="submit"/g) ?? []).length, 1, `${page}: one native submit control`);
+  }
 }
 assert.equal(imagePaths.size, 1, "all pages use the same artwork");
-console.log(`${pages.length} pages validated: Japanese headings, supplied logo, exported image, five-item navigation. Base path: ${basePath || "/"}`);
+console.log(`${pages.length} pages validated: Japanese headings, logo, navigation, mobile viewport and recording controls. Base path: ${basePath || "/"}`);

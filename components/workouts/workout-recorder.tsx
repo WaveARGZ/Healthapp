@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
+import { RecordActions } from "@/components/ui/record-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExercisePicker } from "@/components/workouts/exercise-picker";
 import { bodyMakeClient } from "@/lib/api/client";
@@ -91,13 +92,13 @@ export function WorkoutRecorder() {
               <TextInput id={`exercise-${exercise.id}`} value={exercise.name} onChange={(event) => updateExercise(exercise.id, { name: event.target.value })} placeholder="例：ベンチプレス" />
               <ExercisePicker onSelect={(name) => updateExercise(exercise.id, { name })} />
               <div className="mb-3 mt-6 flex items-center justify-between text-[11px] text-[var(--muted)]"><span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span><span>完了 {completedCount} / {sets.length}</span></div>
-              <div className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_44px_32px] gap-2 border-y border-[var(--line)] py-2 text-center text-[10px] font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>回数</span><span>完了</span><span className="sr-only">削除</span></div>
-              <div className="mt-3 space-y-2">{sets.map((set, setIndex) => <div key={set.id} className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_44px_32px] items-center gap-2">
+              <div className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] gap-1.5 border-y border-[var(--line)] py-2 text-center text-xs font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>回数</span><span>完了</span><span className="sr-only">削除</span></div>
+              <div className="mt-3 space-y-2">{sets.map((set, setIndex) => <div key={set.id} className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] items-center gap-1.5">
                 <span className="metric text-center text-xs text-[var(--muted)]">{setIndex + 1}</span>
-                <TextInput type="number" min="0" step="0.5" inputMode="decimal" aria-label={`${setIndex + 1}セット目の重量`} value={set.weightKg ?? ""} onChange={(event) => updateSet(exercise.id, set.id, { weightKg: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" className="metric h-11 px-1 text-center" />
-                <TextInput type="number" min="0" inputMode="numeric" aria-label={`${setIndex + 1}セット目の回数`} value={set.reps ?? ""} onChange={(event) => updateSet(exercise.id, set.id, { reps: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" className="metric h-11 px-1 text-center" />
+                <TextInput type="number" min="0" step="0.5" inputMode="decimal" aria-label={`${setIndex + 1}セット目の重量`} value={set.weightKg ?? ""} onChange={(event) => updateSet(exercise.id, set.id, { weightKg: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" className="metric h-12 px-1 text-center" />
+                <TextInput type="number" min="0" inputMode="numeric" aria-label={`${setIndex + 1}セット目の回数`} value={set.reps ?? ""} onChange={(event) => updateSet(exercise.id, set.id, { reps: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" className="metric h-12 px-1 text-center" />
                 <button type="button" onClick={() => updateSet(exercise.id, set.id, { completed: !set.completed })} aria-pressed={set.completed} aria-label={`${setIndex + 1}セット目の完了`} className={`grid size-11 place-items-center rounded border ${set.completed ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name="check" className="size-5" /></button>
-                <button type="button" disabled={sets.length === 1} onClick={() => removeSet(exercise.id, set.id)} aria-label={`${setIndex + 1}セット目を削除`} className="grid h-11 w-8 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-3.5" /></button>
+                <button type="button" disabled={sets.length === 1} onClick={() => removeSet(exercise.id, set.id)} aria-label={`${setIndex + 1}セット目を削除`} className="grid size-11 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-3.5" /></button>
               </div>)}</div>
               <Button type="button" variant="ghost" size="small" className="mt-4 w-full text-[var(--sage-deep)]" onClick={() => addSet(exercise.id)}><Icon name="plus" className="size-4" />セットを追加</Button>
             </div>
@@ -105,8 +106,7 @@ export function WorkoutRecorder() {
         })}
       </div>
       <Button type="button" variant="secondary" className="mt-4 w-full" onClick={() => setExercises((current) => [...current, newExercise()])}><Icon name="plus" className="size-4" />種目を追加</Button>
-      <Button type="submit" className="mt-6 w-full" disabled={isSaving || !exercises.some((exercise) => exercise.name.trim())}>{isSaving ? "保存中…" : "筋トレを保存"}</Button>
-      {notice && <p role="status" className="mt-3 text-sm text-[var(--sage-deep)]">{notice}</p>}
+      <RecordActions label={isSaving ? "保存中…" : "筋トレを保存"} summary={`${exercises.filter((exercise) => exercise.name.trim()).length} 種目`} disabled={isSaving || !exercises.some((exercise) => exercise.name.trim())} notice={notice} />
     </form>
     <section className="mt-12">
       <div className="mb-4 flex items-center justify-between"><h2 className="section-title">これまでの記録</h2><span className="text-xs text-[var(--muted)]">{history.length}件</span></div>

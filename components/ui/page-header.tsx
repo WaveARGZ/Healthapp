@@ -16,5 +16,5 @@ export function PageHeader({ title, description, compact = false }: PageHeaderPr
 }
 
 export function AppTopBar() {
-  return <header className="border-b border-[var(--line)] bg-white"><div className="mx-auto flex min-h-[76px] max-w-6xl items-center justify-between gap-4 px-5 sm:px-8"><Logo href="/dashboard" /><span className="text-[11px] text-[var(--muted)]">身体の記録帳</span></div></header>;
+  return <header className="safe-top border-b border-[var(--line)] bg-white"><div className="safe-gutters mx-auto flex min-h-[68px] max-w-6xl items-center justify-between gap-3 sm:min-h-[76px]"><Logo href="/dashboard" /><span className="text-[11px] text-[var(--muted)]">身体の記録帳</span></div></header>;
 }

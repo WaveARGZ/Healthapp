@@ -11,7 +11,8 @@
     "generate:curated-food-data": "node --max-old-space-size=2048 scripts/generate-food-library.mjs",
     "validate:food-data": "node scripts/validate-food-library.mjs",
     "test:food-catalog": "node scripts/test-food-catalog.mjs",
-    "test:static-ui": "node scripts/test-static-ui.mjs"
+    "test:static-ui": "node scripts/test-static-ui.mjs",
+    "test:mobile-viewport": "node scripts/test-mobile-viewport.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.0",
