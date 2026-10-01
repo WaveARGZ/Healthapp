@@ -1,0 +1,68 @@
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { FieldLabel, SelectInput, TextInput } from "@/components/ui/form-fields";
+import { Icon } from "@/components/ui/icon";
+import { Logo } from "@/components/ui/logo";
+import { bodyMakeClient } from "@/lib/api/client";
+import { createId } from "@/lib/utils/id";
+import { fitnessGoalLabels, type FitnessGoal, type Gender, type UserProfile } from "@/types/user";
+
+const goals = Object.entries(fitnessGoalLabels) as Array<[FitnessGoal, string]>;
+
+export function OnboardingForm() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState<Gender>("prefer-not-to-say");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [goal, setGoal] = useState<FitnessGoal>("build-muscle");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    void bodyMakeClient.getProfile().then((profile) => {
+      if (!profile) return;
+      setName(profile.name);
+      setAge(profile.age?.toString() ?? "");
+      setGender(profile.gender ?? "prefer-not-to-say");
+      setHeightCm(profile.heightCm?.toString() ?? "");
+      setWeightKg(profile.startingWeightKg?.toString() ?? "");
+      setGoal(profile.goal);
+    });
+  }, []);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSaving(true);
+    const current = await bodyMakeClient.getProfile();
+    const profile: UserProfile = {
+      id: current?.id ?? createId("user"),
+      name: name.trim(),
+      age: age ? Number(age) : undefined,
+      gender,
+      heightCm: heightCm ? Number(heightCm) : undefined,
+      startingWeightKg: weightKg ? Number(weightKg) : undefined,
+      goal,
+      updatedAt: new Date().toISOString(),
+    };
+    await bodyMakeClient.saveProfile(profile);
+    router.push("/dashboard");
+  }
+
+  return (
+    <main className="min-h-dvh bg-[var(--canvas)] px-5 py-7 sm:px-7">
+      <div className="mx-auto w-full max-w-md pb-8"><Logo /><header className="mt-11"><p className="text-xs font-bold tracking-[0.14em] text-[var(--sage-deep)]">FIRST STEP</p><h1 className="mt-3 font-display text-3xl font-semibold tracking-[-0.05em] text-[var(--ink)]">あなたの現在地を<br />教えてください。</h1><p className="mt-3 text-sm leading-6 text-[var(--muted)]">目標に合った記録の見方を整えます。あとから設定で変更できます。</p></header>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <div><FieldLabel htmlFor="profile-name">名前</FieldLabel><TextInput id="profile-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="例：山田 太郎" required /></div>
+          <div className="grid grid-cols-2 gap-3"><div><FieldLabel htmlFor="age">年齢</FieldLabel><TextInput id="age" type="number" min="1" max="120" inputMode="numeric" value={age} onChange={(event) => setAge(event.target.value)} placeholder="例：28" /></div><div><FieldLabel htmlFor="gender">性別</FieldLabel><SelectInput id="gender" value={gender} onChange={(event) => setGender(event.target.value as Gender)}><option value="prefer-not-to-say">回答しない</option><option value="male">男性</option><option value="female">女性</option><option value="other">その他</option></SelectInput></div></div>
+          <div className="grid grid-cols-2 gap-3"><div><FieldLabel htmlFor="height">身長 (cm)</FieldLabel><TextInput id="height" type="number" min="50" max="250" inputMode="decimal" value={heightCm} onChange={(event) => setHeightCm(event.target.value)} placeholder="例：170" /></div><div><FieldLabel htmlFor="weight">体重 (kg)</FieldLabel><TextInput id="weight" type="number" min="20" max="400" step="0.1" inputMode="decimal" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="例：62.5" /></div></div>
+          <fieldset><legend className="mb-2 block text-xs font-bold tracking-[0.03em] text-[var(--ink)]">目標</legend><div className="space-y-2">{goals.map(([value, label]) => <label key={value} className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition ${goal === value ? "border-[var(--sage-deep)] bg-[var(--sage-soft)]" : "border-[var(--line)] bg-white"}`}><span className="text-sm font-semibold text-[var(--ink)]">{label}</span><input className="sr-only" type="radio" name="goal" value={value} checked={goal === value} onChange={() => setGoal(value)} /><span className={`grid size-5 place-items-center rounded-full border ${goal === value ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[#cdd3cf]"}`}>{goal === value ? <Icon name="check" className="size-3.5" /> : null}</span></label>)}</div></fieldset>
+          <Button type="submit" className="mt-3 w-full" disabled={isSaving}>{isSaving ? "保存中..." : "この内容で始める"}</Button>
+        </form>
+      </div>
+    </main>
+  );
+}
