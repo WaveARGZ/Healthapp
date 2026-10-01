@@ -2,35 +2,19 @@
 
 import Image from "next/image";
 import { type ChangeEvent, useEffect, useState } from "react";
+import { BodyPhotoPicker } from "@/components/photos/body-photo-picker";
 import { IdealBodyEditor } from "@/components/photos/ideal-body-editor";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 import { bodyMakeClient } from "@/lib/api/client";
-import { normalizePhoto } from "@/lib/photos/body-warp";
+import { normalizePhotoFile } from "@/lib/photos/photo-file";
 import { formatDate, toDateInputValue } from "@/lib/utils/date";
 import { createId } from "@/lib/utils/id";
 import { bodyPhotoViewLabels, type BodyPhotoEntry, type BodyPhotoView } from "@/types/progress";
 
 type Previews = Partial<Record<BodyPhotoView, string>>;
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function PhotoPicker({ view, preview, onChange }: { view: BodyPhotoView; preview?: string; onChange: (event: ChangeEvent<HTMLInputElement>) => void }) {
-  return <label className="group relative flex aspect-[3/4] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[#bfc8c1] bg-[#f7f8f5] text-center transition hover:border-[var(--sage-deep)]">
-    {preview ? <Image src={preview} alt={`${bodyPhotoViewLabels[view]}写真のプレビュー`} fill unoptimized className="object-cover" /> : <><span className="grid size-11 place-items-center rounded-2xl bg-white text-[var(--sage-deep)] shadow-sm"><Icon name="camera" className="size-5" /></span><span className="mt-3 text-sm font-bold text-[var(--ink)]">{bodyPhotoViewLabels[view]}写真</span><span className="mt-1 px-4 text-[11px] leading-4 text-[var(--muted)]">タップして選択</span></>}
-    <span className={`absolute bottom-3 rounded-full px-2.5 py-1 text-[10px] font-bold ${preview ? "bg-black/55 text-white" : "bg-[var(--sage-soft)] text-[var(--sage-deep)]"}`}>{preview ? "変更する" : bodyPhotoViewLabels[view]}</span>
-    <input type="file" accept="image/*" className="sr-only" onChange={onChange} />
-  </label>;
-}
 
 export function PhotoRecorder() {
   const [previews, setPreviews] = useState<Previews>({});
@@ -49,7 +33,7 @@ export function PhotoRecorder() {
     if (!file) return;
     setNotice("写真を準備しています…");
     try {
-      const normalized = await normalizePhoto(await readAsDataUrl(file));
+      const normalized = await normalizePhotoFile(file);
       setPreviews((current) => ({ ...current, [view]: normalized }));
       setIsSaved(false);
       setNotice("写真から3パターンを自動生成しています。");
@@ -93,7 +77,7 @@ export function PhotoRecorder() {
     <PageHeader eyebrow="BODY PHOTOS" title="身体写真を残す" description="正面と背面から、理想の身体の3段階を比較できます。" />
     <Card>
       <div className="mb-4 flex items-center justify-between gap-2"><div><p className="text-sm font-bold text-[var(--ink)]">今回の写真</p><p className="mt-1 text-xs text-[var(--muted)]">正面・背面をそれぞれ選択</p></div><label className="text-xs font-semibold text-[var(--muted)]">撮影日<input type="date" aria-label="撮影日" value={capturedAt} onChange={(event) => { setCapturedAt(event.target.value); setIsSaved(false); }} className="ml-2 rounded-lg border border-[var(--line)] bg-white px-2 py-1.5 text-xs text-[var(--ink)] outline-none" /></label></div>
-      <div className="grid grid-cols-2 gap-3"><PhotoPicker view="front" preview={previews.front} onChange={(event) => void handleFile("front", event)} /><PhotoPicker view="back" preview={previews.back} onChange={(event) => void handleFile("back", event)} /></div>
+      <div className="grid grid-cols-2 gap-3"><BodyPhotoPicker view="front" preview={previews.front} onChange={(event) => void handleFile("front", event)} /><BodyPhotoPicker view="back" preview={previews.back} onChange={(event) => void handleFile("back", event)} /></div>
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">選ぶだけで自動編集します。写真はサーバーへ送らず、この端末内で処理します。単色背景・全身・正面向きの撮影が目安です。</p>
     </Card>
     <Button type="button" className="mt-4 w-full" onClick={() => void savePhotos()} disabled={isSaving || isSaved || !previews.front && !previews.back}>{isSaving ? "保存中..." : isSaved ? "元写真を保存済み" : "元写真を端末に保存"}</Button>

@@ -1,14 +1,14 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element -- Canvas data URLs are resized locally and cannot use server optimization. */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LandmarkAdjuster } from "@/components/photos/landmark-adjuster";
 import { bodyPatterns, prepareBodyPhoto, renderBodyPattern, type BodyLandmarks, type BodyPattern } from "@/lib/photos/body-warp";
 import { bodyPhotoViewLabels, type BodyPhotoView } from "@/types/progress";
 
 type Results = Partial<Record<BodyPattern["id"], string>>;
 
-export function IdealBodyEditor({ source, view }: { source: string; view: BodyPhotoView }) {
+export function IdealBodyEditor({ source, view, onReady }: { source: string; view: BodyPhotoView; onReady?: () => void }) {
   const [landmarks, setLandmarks] = useState<BodyLandmarks | null>(null);
   const [preparedImage, setPreparedImage] = useState<ImageData | null>(null);
   const generationRef = useRef(0);
@@ -18,7 +18,7 @@ export function IdealBodyEditor({ source, view }: { source: string; view: BodyPh
   const [adjusting, setAdjusting] = useState(false);
   const [status, setStatus] = useState("写真を解析しています…");
 
-  async function generate(image: ImageData, points: BodyLandmarks) {
+  const generate = useCallback(async (image: ImageData, points: BodyLandmarks) => {
     const generation = ++generationRef.current;
     setStatus("3パターンを作成しています…");
     const next: Results = {};
@@ -30,7 +30,8 @@ export function IdealBodyEditor({ source, view }: { source: string; view: BodyPh
       setResults({ ...next });
     }
     setStatus("");
-  }
+    onReady?.();
+  }, [onReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +47,7 @@ export function IdealBodyEditor({ source, view }: { source: string; view: BodyPh
       if (!cancelled) setStatus("画像を処理できませんでした。別の写真をお試しください。");
     });
     return () => { cancelled = true; generationRef.current += 1; };
-  }, [source]);
+  }, [source, generate]);
 
   const current = results[selected];
   return (

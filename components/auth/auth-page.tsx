@@ -19,7 +19,7 @@ export function AuthPage({ mode }: AuthPageProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // Cognito sign-in/sign-up will be wired here. Keep the MVP navigable.
-    router.push(isLogin ? "/dashboard" : "/onboarding");
+    router.push(isLogin ? "/dashboard" : "/onboarding?from=signup");
   }
 
   return (
