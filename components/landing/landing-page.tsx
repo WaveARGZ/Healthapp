@@ -35,8 +35,8 @@ export function LandingPage() {
     </section>
     <section className="border-t border-[var(--line)]">
       <div className="mx-auto max-w-6xl safe-gutters py-12 sm:py-16">
-        <h2 className="text-2xl font-bold tracking-tight">記録することは、シンプルに。</h2>
-        <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">{features.map((item) => <div key={item.number} className="border-t border-[var(--line)] pt-5"><div className="flex items-center justify-between"><span className="metric text-xs text-[var(--muted)]">{item.number}</span><Icon name={item.icon} className="size-5 text-[var(--sage-deep)]" /></div><h3 className="mt-6 text-base font-bold">{item.title}</h3><p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.text}</p></div>)}</div>
+        <h2 className="text-center text-2xl font-bold tracking-tight">記録することは、シンプルに。</h2>
+        <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">{features.map((item) => <div key={item.number} className="border-t border-[var(--line)] pt-5 text-center"><div className="flex items-center justify-center gap-3"><span className="metric text-xs text-[var(--muted)]">{item.number}</span><Icon name={item.icon} className="size-5 text-[var(--sage-deep)]" /></div><h3 className="mt-4 text-base font-bold">{item.title}</h3><p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.text}</p></div>)}</div>
       </div>
     </section>
     <footer className="border-t border-[var(--line)]"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 safe-gutters safe-bottom pt-6 text-[11px] text-[var(--muted)]"><span>BodyMake</span><span>現在はこのブラウザ内に記録を保存します。</span></div></footer>
