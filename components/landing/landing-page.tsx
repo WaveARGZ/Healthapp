@@ -17,11 +17,11 @@ export function LandingPage() {
     </header>
     <section className="mx-auto grid max-w-6xl gap-8 safe-gutters pb-12 pt-10 sm:gap-12 sm:py-20 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:py-24">
       <div>
-        <p className="mb-4 flex items-center gap-3 text-xs font-semibold tracking-wider text-[var(--sage-deep)] sm:mb-6"><span className="h-px w-8 bg-current" />身体づくりの記録帳</p>
-        <h1 className="text-[clamp(1.8rem,5.5vw,3.5rem)] font-bold leading-[1.4] tracking-[-0.05em] sm:text-[clamp(2.15rem,5vw,3.5rem)] sm:leading-[1.65]">理想の身体を、<br />見える目標に。</h1>
-        <p className="mt-4 max-w-md text-sm leading-7 text-[var(--muted)] sm:mt-6 sm:leading-8">何を食べたか。どれだけ動いたか。<br />そして、身体はどう変わったか。<br />毎日の記録を、ひとつの場所に。</p>
-        <Link href="/signup" className="mt-6 inline-flex min-h-14 items-center justify-between gap-14 rounded-md bg-[var(--sage-deep)] px-6 text-sm font-semibold text-white hover:bg-[var(--ink)] sm:mt-8">はじめる<Icon name="arrow-right" className="size-5" /></Link>
-        <p className="mt-3 text-[11px] text-[var(--muted)]">筋トレ・食事・体重・写真をまとめて記録</p>
+        <p className="mb-4 flex items-center justify-center gap-3 text-center text-xs font-semibold tracking-wider text-[var(--sage-deep)] sm:mb-6"><span className="h-px w-8 bg-current" />身体づくりの記録帳</p>
+        <h1 className="text-center text-[clamp(2rem,6.5vw,3.5rem)] font-bold leading-[1.5] tracking-[-0.05em]">理想の身体を、<br />見える目標に。</h1>
+        <p className="mx-auto mt-4 max-w-md text-center text-sm leading-7 text-[var(--muted)] sm:mt-6 sm:leading-8">何を食べたか。どれだけ動いたか。<br />そして、身体はどう変わったか。<br />毎日の記録を、ひとつの場所に。</p>
+        <Link href="/signup" className="mx-auto mt-6 inline-flex min-h-14 items-center justify-center gap-12 rounded-md bg-[var(--sage-deep)] px-6 text-sm font-semibold text-white hover:bg-[var(--ink)] sm:mt-8">はじめる<Icon name="arrow-right" className="size-5" /></Link>
+        <p className="mt-3 text-center text-[11px] text-[var(--muted)]">筋トレ・食事・体重・写真をまとめて記録</p>
       </div>
       <div className="relative border border-[var(--line)] bg-[var(--sand)] p-5 sm:p-8">
         <div className="flex items-center justify-between border-b border-[var(--ink)] pb-4"><p className="text-lg font-bold">わたしの記録</p><span className="text-[10px] text-[var(--muted)]">記録のイメージ</span></div>
