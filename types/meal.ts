@@ -16,6 +16,8 @@ export interface MealFoodItem {
   carbsG?: number;
   /** The USDA FoodData Central row used for the initial nutrient values. */
   sourceFdcId?: number;
+  /** The Japanese Standard Tables of Food Composition food number. */
+  sourceFoodCode?: string;
   /** Weight used for the initial nutrient calculation; the user can edit it before adding. */
   portionGrams?: number;
 }

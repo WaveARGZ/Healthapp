@@ -7,7 +7,8 @@ export interface FoodLibraryItem {
   aliases: string;
   suggestedGrams: number;
   sourceDataset: string;
-  fdcId: number;
+  fdcId?: number;
+  foodCode?: string;
   sourceDescription?: string;
   per100g: {
     calories: number;
@@ -35,7 +36,8 @@ export function foodToMealItem(food: FoodLibraryItem, grams: number): Omit<MealF
     proteinG: roundOne(food.per100g.proteinG),
     fatG: roundOne(food.per100g.fatG),
     carbsG: roundOne(food.per100g.carbsG),
-    sourceFdcId: food.fdcId,
+    ...(food.fdcId ? { sourceFdcId: food.fdcId } : {}),
+    ...(food.foodCode ? { sourceFoodCode: food.foodCode } : {}),
     portionGrams: grams,
   };
 }
