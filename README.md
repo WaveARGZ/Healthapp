@@ -20,7 +20,7 @@
 - 食事記録
   - 朝食 / 昼食 / 夕食 / 間食を選択し、料理を複数追加
   - 料理別のカロリー・PFCと食事合計を記録
-  - USDA FoodData Centralから選んだ日本語の定番210件と、英語原文の詳細データ13,014件を検索し、食べた重さからPFCを計算
+  - USDA FoodData Centralから選んだ日本語の定番210件と、日本語の分類・調理条件で表示する詳細データ13,014件を検索し、食べた重さからPFCを計算
   - 写真を端末内の無料AIで解析し、料理候補と同じ食品データに基づく栄養素を追加
   - 正解として確定した料理名・予測候補・写真を端末内に最大150件保存し、以後の候補順位に反映
   - 履歴表示・削除
@@ -80,9 +80,9 @@ npm run validate:food-data
 
 食事写真のAI候補だけは、`@huggingface/transformers` の公開ONNXモデルをブラウザ内で実行します。初回は約200MBのモデルをダウンロードしてブラウザキャッシュに保存しますが、料理写真を推論APIへ送信しません。正解データと写真は `lib/food-ai/food-learning.ts` からこの端末の IndexedDB へ保存されます。
 
-食事のカロリー・PFCは、[USDA FoodData Central](https://fdc.nal.usda.gov/) の [FNDDS 2021–2023](https://fdc.nal.usda.gov/download-datasets/) と SR Legacy 2018 の100g当たりの値を使用します。栄養データは CC0 1.0 で公開され、商用アプリへの利用も認められています。各料理にはFDC ID、元の英語名、データ系列を保持し、検索画面から元データを確認できます。日本語の定番210件にはBodyMakeが日本語名・検索用別名・初期目安量を設定しました。残りの詳細13,014件はUSDAの英語原文をそのまま表示し、日本語の食材キーワードでも一部検索できます。詳細データは検索欄を使ったときに別ファイルから読み込むため、食事画面の初回表示には含まれません。詳細データの初期分量は100gです。合計13,224件は調理法・部位・商品などの違いを含む食品レコード数であり、固有の料理名が13,224種類あるという意味ではありません。料理の調理法や商品差、実際に食べた重さによって栄養値が変わるため、保存前に分量と値を確認してください。CC0は商標権まで許諾するものではないため、英語原文に含まれる商品名・ブランド名を商用表示する場合は別途確認が必要です。
+食事のカロリー・PFCは、[USDA FoodData Central](https://fdc.nal.usda.gov/) の [FNDDS 2021–2023](https://fdc.nal.usda.gov/download-datasets/) と SR Legacy 2018 の100g当たりの値を使用します。栄養データは CC0 1.0 で公開され、商用アプリへの利用も認められています。各料理にはFDC ID、元の英語名、データ系列を保持し、検索画面から元データを確認できます。日本語の定番210件にはBodyMakeが日本語名・検索用別名・初期目安量を設定しました。残りの詳細13,014件は、元の英語名から食材・料理区分・調理条件を組み立てた日本語名で表示します。これは正式な全項目の翻訳ではなく、同じ表示名になる食品や省略された条件があります。選択後の「元の英語名を確認」で必ず元の品目を確認してください。詳細データは検索欄を使ったときに別ファイルから読み込むため、食事画面の初回表示には含まれません。詳細データの初期分量は100gです。合計13,224件は調理法・部位・商品などの違いを含む食品レコード数であり、固有の料理名が13,224種類あるという意味ではありません。料理の調理法や商品差、実際に食べた重さによって栄養値が変わるため、保存前に分量と値を確認してください。CC0は商標権まで許諾するものではないため、英語原文に含まれる商品名・ブランド名を商用表示する場合は別途確認が必要です。
 
-日本語の選定一覧は `lib/data/food-selections.mjs`、生成済みの定番データは `lib/data/food-library.json`、詳細データは `public/data/food-library-extended.json` です。食品の登録数は、写真と正解を端末内に最大150件保存する上限とは別です。再生成する場合は上記のUSDAダウンロードページから `FoodData_Central_survey_food_json_2024-10-31.zip` と `FoodData_Central_sr_legacy_food_json_2018-04.zip` を取得し、次を実行します。
+日本語の選定一覧は `lib/data/food-selections.mjs`、詳細名の日本語化ルールは `scripts/food-name-ja.mjs`、生成済みの定番データは `lib/data/food-library.json`、詳細データは `public/data/food-library-extended.json` です。食品の登録数は、写真と正解を端末内に最大150件保存する上限とは別です。再生成する場合は上記のUSDAダウンロードページから `FoodData_Central_survey_food_json_2024-10-31.zip` と `FoodData_Central_sr_legacy_food_json_2018-04.zip` を取得し、次を実行します。
 
 ```bash
 npm run generate:food-data -- /path/to/FoodData_Central_survey_food_json_2024-10-31.zip /path/to/FoodData_Central_sr_legacy_food_json_2018-04.zip

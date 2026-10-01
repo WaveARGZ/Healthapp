@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { foodSelections } from "../lib/data/food-selections.mjs";
+import { foodNameJa } from "./food-name-ja.mjs";
 
 const surveyZip = process.argv[2];
 const legacyZip = process.argv[3];
@@ -152,20 +153,22 @@ const extendedFoods = [
   if (curatedFdcIds.has(food.fdcId)) return [];
   const per100g = nutrientValues(food);
   if (!per100g) return [];
+  const category = categoryFor(food);
   return [{
     id: `fdc-${food.fdcId}`,
-    name: food.description,
-    category: categoryFor(food),
+    name: foodNameJa(food.description, category),
+    category,
     aliases: searchTerms.filter(([pattern]) => pattern.test(food.description)).map(([, japanese]) => japanese).join(" "),
     suggestedGrams: 100,
     sourceDataset,
     fdcId: food.fdcId,
+    sourceDescription: food.description,
     per100g,
   }];
 });
 
 const output = {
-  version: "usda-fndds-2021-2023-sr-legacy-2018-v2",
+  version: "usda-fndds-2021-2023-sr-legacy-2018-v3-ja",
   sourceName: "USDA FoodData Central",
   sourceUrl: "https://fdc.nal.usda.gov/",
   license: "CC0 1.0 Universal",

@@ -14,10 +14,24 @@ for (const food of [...curated.foods, ...extended.foods]) {
   if (!food.name || !food.category || !food.sourceDataset || food.suggestedGrams <= 0) {
     throw new Error(`Incomplete food metadata: ${food.id}`);
   }
+  if (food.id.startsWith("fdc-") && (!/[\u3040-\u30ff\u3400-\u9fff]/.test(food.name) || !food.sourceDescription)) {
+    throw new Error(`Japanese label or original source is missing: ${food.id}`);
+  }
   if (["calories", "proteinG", "fatG", "carbsG"].some((key) =>
     !Number.isFinite(food.per100g?.[key]) || food.per100g[key] < 0)) {
     throw new Error(`Invalid nutrition values: ${food.id}`);
   }
+}
+
+const representativeNames = new Map([
+  ["Tuna salad, made with mayonnaise", "マグロ（サラダ）"],
+  ["Cream of wheat, regular or quick, made with water, no added fat", "小麦のおかゆ（油脂追加なし）"],
+  ["Green peas, raw", "グリーンピース（生）"],
+  ["Alfredo sauce", "アルフレッドソース"],
+]);
+for (const [sourceDescription, expected] of representativeNames) {
+  const actual = extended.foods.find((food) => food.sourceDescription === sourceDescription)?.name;
+  if (actual !== expected) throw new Error(`Unexpected Japanese name for ${sourceDescription}: ${actual}`);
 }
 
 console.log(`${curated.foods.length} Japanese picks + ${extended.foods.length} details = ${ids.size} validated foods`);
