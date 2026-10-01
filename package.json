@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:food-data": "node scripts/generate-mext-food-data.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.0",
