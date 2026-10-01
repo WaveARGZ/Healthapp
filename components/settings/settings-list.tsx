@@ -1,15 +1,24 @@
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 
-const settings: Array<{ label: string; description: string; icon: IconName; href: string; tone: string }> = [
-  { label: "プロフィール", description: "名前・目標・身体情報を変更", icon: "user", href: "/onboarding", tone: "bg-[var(--sage-soft)] text-[var(--sage-deep)]" },
-  { label: "データ管理", description: "記録データの確認・出力（準備中）", icon: "progress", href: "/settings#data", tone: "bg-[#eeeef9] text-[#6e68a6]" },
-  { label: "プライバシー", description: "データの取り扱いについて", icon: "lock", href: "/settings#privacy", tone: "bg-[#fff3e9] text-[#b46f42]" },
-  { label: "利用規約", description: "BodyMakeのご利用にあたって", icon: "more", href: "/settings#terms", tone: "bg-[var(--sand)] text-[#797f7a]" },
+const settings: Array<{ label: string; description: string; icon: IconName; href: string }> = [
+  { label: "プロフィール", description: "名前・目標・身体情報", icon: "user", href: "/onboarding" },
+  { label: "データ管理", description: "記録の保存先について", icon: "progress", href: "#data" },
+  { label: "プライバシー", description: "写真とデータの取り扱い", icon: "lock", href: "#privacy" },
+  { label: "利用規約", description: "ご利用の前に", icon: "more", href: "#terms" },
 ];
 
 export function SettingsList() {
-  return <><PageHeader eyebrow="SETTINGS" title="設定" description="BodyMakeをあなたのペースに合わせましょう。" /><div className="space-y-3">{settings.map((item) => <Link key={item.label} href={item.href}><Card className="flex items-center gap-3 p-4 transition hover:-translate-y-0.5"><span className={`grid size-10 shrink-0 place-items-center rounded-xl ${item.tone}`}><Icon name={item.icon} className="size-5" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-bold text-[var(--ink)]">{item.label}</span><span className="mt-1 block truncate text-xs text-[var(--muted)]">{item.description}</span></span><Icon name="chevron-right" className="size-4 text-[#aab0ac]" /></Card></Link>)}</div><Link href="/" className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--coral-soft)] text-sm font-bold text-[var(--coral)] transition hover:bg-[#f8deda]"><Icon name="lock" className="size-4" />ログアウト</Link><p className="mt-5 text-center text-[11px] leading-5 text-[var(--muted)]">BodyMake MVP · 記録は現在この端末に保存されています。</p></>;
+  return <>
+    <PageHeader title="設定" description="プロフィールと、アプリについて。" />
+    <div className="border-t border-[var(--line)]">{settings.map((item) => <Link key={item.label} href={item.href} className="flex min-h-24 items-center gap-4 border-b border-[var(--line)] px-1 py-5 hover:bg-[var(--sand)]"><Icon name={item.icon} className="size-5 shrink-0 text-[var(--sage-deep)]" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{item.label}</span><span className="mt-1 block text-xs text-[var(--muted)]">{item.description}</span></span><Icon name="chevron-right" className="size-4 text-[var(--muted)]" /></Link>)}</div>
+    <Link href="/" className="mt-6 inline-flex min-h-12 items-center gap-3 text-sm font-semibold text-[var(--coral)]">ログアウト<Icon name="arrow-right" className="size-4" /></Link>
+    <div className="mt-10 space-y-8 border-t border-[var(--line)] pt-8 text-xs leading-7 text-[var(--muted)]">
+      <section id="data" className="scroll-mt-6"><h2 className="mb-2 font-semibold text-[var(--ink)]">データ管理</h2><p>記録は現在、この端末のブラウザ内に保存されています。別の端末とは同期されません。ブラウザのデータを削除すると、記録も失われます。データの一括出力機能は準備中です。</p></section>
+      <section id="privacy" className="scroll-mt-6"><h2 className="mb-2 font-semibold text-[var(--ink)]">プライバシー</h2><p>身体写真の加工と食事写真の解析は端末内で行います。写真を解析サーバーへ送信することはありません。食事写真の解析モデルは初回に外部からダウンロードします。</p></section>
+      <section id="terms" className="scroll-mt-6"><h2 className="mb-2 font-semibold text-[var(--ink)]">利用について</h2><p>現在は開発中のMVPです。ログイン・新規登録は画面のみで、実際の認証は行いません。栄養値は目安、身体の加工画像は比較用のイメージです。正式な利用規約は公開準備中です。</p></section>
+    </div>
+    <p className="mt-10 border-t border-[var(--line)] pt-5 text-[11px] text-[var(--muted)]">BodyMake / 開発版</p>
+  </>;
 }

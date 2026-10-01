@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
   basePath,
-  assetPrefix: basePath ? `${basePath}/` : undefined,
+  // basePath also prefixes bundled assets; a second prefix would duplicate slashes.
   images: {
     unoptimized: true,
   },

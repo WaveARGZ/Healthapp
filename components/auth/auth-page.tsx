@@ -23,16 +23,16 @@ export function AuthPage({ mode }: AuthPageProps) {
   }
 
   return (
-    <main className="min-h-dvh bg-[var(--canvas)] px-5 py-7 sm:px-7">
-      <div className="mx-auto w-full max-w-md">
+    <main className="setup-page">
+      <div className="setup-content">
         <Logo />
-        <div className="mt-14">
-          <p className="text-xs font-bold tracking-[0.14em] text-[var(--sage-deep)]">WELCOME</p>
-          <h1 className="mt-3 font-display text-3xl font-semibold tracking-[-0.05em] text-[var(--ink)]">
-            {isLogin ? "おかえりなさい。" : "理想の身体づくりを、ここから。"}
+        <div className="setup-heading">
+          <p className="setup-step">身体づくりの記録帳</p>
+          <h1 className="setup-title">
+            {isLogin ? "ログイン" : "新規登録"}
           </h1>
           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            {isLogin ? "記録を続けるほど、変化が見えてきます。" : "まずはアカウントを作成して、変化の記録を始めましょう。"}
+            {isLogin ? "今日の記録をつけましょう。" : "まずは基本情報を入力してください。"}
           </p>
         </div>
 
@@ -68,7 +68,8 @@ export function AuthPage({ mode }: AuthPageProps) {
           </Button>
         </form>
 
-        <p className="mt-7 text-center text-sm text-[var(--muted)]">
+        <p className="mt-4 border-l-2 border-[var(--line)] pl-3 text-[11px] leading-6 text-[var(--muted)]">現在は開発版のため、認証は行いません。入力したメールアドレスやパスワードは送信・保存されません。</p>
+        <p className="mt-7 text-center text-xs leading-7 text-[var(--muted)]">
           {isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"}{" "}
           <Link href={isLogin ? "/signup" : "/login"} className="font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">
             {isLogin ? "新規登録" : "ログイン"}

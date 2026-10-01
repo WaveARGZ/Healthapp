@@ -1,47 +1,44 @@
 import Link from "next/link";
-import { Icon } from "@/components/ui/icon";
+import { Icon, type IconName } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
 
-const valueProps = [
-  { icon: "camera" as const, title: "見える目標", text: "なりたい身体を、毎日の選択につながる目標に。" },
-  { icon: "dumbbell" as const, title: "続く記録", text: "筋トレ、食事、体重を、無理なくひとつに。" },
-  { icon: "progress" as const, title: "変化を実感", text: "写真とデータで、小さな積み重ねを見える化。" },
+const features: Array<{ number: string; icon: IconName; title: string; text: string }> = [
+  { number: "01", icon: "dumbbell", title: "トレーニングを残す", text: "種目を選んで、重さと回数をセットごとに。前回の記録も振り返れます。" },
+  { number: "02", icon: "leaf", title: "食べたものを知る", text: "料理名で検索、または写真から。食事ごとのカロリーと栄養を記録します。" },
+  { number: "03", icon: "camera", title: "身体の変化を見る", text: "体重と、正面・背面の写真。同じ条件で残すと、小さな変化がわかります。" },
 ];
 
 export function LandingPage() {
-  return (
-    <main className="min-h-dvh overflow-hidden bg-[var(--canvas)]">
-      <section className="mx-auto flex min-h-dvh w-full max-w-xl flex-col px-5 pb-9 pt-7 sm:px-7">
-        <header className="flex items-center justify-between"><Logo /><Link href="/login" className="text-sm font-bold text-[var(--ink)]">ログイン</Link></header>
-        <div className="relative mt-14 flex-1">
-          <div className="pointer-events-none absolute -right-28 -top-28 size-72 rounded-full bg-[var(--sage-soft)] blur-3xl" />
-          <p className="relative text-xs font-bold tracking-[0.16em] text-[var(--sage-deep)]">BODY MAKING, AT YOUR PACE</p>
-          <h1 className="relative mt-4 max-w-md font-display text-[2.7rem] font-semibold leading-[1.16] tracking-[-0.065em] text-[var(--ink)] sm:text-5xl">
-            理想の身体を、<br />見える目標に。
-          </h1>
-          <p className="relative mt-5 max-w-sm text-[15px] leading-7 text-[var(--muted)]">
-            BodyMakeは、なりたい見た目を起点に、日々の筋トレ・食事・体重・身体の変化をやさしくつなぐ体づくりのパートナーです。
-          </p>
-
-          <div className="relative mt-9 rounded-[28px] bg-[var(--ink)] p-5 text-white shadow-[0_24px_60px_rgba(32,42,37,0.18)]">
-            <div className="flex items-start justify-between">
-              <div><p className="text-xs font-medium text-white/60">your progress</p><p className="mt-1 font-display text-2xl font-semibold">小さな一歩を、確かな変化に。</p></div>
-              <span className="grid size-10 place-items-center rounded-2xl bg-white/10"><Icon name="sparkle" className="size-5 text-[var(--peach)]" /></span>
-            </div>
-            <div className="mt-6 grid grid-cols-3 gap-2">
-              {["筋トレ", "食事", "体重"].map((label, index) => <div key={label} className="rounded-xl bg-white/10 p-3"><div className="h-1.5 rounded-full bg-white/15"><div className="h-full rounded-full bg-[var(--peach)]" style={{ width: `${[75, 56, 88][index]}%` }} /></div><p className="mt-2 text-[11px] font-semibold text-white/75">{label}</p></div>)}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-9 space-y-3">
-          <Link href="/signup" className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-5 text-sm font-bold text-white shadow-[0_10px_20px_rgba(31,40,45,0.14)] transition hover:bg-[var(--ink-soft)]">はじめる <Icon name="arrow-right" className="size-4" /></Link>
-          <p className="text-center text-xs text-[var(--muted)]">自分のペースで、今日から始められます。</p>
-        </div>
-      </section>
-      <section className="bg-white px-5 py-14 sm:px-7">
-        <div className="mx-auto max-w-xl"><p className="text-xs font-bold tracking-[0.14em] text-[var(--sage-deep)]">WHAT BODYMAKE DOES</p><h2 className="mt-3 font-display text-3xl font-semibold tracking-[-0.05em] text-[var(--ink)]">数字の先にある、<br />あなたらしい変化へ。</h2><div className="mt-8 space-y-5">{valueProps.map((item) => <div key={item.title} className="flex gap-4"><span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[var(--sage-soft)] text-[var(--sage-deep)]"><Icon name={item.icon} className="size-5" /></span><div><h3 className="text-sm font-bold text-[var(--ink)]">{item.title}</h3><p className="mt-1 text-sm leading-6 text-[var(--muted)]">{item.text}</p></div></div>)}</div></div>
-      </section>
-    </main>
-  );
+  return <main className="min-h-dvh bg-white">
+    <header className="border-b border-[var(--line)]">
+      <div className="mx-auto flex min-h-20 max-w-6xl items-center justify-between px-5 sm:px-8">
+        <Logo /><Link href="/login" className="text-link text-[var(--ink)]">ログイン<Icon name="arrow-right" className="size-4" /></Link>
+      </div>
+    </header>
+    <section className="mx-auto grid max-w-6xl gap-12 px-5 pb-16 pt-12 sm:px-8 sm:py-20 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:py-24">
+      <div>
+        <p className="mb-6 flex items-center gap-3 text-xs font-semibold tracking-wider text-[var(--sage-deep)]"><span className="h-px w-8 bg-current" />身体づくりの記録帳</p>
+        <h1 className="text-[clamp(2.15rem,5vw,3.5rem)] font-bold leading-[1.65] tracking-[-0.05em]">理想の身体を、<br />見える目標に。</h1>
+        <p className="mt-6 max-w-md text-sm leading-8 text-[var(--muted)]">何を食べたか。どれだけ動いたか。<br />そして、身体はどう変わったか。<br />毎日の記録を、ひとつの場所に。</p>
+        <Link href="/signup" className="mt-8 inline-flex min-h-14 items-center justify-between gap-14 rounded-md bg-[var(--sage-deep)] px-6 text-sm font-semibold text-white hover:bg-[var(--ink)]">はじめる<Icon name="arrow-right" className="size-5" /></Link>
+        <p className="mt-3 text-[11px] text-[var(--muted)]">筋トレ・食事・体重・写真をまとめて記録</p>
+      </div>
+      <div className="relative border border-[var(--line)] bg-[var(--sand)] p-5 sm:p-8">
+        <div className="flex items-center justify-between border-b border-[var(--ink)] pb-4"><p className="text-lg font-bold">わたしの記録</p><span className="text-[10px] text-[var(--muted)]">記録のイメージ</span></div>
+        <div className="flex items-end justify-between border-b border-[var(--line)] py-6"><div><p className="text-xs text-[var(--muted)]">今日の体重</p><p className="metric mt-2 text-5xl font-medium">62.5<span className="ml-2 text-sm text-[var(--muted)]">kg</span></p></div><Icon name="scale" className="mb-1 size-6 text-[var(--sage-deep)]" /></div>
+        {[
+          { icon: "dumbbell" as const, title: "筋トレ", value: "ベンチプレス", detail: "60 kg × 10回 × 3セット" },
+          { icon: "leaf" as const, title: "食事", value: "ご飯・焼き鮭・味噌汁", detail: "朝食を記録" },
+          { icon: "camera" as const, title: "身体写真", value: "正面と背面", detail: "変化を写真で確認" },
+        ].map((item) => <div key={item.title} className="flex items-start gap-4 border-b border-[var(--line)] py-5 last:border-b-0"><Icon name={item.icon} className="mt-1 size-5 shrink-0 text-[var(--sage-deep)]" /><div className="flex-1"><p className="text-[10px] text-[var(--muted)]">{item.title}</p><p className="mt-1 text-sm font-semibold">{item.value}</p><p className="mt-1 text-[11px] text-[var(--muted)]">{item.detail}</p></div><Icon name="check" className="mt-5 size-4 text-[var(--sage-deep)]" /></div>)}
+      </div>
+    </section>
+    <section className="border-t border-[var(--line)]">
+      <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
+        <h2 className="text-2xl font-bold tracking-tight">記録することは、シンプルに。</h2>
+        <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">{features.map((item) => <div key={item.number} className="border-t border-[var(--line)] pt-5"><div className="flex items-center justify-between"><span className="metric text-xs text-[var(--muted)]">{item.number}</span><Icon name={item.icon} className="size-5 text-[var(--sage-deep)]" /></div><h3 className="mt-6 text-base font-bold">{item.title}</h3><p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.text}</p></div>)}</div>
+      </div>
+    </section>
+    <footer className="border-t border-[var(--line)]"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-6 text-[11px] text-[var(--muted)] sm:px-8"><span>BodyMake</span><span>現在はこのブラウザ内に記録を保存します。</span></div></footer>
+  </main>;
 }

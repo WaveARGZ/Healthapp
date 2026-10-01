@@ -47,7 +47,7 @@ export function LandmarkAdjuster({ source, view, initial, automatic, onCommit }:
 
   return <div className="mt-3">
     <p className="text-xs leading-5 text-[var(--muted)]">{automatic ? "輪郭点を自動推定しました。" : "背景から輪郭を判断できなかったため、中央配置を仮定しています。"} 青い6点を肩・ウエスト・腰の左右に合わせてください。指を離すと再生成します。</p>
-    <div className="relative mt-2 overflow-hidden rounded-xl bg-[var(--sand)]">
+    <div className="relative mt-2 overflow-hidden rounded bg-[var(--sand)]">
       <img src={source} alt={`${bodyPhotoViewLabels[view]}の輪郭点調整`} className="block w-full" />
       <div className="absolute inset-0">
         {levels.flatMap((level) => (["left", "right"] as const).map((side) =>

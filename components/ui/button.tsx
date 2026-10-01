@@ -14,19 +14,19 @@ export function Button({
   ...props
 }: ButtonProps) {
   const variants = {
-    primary: "bg-[var(--ink)] text-white hover:bg-[var(--ink-soft)] shadow-[0_8px_20px_rgba(31,40,45,0.16)]",
-    secondary: "bg-white text-[var(--ink)] ring-1 ring-[var(--line)] hover:bg-[var(--sand)]",
+    primary: "border border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white hover:bg-[var(--ink)]",
+    secondary: "border border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--sand)]",
     ghost: "bg-transparent text-[var(--muted)] hover:bg-[var(--sand)] hover:text-[var(--ink)]",
     danger: "bg-[var(--coral-soft)] text-[var(--coral)] hover:bg-[#f8deda]",
   };
   const sizes = {
     default: "min-h-12 px-5 text-sm",
-    small: "min-h-9 px-3.5 text-xs",
+    small: "min-h-11 px-3.5 text-xs",
   };
 
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-md font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {children}

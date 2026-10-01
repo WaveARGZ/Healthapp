@@ -64,19 +64,19 @@ export function OnboardingPhotoStep() {
   }
 
   const completeReady = Boolean(photos.front && photos.back && ids.front && ids.back && ready.front && ready.back);
-  return <main className="min-h-dvh bg-[var(--canvas)] px-5 py-7 sm:px-7">
-    <div className="mx-auto w-full max-w-xl pb-10">
+  return <main className="setup-page">
+    <div className="mx-auto w-full max-w-[640px] pb-10">
       <Logo />
-      <header className="mt-10">
-        <p className="text-xs font-bold tracking-[0.14em] text-[var(--sage-deep)]">STEP 2 / 2</p>
-        <h1 className="mt-3 font-display text-3xl font-semibold tracking-[-0.05em] text-[var(--ink)]">写真から、理想の姿を<br />見てみましょう。</h1>
+      <header className="setup-heading">
+        <p className="setup-step">2 / 2　写真で目標を確認</p>
+        <h1 className="setup-title">目標の姿を、写真から。</h1>
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">正面と背面の写真を撮るか選ぶと、それぞれ3段階の目標イメージを自動生成します。</p>
       </header>
 
       <Card className="mt-7">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-bold text-[var(--ink)]">現在の身体写真</p>
-          <label className="text-xs text-[var(--muted)]">撮影日 <input type="date" aria-label="撮影日" value={capturedAt} onChange={(event) => setCapturedAt(event.target.value)} className="ml-1 rounded-lg border border-[var(--line)] bg-white px-2 py-1.5 text-xs text-[var(--ink)]" /></label>
+          <label className="text-xs text-[var(--muted)]">撮影日 <input type="date" aria-label="撮影日" value={capturedAt} onChange={(event) => setCapturedAt(event.target.value)} className="form-input ml-1 inline-block h-11 w-40" /></label>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <BodyPhotoPicker view="front" preview={photos.front} onChange={(event) => void choosePhoto("front", event)} />
@@ -87,13 +87,13 @@ export function OnboardingPhotoStep() {
 
       {processingCount > 0 && <p role="status" className="mt-3 text-center text-xs text-[var(--muted)]">写真を準備しています…</p>}
       {(photos.front || photos.back) && <section className="mt-8">
-        <h2 className="font-display text-xl font-semibold text-[var(--ink)]">理想の身体プレビュー</h2>
+        <h2 className="section-title">理想の身体プレビュー</h2>
         <p className="mt-1 text-xs leading-5 text-[var(--muted)]">3パターンを見比べられます。画像は各カードから保存できます。</p>
         {photos.front && <IdealBodyEditor key={ids.front} source={photos.front} view="front" onReady={frontReady} />}
         {photos.back && <IdealBodyEditor key={ids.back} source={photos.back} view="back" onReady={backReady} />}
       </section>}
 
-      {notice && <p role="alert" className="mt-4 rounded-xl bg-white p-3 text-xs text-[#ad5a50]">{notice}</p>}
+      {notice && <p role="alert" className="mt-4 rounded bg-white p-3 text-xs text-[#ad5a50]">{notice}</p>}
       <Button type="button" className="mt-8 w-full" onClick={() => void complete()} disabled={!completeReady || isSaving || processingCount > 0}>{isSaving ? "保存中..." : "写真を保存してホームへ"}</Button>
       {!completeReady && <p className="mt-2 text-center text-xs text-[var(--muted)]">正面・背面の写真と6枚のプレビューがそろうと進めます。</p>}
       <Link href="/dashboard" className="mt-5 block text-center text-xs font-bold text-[var(--muted)] underline underline-offset-2">写真はあとで登録する</Link>

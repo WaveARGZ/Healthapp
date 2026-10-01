@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { FoodLibrarySearch } from "@/components/meals/food-library-search";
@@ -30,6 +30,8 @@ export function MealRecorder() {
   const [foods, setFoods] = useState<MealFoodItem[]>([newFood()]);
   const [history, setHistory] = useState<MealEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [inputMode, setInputMode] = useState<"search" | "photo" | "manual">("search");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => { void loadHistory(); }, []);
   async function loadHistory() { setHistory(await bodyMakeClient.getMeals()); }
@@ -50,28 +52,62 @@ export function MealRecorder() {
     const validFoods = foods.filter((food) => food.name.trim());
     if (!validFoods.length) return;
     setIsSaving(true);
-    await bodyMakeClient.saveMeal({ id: createId("meal"), mealType, name: validFoods.map((food) => food.name.trim()).join("・"), items: validFoods, ...totals, recordedAt, createdAt: new Date().toISOString() });
-    setFoods([newFood()]);
-    setIsSaving(false);
-    await loadHistory();
+    setNotice("");
+    try {
+      await bodyMakeClient.saveMeal({ id: createId("meal"), mealType, name: validFoods.map((food) => food.name.trim()).join("・"), items: validFoods, ...totals, recordedAt, createdAt: new Date().toISOString() });
+      setFoods([newFood()]);
+      await loadHistory();
+      setNotice("食事を保存しました。");
+    } catch {
+      setNotice("保存できませんでした。入力内容を確認して再度お試しください。");
+    } finally { setIsSaving(false); }
   }
   async function deleteEntry(id: string) { await bodyMakeClient.deleteMeal(id); await loadHistory(); }
 
   return <>
-    <PageHeader eyebrow="MEAL LOG" title="食事を記録" description="朝・昼・夜・間食ごとに、食べたメニューを追加できます。" />
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Card>
-        <div className="flex items-center justify-between gap-3"><p className="text-sm font-bold text-[var(--ink)]">{formatDate(recordedAt)}の食事</p><input type="date" aria-label="記録日" value={recordedAt} onChange={(event) => setRecordedAt(event.target.value)} className="rounded-lg border border-[var(--line)] bg-white px-2 py-1.5 text-xs text-[var(--ink)] outline-none" /></div>
-        <div className="mt-4 grid grid-cols-4 gap-2">{mealTypes.map(([value, label]) => <button key={value} type="button" onClick={() => setMealType(value)} className={`min-h-12 rounded-xl px-1 text-[11px] font-bold transition ${mealType === value ? "bg-[var(--sage-deep)] text-white shadow-sm" : "bg-[var(--sand)] text-[var(--muted)]"}`}>{label}</button>)}</div>
-        <div className="mt-6 flex items-center justify-between"><div><p className="text-sm font-bold text-[var(--ink)]">{mealTypeLabels[mealType]}のメニュー</p><p className="mt-1 text-xs text-[var(--muted)]">食べた料理をひとつずつ追加します。</p></div><span className="grid size-9 place-items-center rounded-xl bg-[#fff3e9] text-[#b46f42]"><Icon name="leaf" className="size-4" /></span></div>
-        <PhotoMealAnalyzer onAddFood={addPhotoFood} />
-        <FoodLibrarySearch onAddFood={addLibraryFood} />
-        <div className="mt-4 space-y-3">{foods.map((food, index) => <div key={food.id} className="rounded-2xl border border-[var(--line)] bg-[#fdfdfc] p-4"><div className="mb-3 flex items-center justify-between"><p className="text-xs font-bold tracking-[0.08em] text-[var(--sage-deep)]">メニュー {index + 1}</p>{foods.length > 1 ? <button type="button" aria-label="このメニューを削除" onClick={() => removeFood(food.id)} className="inline-flex items-center gap-1 text-xs font-bold text-[var(--coral)]"><Icon name="trash" className="size-3.5" />削除</button> : null}</div><FieldLabel htmlFor={`food-${food.id}`}>料理名</FieldLabel><TextInput id={`food-${food.id}`} value={food.name} onChange={(event) => updateFood(food.id, { name: event.target.value })} placeholder="例：ご飯（白ごはん 100g）" /><div className="mt-3 grid grid-cols-2 gap-2"><div><FieldLabel htmlFor={`calories-${food.id}`}>カロリー kcal</FieldLabel><TextInput id={`calories-${food.id}`} type="number" min="0" inputMode="numeric" value={food.calories ?? ""} onChange={(event) => updateFood(food.id, { calories: event.target.value ? Number(event.target.value) : undefined })} placeholder="156" /></div><div className="grid grid-cols-3 gap-1.5"><div><FieldLabel htmlFor={`protein-${food.id}`}>P</FieldLabel><TextInput id={`protein-${food.id}`} type="number" min="0" step="0.1" inputMode="decimal" value={food.proteinG ?? ""} onChange={(event) => updateFood(food.id, { proteinG: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" /></div><div><FieldLabel htmlFor={`fat-${food.id}`}>F</FieldLabel><TextInput id={`fat-${food.id}`} type="number" min="0" step="0.1" inputMode="decimal" value={food.fatG ?? ""} onChange={(event) => updateFood(food.id, { fatG: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" /></div><div><FieldLabel htmlFor={`carbs-${food.id}`}>C</FieldLabel><TextInput id={`carbs-${food.id}`} type="number" min="0" step="0.1" inputMode="decimal" value={food.carbsG ?? ""} onChange={(event) => updateFood(food.id, { carbsG: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" /></div></div></div></div>)}</div>
-        <Button type="button" variant="secondary" className="mt-4 w-full border-dashed text-[var(--sage-deep)]" onClick={() => setFoods((current) => [...current, newFood()])}><Icon name="plus" className="size-4" />メニューを追加</Button>
-        <div className="mt-5 rounded-xl bg-[var(--sand)] px-4 py-3"><p className="text-[10px] font-bold tracking-[0.08em] text-[var(--muted)]">この食事の合計</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-[var(--ink)]"><span>{totals.calories ?? "--"} kcal</span><span>P {totals.proteinG ?? "--"}g</span><span>F {totals.fatG ?? "--"}g</span><span>C {totals.carbsG ?? "--"}g</span></div></div>
-      </Card>
-      <Button type="submit" className="w-full" disabled={isSaving}>{isSaving ? "保存中..." : `${mealTypeLabels[mealType]}を保存`}</Button>
+    <PageHeader title="食事" description="食べたものと、その日の栄養を記録。" />
+    <form onSubmit={handleSubmit}>
+      <div className="w-48 max-w-full"><FieldLabel htmlFor="meal-date">記録日</FieldLabel><TextInput id="meal-date" type="date" value={recordedAt} onChange={(event) => setRecordedAt(event.target.value)} required /></div>
+      <div className="mb-6 mt-5 grid grid-cols-4 border-b border-[var(--line)]" aria-label="食事の時間帯">{mealTypes.map(([value, label]) => <button key={value} type="button" onClick={() => setMealType(value)} aria-pressed={mealType === value} className="choice-tab">{label}</button>)}</div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="section-title">メニューを追加</h2><span className="text-xs text-[var(--muted)]">{mealTypeLabels[mealType]}</span></div>
+      <div className="mt-4 grid grid-cols-3 gap-2" aria-label="食事の入力方法">{([
+        ["search", "search", "検索"],
+        ["photo", "camera", "写真"],
+        ["manual", "plus", "手入力"],
+      ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-12 items-center justify-center gap-2 rounded border text-xs font-semibold ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name={icon} className="size-4" />{label}</button>)}</div>
+      <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={addLibraryFood} /></div>
+      <div hidden={inputMode !== "photo"}><PhotoMealAnalyzer onAddFood={addPhotoFood} /></div>
+      {inputMode === "manual" && <p className="mt-4 text-xs leading-6 text-[var(--muted)]">下の料理名と栄養の欄に入力してください。栄養が不明な項目は空欄でも保存できます。</p>}
+
+      <section className="mt-8">
+        <div className="mb-4 flex items-center justify-between"><h2 className="section-title">{mealTypeLabels[mealType]}の内容</h2><span className="text-xs text-[var(--muted)]">{foods.filter((food) => food.name.trim()).length}品</span></div>
+        <div className="space-y-4">{foods.map((food, index) => <div key={food.id} className="rounded-md border border-[var(--line)] p-4 sm:p-5">
+          <div className="mb-3 flex min-h-8 items-center justify-between"><p className="metric text-xs font-medium text-[var(--muted)]">メニュー {String(index + 1).padStart(2, "0")}</p>{foods.length > 1 && <button type="button" aria-label="このメニューを削除" onClick={() => removeFood(food.id)} className="delete-button"><Icon name="trash" className="size-4" /></button>}</div>
+          <FieldLabel htmlFor={`food-${food.id}`}>料理名</FieldLabel><TextInput id={`food-${food.id}`} value={food.name} onChange={(event) => updateFood(food.id, { name: event.target.value })} placeholder="例：ご飯（白ごはん 100g）" />
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">{([
+            ["calories", "カロリー (kcal)", "1"],
+            ["proteinG", "たんぱく質 (g)", "0.1"],
+            ["fatG", "脂質 (g)", "0.1"],
+            ["carbsG", "炭水化物 (g)", "0.1"],
+          ] as const).map(([field, label, step]) => <div key={field}><FieldLabel htmlFor={`${field}-${food.id}`}>{label}</FieldLabel><TextInput id={`${field}-${food.id}`} type="number" min="0" step={step} inputMode="decimal" value={food[field] ?? ""} onChange={(event) => updateFood(food.id, { [field]: event.target.value ? Number(event.target.value) : undefined })} placeholder="未入力" className="metric" /></div>)}</div>
+        </div>)}</div>
+        <Button type="button" variant="secondary" className="mt-4 w-full" onClick={() => setFoods((current) => [...current, newFood()])}><Icon name="plus" className="size-4" />もう一品追加</Button>
+      </section>
+
+      <div className="mt-6 border-y border-[var(--ink)] py-5"><p className="mb-4 text-xs font-semibold">この食事の合計</p><dl className="grid grid-cols-4 gap-2">{([
+        ["カロリー", totals.calories, "kcal"],
+        ["たんぱく質", totals.proteinG, "g"],
+        ["脂質", totals.fatG, "g"],
+        ["炭水化物", totals.carbsG, "g"],
+      ] as const).map(([label, value, unit]) => <div key={label}><dt className="text-[10px] text-[var(--muted)]">{label}</dt><dd className="metric mt-2 text-xl font-semibold sm:text-2xl">{value === undefined ? "—" : Math.round(value * 10) / 10}<span className="ml-1 text-[10px] font-normal text-[var(--muted)]">{unit}</span></dd></div>)}</dl></div>
+      <Button type="submit" className="mt-6 w-full" disabled={isSaving || !foods.some((food) => food.name.trim())}>{isSaving ? "保存中…" : `${mealTypeLabels[mealType]}を保存`}</Button>
+      {notice && <p role="status" className="mt-3 text-sm text-[var(--sage-deep)]">{notice}</p>}
     </form>
-    <section className="mt-9"><h2 className="font-display text-xl font-semibold tracking-[-0.035em] text-[var(--ink)]">最近の食事</h2>{history.length === 0 ? <Card className="mt-3 text-center"><Icon name="leaf" className="mx-auto size-6 text-[#c6905d]" /><p className="mt-2 text-sm font-semibold text-[var(--ink)]">まだ記録がありません</p><p className="mt-1 text-xs text-[var(--muted)]">食べたものを一つから残してみましょう。</p></Card> : <div className="mt-3 space-y-3">{history.map((entry) => <Card key={entry.id} className="p-4"><div className="flex items-start justify-between"><div><div className="flex items-center gap-2"><span className="rounded-full bg-[#fff3e9] px-2.5 py-1 text-[10px] font-bold text-[#b46f42]">{mealTypeLabels[entry.mealType]}</span><span className="text-xs font-semibold text-[var(--muted)]">{formatDate(entry.recordedAt)}</span></div><p className="mt-2 text-sm font-bold text-[var(--ink)]">{entry.name}</p></div><button type="button" aria-label="この食事記録を削除" onClick={() => void deleteEntry(entry.id)} className="rounded-lg p-1.5 text-[#9aa19e] hover:bg-[var(--coral-soft)] hover:text-[var(--coral)]"><Icon name="trash" className="size-4" /></button></div>{entry.items?.length ? <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{entry.items.length}品：{entry.items.map((item) => item.name).join("・")}</p> : null}<div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-[var(--muted)]">{entry.calories !== undefined ? <span>{entry.calories} kcal</span> : null}{entry.proteinG !== undefined ? <span>P {entry.proteinG}g</span> : null}{entry.fatG !== undefined ? <span>F {entry.fatG}g</span> : null}{entry.carbsG !== undefined ? <span>C {entry.carbsG}g</span> : null}</div></Card>)}</div>}</section>
+    <section className="mt-12"><div className="mb-4 flex items-center justify-between"><h2 className="section-title">最近の食事</h2><span className="text-xs text-[var(--muted)]">{history.length}件</span></div>
+      {history.length === 0 ? <EmptyState description="保存した食事はここに表示されます。" /> : <div className="border-t border-[var(--line)]">{history.map((entry) => <article key={entry.id} className="border-b border-[var(--line)] py-5">
+        <div className="flex items-start justify-between gap-3"><div><p className="text-xs text-[var(--muted)]">{formatDate(entry.recordedAt)}<span className="ml-3 font-semibold text-[var(--sage-deep)]">{mealTypeLabels[entry.mealType]}</span></p><h3 className="mt-2 text-sm font-semibold leading-6">{entry.name}</h3></div><button type="button" aria-label="この食事記録を削除" onClick={() => void deleteEntry(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button></div>
+        <div className="metric mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">{entry.calories !== undefined && <span className="font-semibold text-[var(--ink)]">{Math.round(entry.calories)} kcal</span>}{entry.proteinG !== undefined && <span>P {entry.proteinG}g</span>}{entry.fatG !== undefined && <span>F {entry.fatG}g</span>}{entry.carbsG !== undefined && <span>C {entry.carbsG}g</span>}</div>
+      </article>)}</div>}
+    </section>
   </>;
 }

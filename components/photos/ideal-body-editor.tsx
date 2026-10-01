@@ -51,18 +51,18 @@ export function IdealBodyEditor({ source, view, onReady }: { source: string; vie
 
   const current = results[selected];
   return (
-    <section className="mt-5 rounded-2xl border border-[var(--line)] bg-white p-4">
-      <div className="flex items-start justify-between gap-3">
+    <section className="mt-5 rounded-md border border-[var(--line)] bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-[var(--ink)]">{bodyPhotoViewLabels[view]}：理想の身体プレビュー</h3>
           <p className="mt-1 text-xs leading-5 text-[var(--muted)]">同じ写真から3段階を自動生成します。実際の将来の姿を保証するものではありません。</p>
         </div>
-        <span className="shrink-0 rounded-full bg-[var(--sage-soft)] px-2 py-1 text-[10px] font-bold text-[var(--sage-deep)]">端末内で処理</span>
+        <span className="shrink-0 text-[10px] font-medium text-[var(--muted)]">端末内で処理</span>
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
         {bodyPatterns.map((pattern) => (
-          <button key={pattern.id} type="button" aria-pressed={selected === pattern.id} onClick={() => setSelected(pattern.id)} className={`overflow-hidden rounded-xl border text-left ${selected === pattern.id ? "border-[var(--sage-deep)] ring-1 ring-[var(--sage-deep)]" : "border-[var(--line)]"}`}>
+          <button key={pattern.id} type="button" aria-pressed={selected === pattern.id} onClick={() => setSelected(pattern.id)} className={`overflow-hidden rounded border text-left ${selected === pattern.id ? "border-[var(--sage-deep)] ring-1 ring-[var(--sage-deep)]" : "border-[var(--line)]"}`}>
             <span className="block aspect-[3/4] bg-[var(--sand)]">
               {results[pattern.id] ? <img src={results[pattern.id]} alt={`${bodyPhotoViewLabels[view]} ${pattern.label}`} className="h-full w-full object-cover" /> : null}
             </span>
@@ -77,19 +77,19 @@ export function IdealBodyEditor({ source, view, onReady }: { source: string; vie
           <p className="text-xs font-bold text-[var(--ink)]">{bodyPatterns.find((pattern) => pattern.id === selected)?.description}</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <figure>
-              <img src={source} alt={`${bodyPhotoViewLabels[view]}の元写真`} className="aspect-[3/4] w-full rounded-xl bg-[var(--sand)] object-cover" />
+              <img src={source} alt={`${bodyPhotoViewLabels[view]}の元写真`} className="aspect-[3/4] w-full rounded bg-[var(--sand)] object-cover" />
               <figcaption className="mt-1 text-center text-[11px] text-[var(--muted)]">元写真</figcaption>
             </figure>
             <figure>
-              <img src={current} alt={`${bodyPhotoViewLabels[view]}の編集後プレビュー`} className="aspect-[3/4] w-full rounded-xl bg-[var(--sand)] object-cover" />
+              <img src={current} alt={`${bodyPhotoViewLabels[view]}の編集後プレビュー`} className="aspect-[3/4] w-full rounded bg-[var(--sand)] object-cover" />
               <figcaption className="mt-1 text-center text-[11px] text-[var(--muted)]">編集後</figcaption>
             </figure>
           </div>
-          <a href={current} download={`BodyMake-${view}-${selected}.jpg`} className="mt-3 block rounded-xl border border-[var(--line)] px-3 py-2.5 text-center text-xs font-bold text-[var(--sage-deep)]">この画像を保存</a>
+          <a href={current} download={`BodyMake-${view}-${selected}.jpg`} className="mt-3 block min-h-11 rounded border border-[var(--line)] px-3 py-3 text-center text-xs font-bold text-[var(--sage-deep)]">この画像を保存</a>
         </div>
       )}
 
-      <button type="button" onClick={() => setAdjusting((value) => !value)} className="mt-4 text-xs font-bold text-[var(--sage-deep)] underline underline-offset-2">{adjusting ? "輪郭点の調整を閉じる" : "輪郭点を確認・調整する"}</button>
+      <button type="button" onClick={() => setAdjusting((value) => !value)} className="text-link mt-4 underline underline-offset-2">{adjusting ? "輪郭点の調整を閉じる" : "輪郭点を確認・調整する"}</button>
       {adjusting && landmarks && <LandmarkAdjuster source={source} view={view} initial={landmarks} automatic={automatic} onCommit={(points) => { setLandmarks(points); if (preparedImage) void generate(preparedImage, points); }} />}
       <p className="mt-3 text-[11px] leading-5 text-[var(--muted)]">筋肉のラインは元写真にある陰影を強調します。写っていない筋肉を新たに描く処理ではありません。単色背景で全身を中央に写すと安定します。</p>
     </section>

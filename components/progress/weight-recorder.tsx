@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
@@ -16,22 +16,33 @@ export function WeightRecorder() {
   const [weightKg, setWeightKg] = useState("");
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => { void loadEntries(); }, []);
-  async function loadEntries() { setEntries(await bodyMakeClient.getWeightEntries()); }
+  async function loadEntries() { setEntries((await bodyMakeClient.getWeightEntries()).sort((a, b) => b.measuredOn.localeCompare(a.measuredOn) || b.createdAt.localeCompare(a.createdAt))); }
   const latest = useMemo(() => entries.find((entry) => entry.measuredOn <= toDateInputValue()), [entries]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!weightKg) return; setIsSaving(true);
-    await bodyMakeClient.saveWeightEntry({ id: createId("weight"), measuredOn, weightKg: Number(weightKg), createdAt: new Date().toISOString() });
-    setWeightKg(""); setIsSaving(false); await loadEntries();
+    setNotice("");
+    try {
+      await bodyMakeClient.saveWeightEntry({ id: createId("weight"), measuredOn, weightKg: Number(weightKg), createdAt: new Date().toISOString() });
+      setWeightKg(""); await loadEntries(); setNotice("体重を保存しました。");
+    } catch { setNotice("保存できませんでした。もう一度お試しください。"); }
+    finally { setIsSaving(false); }
   }
   async function deleteEntry(id: string) { await bodyMakeClient.deleteWeightEntry(id); await loadEntries(); }
 
   return <>
-    <PageHeader eyebrow="WEIGHT LOG" title="体重を記録" description="日々の数値を、長い目でやさしく見ていきましょう。" />
-    {latest ? <Card className="mb-4 flex items-center justify-between bg-[var(--ink)] text-white"><div><p className="text-xs font-bold tracking-[0.08em] text-white/55">LATEST WEIGHT</p><p className="mt-1 font-display text-3xl font-semibold tracking-[-0.05em]">{latest.weightKg}<span className="ml-1 text-sm font-medium text-white/55">kg</span></p></div><Icon name="scale" className="size-7 text-[var(--peach)]" /></Card> : null}
-    <form onSubmit={handleSubmit} className="space-y-4"><Card><div className="grid grid-cols-2 gap-3"><div><FieldLabel htmlFor="weight-date">日付</FieldLabel><TextInput id="weight-date" type="date" value={measuredOn} onChange={(event) => setMeasuredOn(event.target.value)} required /></div><div><FieldLabel htmlFor="weight-value">体重 (kg)</FieldLabel><TextInput id="weight-value" type="number" min="20" max="400" step="0.1" inputMode="decimal" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="例：62.5" required /></div></div></Card><Button type="submit" className="w-full" disabled={isSaving}>{isSaving ? "保存中..." : "体重を保存"}</Button></form>
-    <section className="mt-9"><h2 className="font-display text-xl font-semibold tracking-[-0.035em] text-[var(--ink)]">過去の体重</h2>{entries.length === 0 ? <Card className="mt-3 text-center"><Icon name="scale" className="mx-auto size-6 text-[#9692bd]" /><p className="mt-2 text-sm font-semibold text-[var(--ink)]">まだ記録がありません</p><p className="mt-1 text-xs text-[var(--muted)]">最初の数値を、今の自分の基準にしましょう。</p></Card> : <div className="mt-3 space-y-2">{entries.map((entry) => <Card key={entry.id} className="flex items-center justify-between p-4"><div><p className="text-xs font-semibold text-[var(--muted)]">{formatDate(entry.measuredOn)}</p><p className="mt-1 font-display text-xl font-semibold tracking-[-0.03em] text-[var(--ink)]">{entry.weightKg}<span className="ml-1 text-xs font-medium text-[var(--muted)]">kg</span></p></div><button type="button" aria-label="この体重記録を削除" onClick={() => void deleteEntry(entry.id)} className="rounded-lg p-1.5 text-[#9aa19e] hover:bg-[var(--coral-soft)] hover:text-[var(--coral)]"><Icon name="trash" className="size-4" /></button></Card>)}</div>}</section>
+    <PageHeader title="体重" description="日付と体重を入力して保存。" />
+    {latest && <div className="mb-8 flex items-center justify-between border-y border-[var(--ink)] py-6"><div><p className="text-xs text-[var(--muted)]">最新の記録</p><p className="metric mt-2 text-5xl font-medium">{latest.weightKg}<span className="ml-2 text-sm text-[var(--muted)]">kg</span></p></div><p className="text-xs text-[var(--muted)]">{formatDate(latest.measuredOn)}</p></div>}
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 gap-5 min-[360px]:grid-cols-2"><div><FieldLabel htmlFor="weight-date">日付</FieldLabel><TextInput id="weight-date" type="date" value={measuredOn} onChange={(event) => setMeasuredOn(event.target.value)} required /></div><div><FieldLabel htmlFor="weight-value">体重 (kg)</FieldLabel><TextInput id="weight-value" type="number" min="20" max="400" step="0.1" inputMode="decimal" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="例：62.5" required className="metric" /></div></div>
+      <Button type="submit" className="w-full" disabled={isSaving}>{isSaving ? "保存中…" : "体重を保存"}</Button>
+      {notice && <p role="status" className="text-sm text-[var(--sage-deep)]">{notice}</p>}
+    </form>
+    <section className="mt-12"><div className="mb-4 flex items-center justify-between"><h2 className="section-title">これまでの記録</h2><span className="text-xs text-[var(--muted)]">{entries.length}件</span></div>
+      {entries.length === 0 ? <EmptyState description="保存した体重はここに表示されます。" /> : <div className="border-t border-[var(--line)]">{entries.map((entry) => <div key={entry.id} className="flex items-center gap-3 border-b border-[var(--line)] py-3"><p className="flex-1 text-xs text-[var(--muted)]">{formatDate(entry.measuredOn)}</p><p className="metric text-xl font-medium">{entry.weightKg}<span className="ml-1 text-xs text-[var(--muted)]">kg</span></p><button type="button" aria-label="この体重記録を削除" onClick={() => void deleteEntry(entry.id)} className="delete-button"><Icon name="trash" className="size-4" /></button></div>)}</div>}
+    </section>
   </>;
 }

@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --body-font: "Hiragino Sans", "Yu Gothic", "Helvetica Neue", Arial, sans-serif;
-  --display-font: Georgia, "Times New Roman", "Hiragino Mincho ProN", serif;
-  --canvas: #f8f7f3;
-  --ink: #1f2824;
-  --ink-soft: #33413b;
-  --muted: #74807a;
-  --line: #dce1dc;
-  --sage-soft: #e6f0e7;
-  --sage-deep: #4f765c;
-  --sand: #f1eee7;
-  --peach: #f5b684;
-  --coral: #b55e5f;
-  --coral-soft: #fbeaea;
+  --body-font: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  --display-font: var(--body-font);
+  --canvas: #ffffff;
+  --ink: #202622;
+  --ink-soft: #3e4942;
+  --muted: #69716b;
+  --line: #dfe3dd;
+  --sage-soft: #edf2e9;
+  --sage-deep: #365940;
+  --sand: #f4f5f1;
+  --peach: #d8e4ca;
+  --coral: #a44436;
+  --coral-soft: #fbefec;
   --background: var(--canvas);
   --foreground: var(--ink);
 }
@@ -29,7 +29,35 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--body-font);
+  font-feature-settings: "palt";
 }
 
 * { -webkit-tap-highlight-color: transparent; }
-button, input, select { font: inherit; }
+button, input, select, textarea { font-family: inherit; }
+button:not(:disabled), summary, select { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--sage-deep); outline-offset: 4px; }
+::selection { background: #d8e4ca; color: var(--ink); }
+
+@layer components {
+  .panel { border: 1px solid var(--line); border-radius: 6px; background: white; padding: 20px; }
+  .section-title { font-size: 16px; font-weight: 700; letter-spacing: .02em; }
+  .metric { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -.04em; }
+  .form-input { height: 48px; width: 100%; min-width: 0; border: 1px solid #c9d0c9; border-radius: 4px; background: white; padding: 0 12px; font-size: 16px; color: var(--ink); }
+  .form-input::placeholder { color: #929a93; }
+  .form-input:focus { border-color: var(--sage-deep); outline: 2px solid var(--sage-deep); outline-offset: 1px; }
+  .delete-button { display: grid; min-width: 44px; min-height: 44px; place-items: center; border-radius: 4px; color: var(--muted); }
+  .delete-button:hover { color: var(--coral); background: var(--coral-soft); }
+  .text-link { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sage-deep); }
+  .text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .setup-page { min-height: 100dvh; padding: 24px 20px 48px; background: var(--canvas); }
+  .setup-content { margin: 0 auto; width: 100%; max-width: 480px; }
+  .setup-heading { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 28px; }
+  .setup-title { margin-top: 12px; font-size: 28px; line-height: 1.6; font-weight: 700; letter-spacing: -.025em; }
+  .setup-step { font-size: 12px; font-weight: 600; color: var(--sage-deep); }
+  .choice-tab { min-height: 48px; border-bottom: 2px solid transparent; padding: 8px 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .choice-tab[aria-pressed="true"] { border-color: var(--sage-deep); color: var(--sage-deep); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation-duration: 0s !important; }
+}
