@@ -8,7 +8,7 @@ export interface FoodLibraryItem {
   suggestedGrams: number;
   sourceDataset: string;
   fdcId: number;
-  sourceDescription: string;
+  sourceDescription?: string;
   per100g: {
     calories: number;
     proteinG: number;
