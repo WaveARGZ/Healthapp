@@ -101,13 +101,15 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     </div>
     <label className="mt-3 flex items-center gap-2 rounded-xl border border-white bg-white px-3 py-2.5 shadow-sm">
       <Icon name="search" className="size-4 text-[var(--muted)]" />
-      <input type="search" value={query} onFocus={loadExtendedCatalog} onChange={(event) => { setQuery(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} placeholder="ごはん、カレー、鶏肉、納豆…" className="min-w-0 flex-1 bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[#a6ada9]" />
+      <input type="search" value={query} onFocus={loadExtendedCatalog} onChange={(event) => { setQuery(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} placeholder="例：白米、とりにく、カレーライス" className="min-w-0 flex-1 bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[#a6ada9]" />
     </label>
+    <p className="mt-1.5 text-[10px] text-[var(--muted)]">ひらがな・カタカナ、別名でも検索できます。</p>
     <select aria-label="食品のカテゴリ" value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} className="mt-2 h-10 w-full rounded-xl border border-white bg-white px-3 text-xs font-semibold text-[var(--ink)] outline-none">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select>
     {(catalogStatus === "idle" || catalogStatus === "error") && <button type="button" onClick={() => { setShowAll(true); setVisibleCount(30); loadExtendedCatalog(); }} className="mt-3 text-xs font-bold text-[var(--sage-deep)] underline underline-offset-2">{catalogStatus === "error" ? "詳細データを再読み込み" : "USDAの全食品データを読み込む"}</button>}
     {catalogStatus === "loaded" && !showAll && <button type="button" onClick={() => { setShowAll(true); clearSelection(); }} className="mt-3 text-xs font-bold text-[var(--sage-deep)] underline underline-offset-2">全食品の一覧を見る</button>}
     {catalogStatus === "loading" && <p className="mt-3 text-xs text-[var(--muted)]" role="status">詳細データを読み込み中…</p>}
     {catalogStatus === "loaded" && <p className="mt-3 text-[10px] leading-4 text-[var(--muted)]">同じ日本語名の食品は1行にまとめています。部位や調理法で栄養が異なる場合は、追加前に候補を選んでください。</p>}
+    {results.usedFuzzy && <p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs text-[var(--sage-deep)]" role="status">入力に近い候補を表示しています。品目を確認してから追加してください。</p>}
     <p className="mt-3 text-[10px] font-bold tracking-wide text-[var(--muted)]">{showPopular ? "よく使う食品" : `検索結果 ${results.groups.length.toLocaleString()}品目（元データ ${results.matchingRecords.toLocaleString()}件・${shownGroups.length.toLocaleString()}品目を表示）`}</p>
     {shownGroups.length ? <div className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-white bg-white">
       {shownGroups.map((group) => {
@@ -117,7 +119,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
           <div className="shrink-0 text-right">{single ? <><p className="text-xs font-bold text-[var(--sage-deep)]">{single.per100g.calories} kcal</p><p className="mt-1 text-[10px] font-medium text-[var(--muted)]">P {single.per100g.proteinG} / F {single.per100g.fatG} / C {single.per100g.carbsG}</p></> : <span className="text-xs font-bold text-[var(--sage-deep)]">候補を見る ›</span>}</div>
         </button>;
       })}
-    </div> : <p className="mt-3 text-xs text-[var(--muted)]">見つかりませんでした。短い料理名でも検索してみてください。</p>}
+    </div> : <p className="mt-3 text-xs text-[var(--muted)]">{catalogStatus === "loading" ? "詳細データの読み込み後に再度検索します。" : "見つかりませんでした。別名や短い料理名でも検索してみてください。"}</p>}
     {results.groups.length > shownGroups.length && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="mt-3 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-xs font-bold text-[var(--sage-deep)]">さらに30品目表示</button>}
     {activeGroup && <div className="mt-3 rounded-xl bg-white p-3">
       <p className="text-sm font-bold text-[var(--ink)]">{activeGroup.name}</p>
