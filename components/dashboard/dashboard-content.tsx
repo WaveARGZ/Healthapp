@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { EmptyState } from "@/components/ui/empty-state";
+import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
 import { bodyMakeClient } from "@/lib/api/client";
 import { formatDate, formatToday, toDateInputValue } from "@/lib/utils/date";
 import { fitnessGoalLabels, type UserProfile } from "@/types/user";
@@ -65,6 +66,7 @@ export function DashboardContent() {
       <Link href="/onboarding" className="text-link max-w-[45%]"><span className="truncate">{data.profile?.name ? `${data.profile.name}さん` : "プロフィール設定"}</span><Icon name="user" className="size-4 shrink-0" /></Link>
     </header>
     {error && <p role="alert" className="mt-4 text-xs text-[var(--coral)]">{error}</p>}
+    <WeightTrendChart entries={data.weights.filter((entry) => entry.measuredOn <= today)} loading={loading} />
     <section aria-label="現在の身体と目標" className="mt-7 grid grid-cols-2 border-y border-[var(--ink)] py-6 sm:py-7">
       <Link href="/weight" className="pr-4"><p className="text-xs text-[var(--muted)]">現在の体重</p><p className="metric mt-2 text-[42px] font-medium leading-none sm:text-[56px]">{loading ? "—" : summary.currentWeight ?? "—"}<span className="ml-2 text-sm font-normal tracking-normal text-[var(--muted)]">kg</span></p><p className="mt-3 text-[11px] text-[var(--sage-deep)]">体重を記録する ↗</p></Link>
       <div className="flex flex-col justify-center border-l border-[var(--line)] pl-5 sm:pl-8"><p className="text-xs text-[var(--muted)]">いまの目標</p><p className="mt-2 text-sm font-bold leading-6 sm:text-base">{data.profile ? fitnessGoalLabels[data.profile.goal] : "目標を設定しましょう"}</p><Link href="/onboarding" className="text-link mt-1">{data.profile ? "目標を変更" : "プロフィールへ"}<Icon name="arrow-right" className="size-3.5" /></Link></div>
