@@ -4,10 +4,11 @@ import { formatDate } from "@/lib/utils/date";
 import type { WeightEntry } from "@/types/progress";
 
 export function WeightTrendChart({ entries, loading = false }: { entries: WeightEntry[]; loading?: boolean }) {
-  const recent = [...entries]
+  const latestByDay = [...entries]
     .filter((entry) => entry.weightKg > 0)
     .sort((first, second) => first.measuredOn.localeCompare(second.measuredOn) || first.createdAt.localeCompare(second.createdAt))
-    .slice(-7);
+    .reduce((byDay, entry) => byDay.set(entry.measuredOn, entry), new Map<string, WeightEntry>());
+  const recent = [...latestByDay.values()].slice(-7);
   const values = recent.map((entry) => entry.weightKg);
   const lower = values.length ? Math.floor(Math.min(...values) - 1) : 0;
   const upper = values.length ? Math.ceil(Math.max(...values) + 1) : 1;
