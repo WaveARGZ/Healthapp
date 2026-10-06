@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/ui/icon";
 import { EmptyState } from "@/components/ui/empty-state";
 import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
 import { bodyMakeClient } from "@/lib/api/client";
+import { getWorkoutPreferences } from "@/lib/storage/workout-preferences";
 import { formatDate, formatToday, toDateInputValue } from "@/lib/utils/date";
 import { fitnessGoalLabels, type UserProfile } from "@/types/user";
 import type { MealEntry } from "@/types/meal";
@@ -35,10 +36,14 @@ export function DashboardContent() {
   const [data, setData] = useState<DashboardData>(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [hasFacilityEquipment, setHasFacilityEquipment] = useState<boolean | null>(null);
   const today = toDateInputValue();
   useEffect(() => {
-    void Promise.all([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), bodyMakeClient.getBodyPhotos()])
-      .then(([profile, workouts, meals, weights, photos]) => setData({ profile, workouts, meals, weights, photos }))
+    void Promise.all([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), bodyMakeClient.getBodyPhotos(), Promise.resolve().then(getWorkoutPreferences)])
+      .then(([profile, workouts, meals, weights, photos, preferences]) => {
+        setData({ profile, workouts, meals, weights, photos });
+        setHasFacilityEquipment(preferences.facilityEquipment.length + preferences.customEquipment.length > 0);
+      })
       .catch(() => setError("記録を読み込めませんでした。ページを再読み込みしてください。"))
       .finally(() => setLoading(false));
   }, []);
@@ -65,6 +70,11 @@ export function DashboardContent() {
       <div><p className="text-xs text-[var(--muted)]">{formatToday()}</p><h1 className="mt-2 text-[28px] font-bold tracking-tight">今日の記録</h1></div>
       <Link href="/onboarding" className="text-link max-w-[45%]"><span className="truncate">{data.profile?.name ? `${data.profile.name}さん` : "プロフィール設定"}</span><Icon name="user" className="size-4 shrink-0" /></Link>
     </header>
+    {hasFacilityEquipment === false && <section className="mt-5 flex items-center gap-4 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4" aria-label="ジムの器具を登録">
+      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-[var(--sage-deep)]"><Icon name="dumbbell" className="size-5" /></span>
+      <div className="min-w-0 flex-1"><h2 className="text-sm font-bold">ジムのマシン・器具を登録しましょう</h2><p className="mt-1 text-xs leading-5 text-[var(--muted)]">登録すると、使える器具に合わせて筋トレのおすすめを絞り込めます。</p><p className="mt-1 text-[10px] leading-4 text-[var(--muted)]">筋トレ画面 →「種目一覧から選ぶ」→「器具を登録・編集」</p></div>
+      <Link href="/workouts" className="flex min-h-11 shrink-0 items-center gap-1 rounded bg-[var(--sage-deep)] px-3 text-xs font-bold text-white">登録する<Icon name="arrow-right" className="size-3.5" /></Link>
+    </section>}
     {error && <p role="alert" className="mt-4 text-xs text-[var(--coral)]">{error}</p>}
     <WeightTrendChart entries={data.weights.filter((entry) => entry.measuredOn <= today)} loading={loading} />
     <section aria-label="現在の身体と目標" className="mt-7 grid grid-cols-2 border-y border-[var(--ink)] py-6 sm:py-7">
