@@ -106,8 +106,9 @@ export function recommendExercises(input: {
   }
 
   return candidates
-    .filter((candidate) => selectedCategory === "すべて" || (selectedCategory === "お気に入り" ? favorites.includes(candidate.name) : candidate.category === selectedCategory))
-    .filter((candidate) => selectedCategory !== "お気に入り" || favorites.includes(candidate.name))
+    // Recommendations are deliberately restricted to the user's gym favorites.
+    .filter((candidate) => favorites.includes(candidate.name))
+    .filter((candidate) => selectedCategory === "すべて" || selectedCategory === "お気に入り" || candidate.category === selectedCategory)
     .filter((candidate) => search.length < 2 || `${candidate.name} ${candidate.category} ${candidate.group}`.toLocaleLowerCase().includes(search) || focus === candidate.category)
     .filter((candidate) => {
       const requirements = requirementsFor(candidate.name);
