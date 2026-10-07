@@ -12,7 +12,11 @@
     "validate:food-data": "node scripts/validate-food-library.mjs",
     "test:food-catalog": "node scripts/test-food-catalog.mjs",
     "test:static-ui": "node scripts/test-static-ui.mjs",
-    "test:mobile-viewport": "node scripts/test-mobile-viewport.mjs"
+    "test:mobile-viewport": "node scripts/test-mobile-viewport.mjs",
+    "food-ai:learn": "node scripts/food-ai/learn.mjs",
+    "food-ai:collect": "node scripts/food-ai/collect-commons.mjs",
+    "food-ai:agent": "node scripts/food-ai/agent.mjs",
+    "test:food-ai": "node --test scripts/food-ai/*.test.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.0",

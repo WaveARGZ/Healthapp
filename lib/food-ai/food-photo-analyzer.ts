@@ -1,5 +1,7 @@
 import { foodCatalog, type FoodCatalogItem } from "@/lib/food-ai/food-catalog";
 import { getFoodLearningSignals } from "@/lib/food-ai/food-learning";
+import { applyFoodCalibration, FOOD_BASE_MODEL } from "@/lib/food-ai/food-calibration.mjs";
+import deployedCalibration from "@/lib/food-ai/deployed-calibration.json";
 
 export interface FoodPhotoCandidate extends FoodCatalogItem {
   score: number;
@@ -18,7 +20,7 @@ let classifierPromise: Promise<ImageClassifier> | null = null;
 async function getClassifier(onProgress?: (progress: ModelProgress) => void): Promise<ImageClassifier> {
   if (!classifierPromise) {
     classifierPromise = import("@huggingface/transformers")
-      .then(async ({ pipeline }) => pipeline("zero-shot-image-classification", "Xenova/clip-vit-base-patch32", {
+      .then(async ({ pipeline }) => pipeline("zero-shot-image-classification", FOOD_BASE_MODEL, {
         // Prefer the smaller quantized model for mobile devices.
         dtype: "q4",
         progress_callback: (info) => onProgress?.({
@@ -45,16 +47,21 @@ export async function analyzeFoodPhoto(
   const classifier = await getClassifier(onProgress);
   onProgress?.({ label: "写真から料理候補を探しています" });
   const outputs = await classifier(image, foodCatalog.map((food) => food.clipLabel));
+  const rawScores = new Map(outputs.map((output) => [output.label, output.score]));
+  const labelIds = foodCatalog.map((food) => food.id);
+  const probabilities = applyFoodCalibration(
+    foodCatalog.map((food) => rawScores.get(food.clipLabel) ?? 0),
+    labelIds,
+    deployedCalibration,
+  );
   const signals = getFoodLearningSignals();
 
-  return outputs
-    .map((output) => {
-      const item = foodCatalog.find((food) => food.clipLabel === output.label);
-      if (!item) return null;
+  return foodCatalog
+    .map((item, index) => {
+      const modelScore = probabilities[index];
       const learnedBoost = Math.min(0.12, (signals[item.id]?.confirmed ?? 0) * 0.02);
-      return { ...item, modelScore: output.score, score: Math.min(1, output.score + learnedBoost) };
+      return { ...item, modelScore, score: Math.min(1, modelScore + learnedBoost) };
     })
-    .filter((candidate): candidate is FoodPhotoCandidate => candidate !== null)
     .sort((first, second) => second.score - first.score)
     .slice(0, 5);
 }

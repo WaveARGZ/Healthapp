@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Private food photos, labels, model caches, and evaluation reports
+/training-data/
+/ml/artifacts/
