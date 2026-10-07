@@ -42,7 +42,7 @@ for (const page of pages) {
   }
   if (page === "login") assert.match(html, /ログイン状態を記憶する/, "login: remember-session option");
   if (page === "meals") assert.match(html, /写真からメニューを追加/, "meals: photo correction entry point");
-  if (page === "settings") assert.match(html, /Google Driveへの正解データ保存/, "settings: Drive training-data setup");
+  if (page === "settings") assert.match(html, /共有Driveへの学習データ保存/, "settings: shared Drive training-data setup");
 }
 assert.equal(imagePaths.size, 1, "all pages use the same artwork");
 console.log(`${pages.length} pages validated: Japanese headings, logo, navigation, mobile viewport and recording controls. Base path: ${basePath || "/"}`);

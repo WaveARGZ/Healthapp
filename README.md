@@ -23,7 +23,8 @@
   - 料理別のカロリー・PFCと食事合計を記録
   - 日本で一般的な定番料理187件と、文部科学省「日本食品標準成分表（八訂）増補2023年」の日本語食品2,537件を検索し、食べた重さからPFCを計算。ひらがな・カタカナ、料理の別名、軽微な誤字にも対応
   - 写真を端末内の無料AIで解析し、料理候補と同じ食品データに基づく栄養素を追加
-  - 認識後に正解料理名とカロリー・PFCを修正可能。写真・正解ラベルを端末内に最大150件保存し、Drive連携設定時はGoogle Driveにも追加
+  - 認識後に正解料理名とカロリー・PFCを修正可能。写真・正解ラベルを端末内に最大150件保存
+  - 学習データ共有は任意だが、共有する場合は毎回の明示同意とGoogleログインが必須。送信先はアプリ所有者が管理する共通Google Drive
   - 正解データに基づき以後の候補順位を個人向けに補正
   - 履歴表示・削除
 - 体重記録と一覧
@@ -84,7 +85,7 @@ hooks/                  # クライアント側の再利用フック
 lib/
   api/                  # UIが依存する永続化インターフェースと合成ルート
   auth/                 # 将来のCognito連携用インターフェース
-  drive/                # Google Identity ServicesとDrive API
+  drive/                # Googleアカウント認証と共通Drive受け口連携
   storage/              # localStorage実装
   photos/               # 写真の読み込み・Canvas編集
   data/                 # 日本語の定番食品の選定一覧と生成済みの栄養データ
@@ -125,7 +126,17 @@ npm run test:food-catalog
 
 食事写真のAI候補だけは、`@huggingface/transformers` の公開ONNXモデルをブラウザ内で実行します。初回は約200MBのモデルをダウンロードしてブラウザキャッシュに保存しますが、料理写真を推論APIへ送信しません。認識後に料理名とカロリー・PFCを手で修正し、「正解として保存」できます。正解データと写真は `lib/food-ai/food-learning.ts` からこの端末の IndexedDB へ最大150件保存されます。
 
-Google Drive連携にはOAuthクライアントIDをアプリに初期設定しています。Google CloudでDrive APIを有効にし、承認済みJavaScript生成元に `https://waveargz.github.io`（ローカル開発時は `http://localhost:3000`）を登録して、アプリの「設定」→「Google Driveへの正解データ保存」から接続してください。許可を得た後、正解登録時に写真と正解ラベル・栄養値をDrive内の `BodyMake 食事画像正解データ` フォルダへ個別ファイルとして保存します。アクセストークンは短時間だけメモリ上で使用し、保存しません。Driveへの接続は任意で、未接続でも端末内に記録します。
+### 共通Driveへの学習データ保存
+
+ユーザーごとのDriveではなく、アプリ所有者のDriveに集約します。GitHub Pagesだけでは所有者のGoogle Driveへ安全に書き込めないため、リポジトリ内の `scripts/google-drive-training-ingest/Code.gs` をApps Scriptの受け口として使います。所有者アカウントで一度デプロイしてください。
+
+1. `script.google.com` で新しいApps Scriptプロジェクトを作り、`Code.gs` の内容を貼り付けます。
+2. Apps Scriptの「プロジェクトの設定」で「マニフェスト ファイル `appsscript.json` をエディタで表示する」を有効にし、同梱の `appsscript.json` の内容に置き換えます。
+3. 「デプロイ」→「新しいデプロイ」→「ウェブアプリ」を選び、「次のユーザーとして実行」は自分、「アクセスできるユーザー」は全員（匿名ユーザーを含む）にしてデプロイします。Driveへの保存は所有者権限で行い、リクエスト内のGoogleトークンをGoogleのToken InfoとUserInfoで検証します。未認証の送信は受け付けません。
+4. 表示された `/exec` URLをGitHubリポジトリの `Settings` → `Secrets and variables` → `Actions` → `Variables` に `BODYMAKE_TRAINING_ENDPOINT` という名前で登録し、Pagesワークフローを再実行します。URLは全利用者共通の公開設定としてビルドへ埋め込みます。OAuthクライアントIDは初期設定済みです。Google Cloudの承認済みJavaScript生成元に `https://waveargz.github.io` と `http://localhost:3000` を登録してください。
+5. 正解データを共有する時は、利用者が同意チェックを入れ、Googleログインを完了した場合だけ送信されます。写真はブラウザ上で最大1280pxのJPEGに再生成してEXIFを除去します。保存するのは写真、AI候補ID、正解料理名・ID、カロリー・PFC、記録日時です。氏名・メールアドレス・GoogleトークンはDriveに保存しません。
+
+Apps Scriptのウェブアプリはブラウザから応答本文を読み取れないため、画面は送信操作の完了までを表示し、Driveへの保存成否を確約しません。デプロイ前、またはGitHub Actionsの変数未設定時は共有ボタンを使えません。Apps Scriptの無料枠・容量・実行回数に依存し、1アカウントあたり6時間で10件に制限します。匿名HTTP入口自体は公開されますが、GoogleアカウントトークンをGoogle側で照合し、写真サイズ・入力値・件数を検証してから保存します。大規模公開や高い可用性が必要になった場合は、Cognito + API Gateway/Lambda + S3へ移行してください。
 
 詳細食品のカロリー・PFCは、文部科学省の[日本食品標準成分表（八訂）増補2023年](https://www.mext.go.jp/a_menu/syokuhinseibun/mext_00001.html)「第2章（データ）」にある可食部100g当たりの値です。食品名・分類・調理状態も原表の日本語表記を使い、食品番号を保持します。元の米国向け詳細13,014件は検索対象から外しました。たんぱく質・脂質・炭水化物が微量 `Tr` の場合は表示精度に合わせ0gとし、PFCが未掲載の1件は除外しています。資料の利用については[文部科学省の案内](https://www.mext.go.jp/a_menu/syokuhinseibun/)に従い、出典を明記しています。
 

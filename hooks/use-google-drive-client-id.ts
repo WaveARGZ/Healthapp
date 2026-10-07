@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { getGoogleDriveClientId } from "@/lib/storage/google-drive-settings";
+import { getGoogleDriveClientId, getTrainingDataEndpoint } from "@/lib/storage/google-drive-settings";
 
 function subscribe(callback: () => void): () => void {
   window.addEventListener("storage", callback);
@@ -14,4 +14,8 @@ function subscribe(callback: () => void): () => void {
 
 export function useGoogleDriveClientId(): string {
   return useSyncExternalStore(subscribe, getGoogleDriveClientId, () => "");
+}
+
+export function useTrainingDataEndpoint(): string {
+  return useSyncExternalStore(subscribe, getTrainingDataEndpoint, () => "");
 }

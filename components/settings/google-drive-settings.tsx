@@ -1,46 +1,39 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { preloadGoogleIdentity, requestGoogleDriveAccessToken, verifyGoogleDriveAccess } from "@/lib/drive/google-drive-client";
-import { saveGoogleDriveClientId } from "@/lib/storage/google-drive-settings";
-import { useGoogleDriveClientId } from "@/hooks/use-google-drive-client-id";
+import { getGoogleAccountEmail, preloadGoogleIdentity, requestGoogleAccountToken } from "@/lib/drive/google-drive-client";
+import { useGoogleDriveClientId, useTrainingDataEndpoint } from "@/hooks/use-google-drive-client-id";
 
 export function GoogleDriveSettings() {
   const savedClientId = useGoogleDriveClientId();
-  const clientIdRef = useRef<HTMLInputElement>(null);
+  const savedEndpoint = useTrainingDataEndpoint();
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { void preloadGoogleIdentity().catch(() => undefined); }, []);
-
-  function saveSettings() {
-    const value = clientIdRef.current?.value.trim() ?? "";
-    saveGoogleDriveClientId(value);
-    setStatus(value ? "クライアントIDをこの端末に保存しました。続けてGoogle Driveに接続してください。" : "Drive連携設定を削除しました。");
-  }
 
   async function connect() {
     if (!savedClientId) return;
     setBusy(true);
     setStatus("Googleの認証画面を開いています…");
     try {
-      const token = await requestGoogleDriveAccessToken(savedClientId);
-      await verifyGoogleDriveAccess(token);
-      setStatus("接続できました。正解を登録すると、写真とラベルをGoogle Driveへ保存します。");
+      const token = await requestGoogleAccountToken(savedClientId);
+      const email = await getGoogleAccountEmail(token);
+      setStatus(`${email}でログインを確認しました。送信時にもGoogleアカウント認証が必要です。`);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Google Driveに接続できませんでした。設定をご確認ください。");
+      setStatus(error instanceof Error ? error.message : "Googleログインを確認できませんでした。設定をご確認ください。");
     } finally {
       setBusy(false);
     }
   }
 
   return <section className="mt-10 border-y border-[var(--line)] py-6" aria-labelledby="drive-settings-title">
-    <h2 id="drive-settings-title" className="text-base font-bold">Google Driveへの正解データ保存</h2>
-    <p className="mt-2 text-xs leading-6 text-[var(--muted)]">OAuthクライアントIDは設定済みです。Google CloudでDrive APIを有効にし、このサイトのURLを承認済みJavaScript生成元に登録したうえで接続してください。必要ならクライアントIDを差し替えられます。承認後に専用フォルダが作成され、食事写真・正解料理名・栄養値を保存します。パスワードやOAuthトークンは保存しません。</p>
-    <label className="mt-4 block text-xs font-bold text-[var(--ink)]" htmlFor="google-drive-client-id">OAuthクライアントID<input key={savedClientId} ref={clientIdRef} id="google-drive-client-id" autoComplete="off" defaultValue={savedClientId} placeholder="xxxxx.apps.googleusercontent.com" className="mt-2 h-12 w-full rounded border border-[var(--line)] bg-white px-3 text-sm font-normal outline-none focus:border-[var(--sage-deep)]" /></label>
-    <div className="mt-3 grid gap-2 sm:grid-cols-2"><Button type="button" variant="secondary" onClick={saveSettings}>{savedClientId ? "設定を保存" : "クライアントIDを保存"}</Button><Button type="button" onClick={() => void connect()} disabled={!savedClientId || busy}>{busy ? "接続中…" : "Google Driveに接続"}</Button></div>
+    <h2 id="drive-settings-title" className="text-base font-bold">共有Driveへの学習データ保存</h2>
+    <p className="mt-2 text-xs leading-6 text-[var(--muted)]">全ユーザーの正解データをアプリ所有者のDriveへ集約します。共有する場合はGoogleログインと毎回の同意が必要です。Drive APIへのユーザー個人のアクセス権は要求しません。</p>
+    <p className="mt-3 rounded bg-[var(--sand)] px-3 py-2 text-[11px] leading-5 text-[var(--ink-soft)]">共有先: {savedEndpoint ? "アプリ共通のDriveに設定済み" : "所有者によるApps Scriptのデプロイ待ち"}<br />OAuthクライアント: {savedClientId ? "アプリ共通の設定済みIDを使用" : "未設定"}</p>
+    <div className="mt-3"><Button type="button" onClick={() => void connect()} disabled={!savedClientId || busy}>{busy ? "確認中…" : "Googleログインを確認"}</Button></div>
     {status ? <p role="status" className="mt-3 text-xs leading-5 text-[var(--muted)]">{status}</p> : null}
-    <p className="mt-3 text-[10px] leading-5 text-[var(--muted)]">OAuthの承認済みJavaScript生成元には <span className="select-all">https://waveargz.github.io</span> と、ローカル開発用の <span className="select-all">http://localhost:3000</span> を登録してください。必要な権限はアプリが作成したファイルへのアクセスのみです。</p>
+    <p className="mt-3 text-[10px] leading-5 text-[var(--muted)]">OAuthの承認済みJavaScript生成元には <span className="select-all">https://waveargz.github.io</span> と、ローカル開発用の <span className="select-all">http://localhost:3000</span> を登録してください。写真を再圧縮して位置情報などのEXIFを除いてから、修正済み料理名・候補・栄養値とともに共有Driveへ送ります。受け口URLは運営側で一元管理します。</p>
   </section>;
 }

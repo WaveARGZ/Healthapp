@@ -1,5 +1,4 @@
-const driveScope = "https://www.googleapis.com/auth/drive.file";
-const trainingFolderName = "BodyMake 食事画像正解データ";
+const identityScope = "openid email profile";
 const identityScriptUrl = "https://accounts.google.com/gsi/client";
 
 interface GoogleTokenResponse {
@@ -49,18 +48,18 @@ export function preloadGoogleIdentity(): Promise<void> {
   return loadGoogleIdentity();
 }
 
-/** Requests a short-lived Google access token from an explicit user action. */
-export function requestGoogleDriveAccessToken(clientId: string): Promise<string> {
+/** Requests a short-lived Google account token from an explicit user action. */
+export function requestGoogleAccountToken(clientId: string): Promise<string> {
   const request = (): Promise<string> => {
   const oauth2 = window.google?.accounts?.oauth2;
   if (!oauth2) throw new Error("Google認証を初期化できませんでした。");
   return new Promise((resolve, reject) => {
     const client = oauth2.initTokenClient({
       client_id: clientId,
-      scope: driveScope,
+      scope: identityScope,
       callback: (response) => {
         if (response.access_token) resolve(response.access_token);
-        else reject(new Error(response.error_description ?? response.error ?? "Google Driveへのアクセスが許可されませんでした。"));
+        else reject(new Error(response.error_description ?? response.error ?? "Googleアカウントでのログインが許可されませんでした。"));
       },
     });
     client.requestAccessToken();
@@ -70,63 +69,49 @@ export function requestGoogleDriveAccessToken(clientId: string): Promise<string>
   return loadGoogleIdentity().then(request);
 }
 
-async function driveRequest(path: string, token: string, init?: RequestInit): Promise<Response> {
-  const response = await fetch(`https://www.googleapis.com/drive/v3/${path}`, {
-    ...init,
-    headers: { Authorization: `Bearer ${token}`, ...init?.headers },
+export async function getGoogleAccountEmail(token: string): Promise<string> {
+  const response = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+    headers: { Authorization: `Bearer ${token}` },
   });
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`Google Driveへの保存に失敗しました (${response.status})${detail ? `: ${detail.slice(0, 160)}` : ""}`);
+  if (!response.ok) throw new Error("Googleアカウントを確認できませんでした。もう一度ログインしてください。");
+  const profile = await response.json() as { email?: string; email_verified?: boolean };
+  if (!profile.email || !profile.email_verified) throw new Error("確認済みのGoogleアカウントが必要です。");
+  return profile.email;
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",", 2)[1] ?? "");
+    reader.onerror = () => reject(new Error("写真を送信用に変換できませんでした。"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Re-encodes the photo to JPEG so EXIF/GPS metadata is not carried to the shared dataset. */
+export async function sanitizeTrainingPhoto(file: Blob): Promise<Blob> {
+  const image = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, 1280 / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("写真を送信用に変換できませんでした。");
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const result = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (!result) throw new Error("写真を送信用に変換できませんでした。");
+    if (result.size > 1_500_000) throw new Error("写真の容量が大きすぎます。小さい画像を選び直してください。");
+    return result;
+  } finally {
+    image.close();
   }
-  return response;
 }
 
-async function ensureTrainingFolder(token: string): Promise<string> {
-  const query = encodeURIComponent(`name = '${trainingFolderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
-  const search = await driveRequest(`files?q=${query}&fields=files(id,name)&spaces=drive`, token);
-  const result = await search.json() as { files?: Array<{ id: string }> };
-  if (result.files?.[0]?.id) return result.files[0].id;
-  const created = await driveRequest("files?fields=id", token, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: trainingFolderName, mimeType: "application/vnd.google-apps.folder" }),
-  });
-  const folder = await created.json() as { id?: string };
-  if (!folder.id) throw new Error("Google Driveに保存先フォルダを作成できませんでした。");
-  return folder.id;
-}
-
-async function uploadFile(token: string, folderId: string, name: string, mimeType: string, content: Blob | string): Promise<string> {
-  const boundary = `bodymake_${crypto.randomUUID().replaceAll("-", "")}`;
-  const metadata = JSON.stringify({ name, mimeType, parents: [folderId] });
-  const media = typeof content === "string" ? new Blob([content], { type: mimeType }) : content;
-  const body = new Blob([
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
-    `--${boundary}\r\nContent-Type: ${media.type || mimeType}\r\n\r\n`,
-    media,
-    `\r\n--${boundary}--`,
-  ]);
-  const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": `multipart/related; boundary=${boundary}` },
-    body,
-  });
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`Google Driveへの保存に失敗しました (${response.status})${detail ? `: ${detail.slice(0, 160)}` : ""}`);
-  }
-  const file = await response.json() as { id?: string };
-  if (!file.id) throw new Error("Google Driveが保存先IDを返しませんでした。");
-  return file.id;
-}
-
-export async function verifyGoogleDriveAccess(token: string): Promise<void> {
-  await ensureTrainingFolder(token);
-}
-
-export async function saveFoodCorrectionToGoogleDrive(input: {
-  token: string;
+/** Posts to the owner-operated Apps Script endpoint; the response is cross-origin and cannot be read. */
+export async function submitFoodCorrectionToSharedDrive(input: {
+  endpoint: string;
+  accessToken: string;
   id: string;
   image: Blob;
   predictedFoodIds: string[];
@@ -135,18 +120,53 @@ export async function saveFoodCorrectionToGoogleDrive(input: {
   nutrition: { calories: number; proteinG: number; fatG: number; carbsG: number };
   createdAt: string;
 }): Promise<void> {
-  const folderId = await ensureTrainingFolder(input.token);
-  const extension = input.image.type === "image/png" ? "png" : "jpg";
-  const imageId = await uploadFile(input.token, folderId, `${input.id}.${extension}`, input.image.type || "image/jpeg", input.image);
-  const record = {
+  const endpoint = new URL(input.endpoint);
+  if (endpoint.protocol !== "https:" || endpoint.hostname !== "script.google.com") {
+    throw new Error("共有Driveの保存先URLが正しくありません。");
+  }
+  const image = await sanitizeTrainingPhoto(input.image);
+  const payload = {
     schemaVersion: 1,
     id: input.id,
-    imageFileId: imageId,
+    imageBase64: await blobToBase64(image),
+    imageMimeType: "image/jpeg",
     predictedFoodIds: input.predictedFoodIds,
     confirmedFoodId: input.confirmedFoodId,
     confirmedFoodName: input.confirmedFoodName,
     nutrition: input.nutrition,
     createdAt: input.createdAt,
   };
-  await uploadFile(input.token, folderId, `${input.id}.json`, "application/json", JSON.stringify(record, null, 2));
+
+  const frameName = `bodymake_${crypto.randomUUID().replaceAll("-", "")}`;
+  const frame = document.createElement("iframe");
+  frame.name = frameName;
+  frame.title = "共有学習データ送信先";
+  frame.hidden = true;
+  await new Promise<void>((resolve) => {
+    frame.addEventListener("load", () => resolve(), { once: true });
+    frame.src = "about:blank";
+    document.body.append(frame);
+  });
+  const responseLoaded = new Promise<void>((resolve) => {
+    frame.addEventListener("load", () => resolve(), { once: true });
+  });
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = endpoint.href;
+  form.target = frameName;
+  form.hidden = true;
+  for (const [name, value] of Object.entries({ accessToken: input.accessToken, payload: JSON.stringify(payload) })) {
+    const field = document.createElement("input");
+    field.type = "hidden";
+    field.name = name;
+    field.value = value;
+    form.append(field);
+  }
+  document.body.append(form);
+  form.submit();
+  form.remove();
+  let timeoutId: number | undefined;
+  await Promise.race([responseLoaded, new Promise<void>((resolve) => { timeoutId = window.setTimeout(resolve, 20_000); })]);
+  if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+  frame.remove();
 }
