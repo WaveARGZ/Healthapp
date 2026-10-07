@@ -32,6 +32,8 @@ export interface MealPhotoTrainingSample {
   id: string;
   predictedFoodIds: string[];
   confirmedFoodId: string;
+  confirmedFoodName?: string;
+  nutrition?: { calories: number; proteinG: number; fatG: number; carbsG: number };
   createdAt: string;
 }
 

@@ -52,12 +52,16 @@ export async function recordFoodPhotoTrainingSample(input: {
   image: Blob;
   predictedFoodIds: string[];
   confirmedFoodId: string;
+  confirmedFoodName: string;
+  nutrition: { calories: number; proteinG: number; fatG: number; carbsG: number };
   createdAt: string;
 }): Promise<void> {
   const sample: MealPhotoTrainingSample = {
     id: input.id,
     predictedFoodIds: input.predictedFoodIds,
     confirmedFoodId: input.confirmedFoodId,
+    confirmedFoodName: input.confirmedFoodName,
+    nutrition: input.nutrition,
     createdAt: input.createdAt,
   };
   const existing = getSamples();

@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
+import { hasDemoSession } from "@/lib/auth/demo-session";
 
 const features: Array<{ number: string; icon: IconName; title: string; text: string }> = [
   { number: "01", icon: "dumbbell", title: "トレーニングを残す", text: "種目を選んで、重さと回数をセットごとに。前回の記録も振り返れます。" },
@@ -9,6 +14,9 @@ const features: Array<{ number: string; icon: IconName; title: string; text: str
 ];
 
 export function LandingPage() {
+  const router = useRouter();
+  useEffect(() => { if (hasDemoSession()) router.replace("/dashboard"); }, [router]);
+
   return <main className="min-h-dvh bg-white">
     <header className="safe-top border-b border-[var(--line)]">
       <div className="mx-auto flex min-h-20 max-w-6xl items-center justify-between safe-gutters">

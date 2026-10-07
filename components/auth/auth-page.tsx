@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
+import { hasDemoSession, setDemoSession } from "@/lib/auth/demo-session";
 
 interface AuthPageProps {
   mode: "login" | "signup";
@@ -15,10 +16,16 @@ interface AuthPageProps {
 export function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
   const isLogin = mode === "login";
+  const [rememberLogin, setRememberLogin] = useState(true);
+
+  useEffect(() => {
+    if (isLogin && hasDemoSession()) router.replace("/dashboard");
+  }, [isLogin, router]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Cognito sign-in/sign-up will be wired here. Keep the MVP navigable.
+    // This is a local demo session only; Cognito authentication is not wired yet.
+    setDemoSession(isLogin ? rememberLogin : true);
     router.push(isLogin ? "/dashboard" : "/onboarding?from=signup");
   }
 
@@ -57,6 +64,7 @@ export function AuthPage({ mode }: AuthPageProps) {
               <TextInput id="password" name="password" type="password" placeholder="8文字以上" autoComplete={isLogin ? "current-password" : "new-password"} className="pl-11" required minLength={8} />
             </div>
           </div>
+          {isLogin ? <label className="flex min-h-11 items-center gap-2 text-xs font-medium text-[var(--muted)]"><input type="checkbox" checked={rememberLogin} onChange={(event) => setRememberLogin(event.target.checked)} className="size-4 accent-[var(--sage-deep)]" />ログイン状態を記憶する</label> : null}
           {!isLogin ? (
             <div>
               <FieldLabel htmlFor="confirm-password">パスワード確認</FieldLabel>
@@ -68,7 +76,7 @@ export function AuthPage({ mode }: AuthPageProps) {
           </Button>
         </form>
 
-        <p className="mt-4 border-l-2 border-[var(--line)] pl-3 text-[11px] leading-6 text-[var(--muted)]">現在は開発版のため、認証は行いません。入力したメールアドレスやパスワードは送信・保存されません。</p>
+        <p className="mt-4 border-l-2 border-[var(--line)] pl-3 text-[11px] leading-6 text-[var(--muted)]">現在は認証未接続のデモ版です。パスワードは送信・保存されません。チェックを付けると、この端末にログイン状態を記憶します。</p>
         <p className="mt-7 text-center text-xs leading-7 text-[var(--muted)]">
           {isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"}{" "}
           <Link href={isLogin ? "/signup" : "/login"} className="font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">
