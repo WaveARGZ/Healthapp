@@ -37,7 +37,7 @@ export function GoogleDriveSettings() {
 
   return <section className="mt-10 border-y border-[var(--line)] py-6" aria-labelledby="drive-settings-title">
     <h2 id="drive-settings-title" className="text-base font-bold">Google Driveへの正解データ保存</h2>
-    <p className="mt-2 text-xs leading-6 text-[var(--muted)]">Google CloudでDrive APIを有効にし、ウェブアプリ用OAuthクライアントIDを作成して入力してください。承認後に専用フォルダが作成され、食事写真・正解料理名・栄養値を保存します。パスワードやOAuthトークンは保存しません。</p>
+    <p className="mt-2 text-xs leading-6 text-[var(--muted)]">OAuthクライアントIDは設定済みです。Google CloudでDrive APIを有効にし、このサイトのURLを承認済みJavaScript生成元に登録したうえで接続してください。必要ならクライアントIDを差し替えられます。承認後に専用フォルダが作成され、食事写真・正解料理名・栄養値を保存します。パスワードやOAuthトークンは保存しません。</p>
     <label className="mt-4 block text-xs font-bold text-[var(--ink)]" htmlFor="google-drive-client-id">OAuthクライアントID<input key={savedClientId} ref={clientIdRef} id="google-drive-client-id" autoComplete="off" defaultValue={savedClientId} placeholder="xxxxx.apps.googleusercontent.com" className="mt-2 h-12 w-full rounded border border-[var(--line)] bg-white px-3 text-sm font-normal outline-none focus:border-[var(--sage-deep)]" /></label>
     <div className="mt-3 grid gap-2 sm:grid-cols-2"><Button type="button" variant="secondary" onClick={saveSettings}>{savedClientId ? "設定を保存" : "クライアントIDを保存"}</Button><Button type="button" onClick={() => void connect()} disabled={!savedClientId || busy}>{busy ? "接続中…" : "Google Driveに接続"}</Button></div>
     {status ? <p role="status" className="mt-3 text-xs leading-5 text-[var(--muted)]">{status}</p> : null}

@@ -125,7 +125,7 @@ npm run test:food-catalog
 
 食事写真のAI候補だけは、`@huggingface/transformers` の公開ONNXモデルをブラウザ内で実行します。初回は約200MBのモデルをダウンロードしてブラウザキャッシュに保存しますが、料理写真を推論APIへ送信しません。認識後に料理名とカロリー・PFCを手で修正し、「正解として保存」できます。正解データと写真は `lib/food-ai/food-learning.ts` からこの端末の IndexedDB へ最大150件保存されます。
 
-Google Driveへ蓄積する場合は、Google CloudでDrive APIを有効にし、ウェブアプリ用OAuthクライアントIDを作成します。OAuthの承認済みJavaScript生成元には `https://waveargz.github.io`（ローカル開発時は `http://localhost:3000`）を登録し、アプリの「設定」→「Google Driveへの正解データ保存」にIDを入力して接続してください。許可を得た後、正解登録時に写真と正解ラベル・栄養値をDrive内の `BodyMake 食事画像正解データ` フォルダへ個別ファイルとして保存します。アクセストークンは短時間だけメモリ上で使用し、保存しません。Driveへの接続は任意で、未設定時も端末内に記録します。
+Google Drive連携にはOAuthクライアントIDをアプリに初期設定しています。Google CloudでDrive APIを有効にし、承認済みJavaScript生成元に `https://waveargz.github.io`（ローカル開発時は `http://localhost:3000`）を登録して、アプリの「設定」→「Google Driveへの正解データ保存」から接続してください。許可を得た後、正解登録時に写真と正解ラベル・栄養値をDrive内の `BodyMake 食事画像正解データ` フォルダへ個別ファイルとして保存します。アクセストークンは短時間だけメモリ上で使用し、保存しません。Driveへの接続は任意で、未接続でも端末内に記録します。
 
 詳細食品のカロリー・PFCは、文部科学省の[日本食品標準成分表（八訂）増補2023年](https://www.mext.go.jp/a_menu/syokuhinseibun/mext_00001.html)「第2章（データ）」にある可食部100g当たりの値です。食品名・分類・調理状態も原表の日本語表記を使い、食品番号を保持します。元の米国向け詳細13,014件は検索対象から外しました。たんぱく質・脂質・炭水化物が微量 `Tr` の場合は表示精度に合わせ0gとし、PFCが未掲載の1件は除外しています。資料の利用については[文部科学省の案内](https://www.mext.go.jp/a_menu/syokuhinseibun/)に従い、出典を明記しています。
 
