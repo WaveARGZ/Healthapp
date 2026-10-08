@@ -186,7 +186,6 @@ Resources:
       Runtime: nodejs22.x
       MemorySize: 256
       Timeout: 10
-      ReservedConcurrentExecutions: 0
       Environment:
         Variables:
           USER_TABLE: !Ref UserRecords

@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { assessFreeTierUsage } from "../free-tier-guard.js";
 
-test("stops when Free Tier data is unavailable", () => {
-  assert.equal(assessFreeTierUsage([]).stop, true);
+test("keeps the API available when Free Tier usage has not been reported yet", () => {
+  assert.equal(assessFreeTierUsage([]).stop, false);
+});
+
+test("stops when Free Tier data is invalid", () => {
+  assert.equal(assessFreeTierUsage(null).stop, true);
 });
 
 test("stops before an offer reaches its limit", () => {

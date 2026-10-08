@@ -132,7 +132,7 @@ cd backend && npm run test:guard
 
 `backend/template.yaml` は東京リージョン向けのAWS SAMテンプレートです。Cognitoユーザープール、JWT認証付きHTTP API、Lambda、個人記録用DynamoDB、学習シグナル専用DynamoDB、非公開の身体写真S3を構築します。LambdaはCognitoの`sub`から個人用パーティションを決め、リクエストの任意のユーザーIDを信用しません。S3の元写真も`users/<sub>/...`に保存します。学習シグナルは、明示同意後の料理名・栄養値と27分類の確率ベクトルだけを別テーブルへ保存し、写真・メールアドレスを保存しません。これは**学習素材の蓄積**であり、送信しただけでモデルが自動的に学習・更新される機能ではありません。
 
-費用対策として、APIは**デプロイ直後は停止状態**（Lambda同時実行数0）です。別の監視Lambdaが6時間ごとにAWS Free Tier APIの当月使用量と予測使用量を確認し、いずれかの無料枠が80%以上になった場合、または確認に失敗した場合、APIを停止します。全アカウントの月額費用が$0.01の予算の1%を超えたときのAWS Budgets通知も監視Lambdaに接続し、APIを停止して通知先メールへ知らせます。APIには2リクエスト/秒・バースト5のスロットリングも設定しています。監視は停止したAPIを自動再開しません。
+費用対策として、APIには2リクエスト/秒・バースト5のスロットリングを設定しています。別の監視Lambdaが6時間ごとにAWS Free Tier APIの当月使用量と予測使用量を確認し、いずれかの無料枠が80%以上になった場合、または取得エラー・異常値を検出した場合にAPIを停止します。新規アカウントなどでFree Tier APIが空の使用量を返す場合は、ログイン不能を避けるため停止しません。全アカウントの月額費用が$0.01の予算の1%を超えたときのAWS Budgets通知も監視Lambdaに接続し、APIを停止して通知先メールへ知らせます。監視は停止したAPIを自動再開しません。
 
 ### AWSの導入手順
 
@@ -148,13 +148,7 @@ sam deploy --guided --region ap-northeast-1 --capabilities CAPABILITY_IAM
 
 デプロイ時の`AlertEmail`には受信可能なメールアドレスを入力してください。メールアドレスを公開リポジトリに書かないでください。`sam deploy --guided`が保存する`backend/samconfig.toml`もGit管理対象外にしています。AWS Budgetsから届く確認メールのリンクを開かないと通知を受け取れません。
 
-初回デプロイ後はAWSコンソールでアカウントのFree/Paidプラン、クレジット、有効な無料枠、Budgetsの通知先、監視Lambdaの実行結果を確認してください。問題がなければ、出力された`ApiFunctionName`を使って手動でAPIを有効にします。以下の例は同時実行数を2に制限します。
-
-```bash
-aws lambda put-function-concurrency --function-name <ApiFunctionName> --reserved-concurrent-executions 2 --region ap-northeast-1
-```
-
-再停止する場合は`--reserved-concurrent-executions 0`に戻します。監視によって停止された後は、停止理由と費用を確認してから手動で再開してください。監視LambdaのIAM権限はIAM Policy Autopilotの生成結果を基に、停止対象のLambdaだけに限定しています。
+初回デプロイ後はAWSコンソールでアカウントのFree/Paidプラン、クレジット、有効な無料枠、Budgetsの通知先、監視Lambdaの実行結果を確認してください。監視によってAPIが停止された後は、停止理由と費用を確認してから、Lambdaの予約済み同時実行数を解除して再開します。監視LambdaのIAM権限はIAM Policy Autopilotの生成結果を基に、停止対象のLambdaだけに限定しています。
 
 デプロイ後、出力された`ApiUrl`、`ClientId`、`AuthDomain`を使い、GitHubリポジトリの`Settings` → `Secrets and variables` → `Actions` → `Variables`に次を設定してPagesを再デプロイします。
 

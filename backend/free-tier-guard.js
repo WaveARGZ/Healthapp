@@ -5,9 +5,13 @@ const freeTier = new FreeTierClient({ region: "us-east-1" });
 const lambda = new LambdaClient({});
 
 export function assessFreeTierUsage(usages, thresholdPercent = 80) {
-  if (!Array.isArray(usages) || usages.length === 0) {
+  if (!Array.isArray(usages)) {
     return { stop: true, reason: "無料枠の使用状況を取得できませんでした" };
   }
+
+  // 新しいAWSアカウントや対象外のサービスでは、Free Tier APIが空配列を返すことがある。
+  // ここで停止すると利用開始直後からログイン不能になるため、Budget通知を安全網として継続する。
+  if (usages.length === 0) return { stop: false, reason: "無料枠の使用状況はまだ報告されていません" };
 
   for (const usage of usages) {
     const limit = Number(usage.limit);
