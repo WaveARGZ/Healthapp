@@ -3,7 +3,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/lib/utils/date";
 import type { WeightEntry } from "@/types/progress";
 
-export function WeightTrendChart({ entries, loading = false }: { entries: WeightEntry[]; loading?: boolean }) {
+export function WeightTrendChart({ entries, loading = false, detail = false }: { entries: WeightEntry[]; loading?: boolean; detail?: boolean }) {
   const latestByDay = [...entries]
     .filter((entry) => entry.weightKg > 0)
     .sort((first, second) => first.measuredOn.localeCompare(second.measuredOn) || first.createdAt.localeCompare(second.createdAt))
@@ -14,45 +14,43 @@ export function WeightTrendChart({ entries, loading = false }: { entries: Weight
   const upper = values.length ? Math.ceil(Math.max(...values) + 1) : 1;
   const points = recent.map((entry, index) => ({
     entry,
-    x: recent.length === 1 ? 256 : 52 + (index / (recent.length - 1)) * 408,
-    y: 24 + ((upper - entry.weightKg) / (upper - lower)) * 112,
+    x: ((index + 0.5) / recent.length) * 600,
+    y: 12 + ((upper - entry.weightKg) / (upper - lower)) * 136,
   }));
 
   return (
-    <section className="mt-6 rounded-md border border-[var(--line)] bg-[var(--sand)] px-4 py-4 sm:px-5 sm:py-5" aria-labelledby="dashboard-weight-title" aria-busy={loading}>
+    <section className="mt-6 min-w-0 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4 sm:p-5" aria-labelledby="weight-trend-title" aria-busy={loading}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
-          <h2 id="dashboard-weight-title" className="section-title">体重の変化</h2>
-          <p className="mt-1 text-[11px] text-[var(--muted)]">記録した直近7件</p>
+          <h2 id="weight-trend-title" className="section-title">体重の変化</h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">記録した直近7日分</p>
         </div>
-        <Link href="/progress" className="text-link shrink-0">詳しく見る <span aria-hidden="true">↗</span></Link>
+        <Link href={detail ? "/weight" : "/progress"} className="text-link shrink-0">{detail ? "体重を記録" : "詳しく見る"} <span aria-hidden="true">↗</span></Link>
       </div>
       {loading ? (
         <p className="border-y border-[var(--line)] py-8 text-center text-xs text-[var(--muted)]">体重記録を読み込み中…</p>
       ) : recent.length === 0 ? (
         <div className="border-y border-[var(--line)]"><EmptyState description="体重を記録すると、変化がグラフに表示されます。" href="/weight" action="体重を記録" /></div>
       ) : (
-        <div className="border-y border-[var(--line)] py-3">
+        <div className="mt-4 border-t border-[var(--line)] pt-4">
+          <div className="grid grid-cols-[36px_minmax(0,1fr)] gap-x-1">
+            <div aria-hidden="true" className="relative h-40 text-[11px] tabular-nums text-[var(--muted)] sm:text-xs">
+              {[upper, (lower + upper) / 2, lower].map((tick, index) => <span key={tick} className="absolute right-1 -translate-y-1/2" style={{ top: `${12 + index * 68}px` }}>{tick.toFixed(1)}</span>)}
+            </div>
           <svg
-            viewBox="0 0 490 178"
-            className="w-full overflow-visible"
+            viewBox="0 0 600 160"
+            preserveAspectRatio="none"
+            className="h-40 w-full"
             role="img"
             aria-label={`直近の体重推移。${recent.map((entry) => `${formatDate(entry.measuredOn)}、${entry.weightKg}キログラム`).join("。")}`}
           >
-            {[lower, (lower + upper) / 2, upper].map((tick) => {
-              const y = 24 + ((upper - tick) / (upper - lower)) * 112;
-              return <g key={tick}>
-                <line x1="52" x2="460" y1={y} y2={y} stroke="var(--line)" strokeDasharray="3 4" />
-                <text x="42" y={y + 4} textAnchor="end" fontSize="10" fill="var(--muted)">{tick.toFixed(1)}</text>
-              </g>;
-            })}
-            {points.length > 1 && <polyline points={points.map(({ x, y }) => `${x},${y}`).join(" ")} fill="none" stroke="var(--sage-deep)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
-            {points.map(({ entry, x, y }) => <g key={entry.id}>
-              <circle cx={x} cy={y} r="4" fill="var(--sage-deep)" />
-              <text x={x} y="164" textAnchor="middle" fontSize="10" fill="var(--muted)">{Number(entry.measuredOn.slice(5, 7))}/{Number(entry.measuredOn.slice(8))}</text>
-            </g>)}
+            {[12, 80, 148].map((y) => <line key={y} x1="0" x2="600" y1={y} y2={y} stroke="var(--line)" strokeDasharray="3 4" vectorEffect="non-scaling-stroke" />)}
+            {points.length > 1 && <polyline points={points.map(({ x, y }) => `${x},${y}`).join(" ")} fill="none" stroke="var(--sage-deep)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}
+            {points.map(({ entry, x, y }) => <line key={entry.id} x1={x} x2={x} y1={y} y2={y + 0.01} stroke="var(--sage-deep)" strokeWidth="7" strokeLinecap="round" vectorEffect="non-scaling-stroke" />)}
           </svg>
-          <p className="mt-1 text-right text-[10px] text-[var(--muted)]">単位：kg</p>
+            <div aria-hidden="true" className="col-start-2 mt-2 grid text-center text-[11px] tabular-nums text-[var(--muted)] sm:text-xs" style={{ gridTemplateColumns: `repeat(${recent.length}, minmax(0, 1fr))` }}>{recent.map((entry) => <span key={entry.id}>{Number(entry.measuredOn.slice(5, 7))}/{Number(entry.measuredOn.slice(8))}</span>)}</div>
+          </div>
+          <p className="mt-3 text-right text-xs text-[var(--muted)]">単位：kg</p>
         </div>
       )}
     </section>

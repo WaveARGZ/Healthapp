@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, SelectHTMLAttributes } from "react";
 
 export function FieldLabel({ children, htmlFor }: { children: string; htmlFor: string }) {
-  return <label htmlFor={htmlFor} className="mb-2 block text-xs font-semibold text-[var(--ink-soft)]">{children}</label>;
+  return <label htmlFor={htmlFor} className="mb-2 block text-[13px] font-semibold leading-5 text-[var(--ink-soft)]">{children}</label>;
 }
 
 export function TextInput({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {

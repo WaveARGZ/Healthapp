@@ -77,11 +77,11 @@ export function OnboardingPhotoStep() {
       </header>
 
       <Card className="mt-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-bold text-[var(--ink)]">現在の身体写真</p>
-          <label className="text-xs text-[var(--muted)]">撮影日 <input type="date" aria-label="撮影日" value={capturedAt} onChange={(event) => setCapturedAt(event.target.value)} className="form-input ml-1 inline-block h-11 w-40" /></label>
+          <label className="flex min-w-0 items-center gap-3 text-xs text-[var(--muted)]"><span className="shrink-0">撮影日</span><input type="date" aria-label="撮影日" value={capturedAt} onChange={(event) => setCapturedAt(event.target.value)} className="form-input h-11 flex-1 sm:w-40" /></label>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
           <BodyPhotoPicker view="front" preview={photos.front} onChange={(event) => void choosePhoto("front", event)} />
           <BodyPhotoPicker view="back" preview={photos.back} onChange={(event) => void choosePhoto("back", event)} />
         </div>
@@ -96,11 +96,11 @@ export function OnboardingPhotoStep() {
         {photos.back && <IdealBodyEditor key={ids.back} source={photos.back} view="back" onReady={backReady} />}
       </section>}
 
-      {notice && <p role="alert" className="mt-4 rounded bg-white p-3 text-xs text-[#ad5a50]">{notice}</p>}
+      {notice && <p role="alert" className="mt-4 break-words rounded-md bg-[var(--coral-soft)] p-3 text-sm leading-6 text-[var(--coral)]">{notice}</p>}
       <Button type="button" className="mt-8 w-full" onClick={() => void complete()} disabled={!completeReady || isSaving || processingCount > 0}>{isSaving ? "保存中..." : "写真を保存してホームへ"}</Button>
-      {!completeReady && <p className="mt-2 text-center text-xs text-[var(--muted)]">正面・背面の写真と6枚のプレビューがそろうと進めます。</p>}
-      <Link href="/dashboard" className="mt-5 block text-center text-xs font-bold text-[var(--muted)] underline underline-offset-2">写真はあとで登録する</Link>
-      <p className="mt-6 text-center text-[11px] leading-5 text-[var(--muted)]">この画像は目標イメージ用の加工です。将来の身体や体脂肪率を予測するものではありません。</p>
+      {!completeReady && <p className="mt-3 text-center text-xs leading-6 text-[var(--muted)]">正面・背面の写真と6枚のプレビューがそろうと進めます。</p>}
+      <Link href="/dashboard" className="mt-4 flex min-h-12 items-center justify-center text-center text-sm font-semibold text-[var(--muted)] underline underline-offset-4">写真はあとで登録する</Link>
+      <p className="mt-5 text-center text-xs leading-6 text-[var(--muted)]">この画像は目標イメージ用の加工です。将来の身体や体脂肪率を予測するものではありません。</p>
     </div>
   </main>;
 }

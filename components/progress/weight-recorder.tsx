@@ -35,7 +35,7 @@ export function WeightRecorder() {
 
   return <>
     <PageHeader title="体重" description="日付と体重を入力して保存。" />
-    {latest && <div className="mb-8 flex items-center justify-between border-y border-[var(--ink)] py-6"><div><p className="text-xs text-[var(--muted)]">最新の記録</p><p className="metric mt-2 text-5xl font-medium">{latest.weightKg}<span className="ml-2 text-sm text-[var(--muted)]">kg</span></p></div><p className="text-xs text-[var(--muted)]">{formatDate(latest.measuredOn)}</p></div>}
+    {latest && <div className="mb-8 flex flex-wrap items-end justify-between gap-x-5 gap-y-2 border-y border-[var(--ink)] py-6"><div><p className="text-xs text-[var(--muted)]">最新の記録</p><p className="metric mt-2 text-[42px] font-medium sm:text-5xl">{latest.weightKg}<span className="ml-2 text-sm text-[var(--muted)]">kg</span></p></div><p className="pb-1 text-xs text-[var(--muted)]">{formatDate(latest.measuredOn)}</p></div>}
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2"><div><FieldLabel htmlFor="weight-date">日付</FieldLabel><TextInput id="weight-date" type="date" value={measuredOn} onChange={(event) => setMeasuredOn(event.target.value)} required /></div><div><FieldLabel htmlFor="weight-value">体重 (kg)</FieldLabel><TextInput id="weight-value" type="number" min="20" max="400" step="0.1" inputMode="decimal" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="例：62.5" required className="metric" /></div></div>
       <RecordActions label={isSaving ? "保存中…" : "体重を保存"} summary={weightKg ? `${weightKg} kg` : "体重の記録"} disabled={isSaving || !weightKg} notice={notice} />

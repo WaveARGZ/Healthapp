@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 // Run after a normal build or a GitHub Pages build. No browser data is modified.
-const pages = ["", "dashboard", "workouts", "meals", "progress", "weight", "photos", "settings", "login", "signup", "onboarding", "onboarding/photos"];
+const pages = ["", "dashboard", "workouts", "meals", "progress", "weight", "photos", "settings", "login", "signup", "onboarding", "onboarding/photos", "auth/callback"];
 const appPages = new Set(["dashboard", "workouts", "meals", "progress", "weight", "photos", "settings"]);
 const manifest = JSON.parse(await readFile("out/manifest.webmanifest", "utf8"));
 const basePath = manifest.scope.replace(/\/$/, "");

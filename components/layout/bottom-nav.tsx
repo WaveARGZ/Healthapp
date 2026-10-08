@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { isCloudConfigured } from "@/lib/cloud/config";
 
 const navItems: Array<{ href: string; label: string; icon: IconName }> = [
   { href: "/dashboard", label: "ホーム", icon: "home" },
@@ -28,7 +29,7 @@ export function BottomNav() {
           );
         })}
       </div>
-      <p className="mt-14 hidden border-t border-[var(--line)] px-3 pt-4 text-[11px] leading-6 text-[var(--muted)] lg:block">記録はこのブラウザに保存されます。</p>
+      <p className="mt-14 hidden border-t border-[var(--line)] px-3 pt-4 text-xs leading-6 text-[var(--muted)] lg:block">{isCloudConfigured ? "記録はアカウントごとに保存されます。" : "記録はこのブラウザに保存されます。"}</p>
     </nav>
   );
 }

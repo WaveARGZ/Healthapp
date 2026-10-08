@@ -16,11 +16,11 @@ interface AuthPageProps {
 }
 
 function GoogleMark() {
-  return <svg aria-hidden="true" className="absolute left-4 size-5" viewBox="0 0 18 18">
-    <path fill="#EA4335" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.798 2.716v2.258h2.909c1.702-1.567 2.685-3.874 2.685-6.614Z" />
-    <path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.955-2.181l-2.909-2.258c-.806.54-1.837.859-3.046.859-2.344 0-4.328-1.584-5.036-3.71H.957v2.332A9 9 0 0 0 9 18Z" />
+  return <svg aria-hidden="true" className="absolute left-4 size-5 shrink-0" viewBox="0 0 18 18">
+    <path fill="#4285F4" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.798 2.716v2.258h2.909c1.702-1.567 2.685-3.874 2.685-6.614Z" />
+    <path fill="#34A853" d="M9 18c2.43 0 4.468-.806 5.955-2.181l-2.909-2.258c-.806.54-1.837.859-3.046.859-2.344 0-4.328-1.584-5.036-3.71H.957v2.332A9 9 0 0 0 9 18Z" />
     <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A9 9 0 0 0 0 9c0 1.453.348 2.83.957 4.042l3.007-2.332Z" />
-    <path fill="#34A853" d="M9 3.58c1.321 0 2.508.454 3.442 1.345l2.582-2.582C13.464.891 11.426 0 9 0A9 9 0 0 0 .957 4.958L3.964 7.29C4.672 5.164 6.656 3.58 9 3.58Z" />
+    <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.442 1.345l2.582-2.582C13.464.891 11.426 0 9 0A9 9 0 0 0 .957 4.958L3.964 7.29C4.672 5.164 6.656 3.58 9 3.58Z" />
   </svg>;
 }
 
@@ -42,16 +42,18 @@ export function AuthPage({ mode }: AuthPageProps) {
 
   if (isCloudConfigured) return <main className="setup-page"><div className="setup-content">
     <Logo />
-    <div className="setup-heading"><p className="setup-step">身体づくりの記録帳</p><h1 className="setup-title">{isLogin ? "ログイン" : "新規登録"}</h1><p className="mt-3 text-sm leading-6 text-[var(--muted)]">アカウント情報はAWSの認証画面で安全に入力します。</p></div>
-    {isLogin ? <label className="mt-9 flex min-h-11 items-center gap-2 text-xs font-medium text-[var(--muted)]"><input type="checkbox" checked={rememberLogin} onChange={(event) => setRememberLogin(event.target.checked)} className="size-4 accent-[var(--sage-deep)]" />この端末でログイン状態を記憶する</label> : null}
+    <div className="setup-heading"><p className="setup-step">身体づくりの記録帳</p><h1 className="setup-title">{isLogin ? "ログイン" : "新規登録"}</h1><p className="mt-3 text-sm leading-6 text-[var(--muted)]">{isLogin ? "いつものアカウントで、今日の記録を。" : "アカウントを作って、身体づくりをはじめましょう。"}</p></div>
+    <div className="mt-8">
     {cloudConfig.googleSignInEnabled ? <>
-      <Button type="button" variant="secondary" className={`${isLogin ? "mt-4" : "mt-9"} relative w-full border-[#c9d0cc] bg-white text-[var(--ink)] shadow-sm hover:bg-[#f8faf8]`} onClick={() => void beginCloudSignIn(false, isLogin ? rememberLogin : true, "Google").catch((error) => setAuthError(error instanceof Error ? error.message : "Googleログインを開始できませんでした。"))}><GoogleMark />Googleで続ける</Button>
-      <div className="my-5 flex items-center gap-3 text-[11px] font-medium text-[var(--muted)]"><span className="h-px flex-1 bg-[var(--line)]" />または<span className="h-px flex-1 bg-[var(--line)]" /></div>
+      <Button type="button" variant="secondary" className="relative min-h-13 w-full border-[#c9d0cc] bg-white px-12 text-[var(--ink)] hover:bg-[#f8faf8]" onClick={() => void beginCloudSignIn(false, isLogin ? rememberLogin : true, "Google").catch((error) => setAuthError(error instanceof Error ? error.message : "Googleログインを開始できませんでした。"))}><GoogleMark />Googleで続ける</Button>
+      <div className="my-5 flex items-center gap-3 text-xs font-medium text-[var(--muted)]"><span className="h-px flex-1 bg-[var(--line)]" />または<span className="h-px flex-1 bg-[var(--line)]" /></div>
     </> : null}
-    <Button type="button" className={`${cloudConfig.googleSignInEnabled ? "" : isLogin ? "mt-4" : "mt-9"} w-full`} onClick={() => void beginCloudSignIn(!isLogin, isLogin ? rememberLogin : true).catch((error) => setAuthError(error instanceof Error ? error.message : "ログインを開始できませんでした。"))}>{isLogin ? "メールアドレスでログイン" : "メールアドレスで新規登録"}</Button>
-    {authError ? <p role="alert" className="mt-3 text-xs text-[var(--coral)]">{authError}</p> : null}
-    <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{isLogin ? "メールアドレスとパスワード、またはGoogleアカウントでログインできます。" : "メールアドレスとパスワード、またはGoogleアカウントで登録し、続けてプロフィールで名前や目標を設定します。"} 記録はアカウントごとに分けて保存します。</p>
-    <p className="mt-7 text-center text-xs leading-7 text-[var(--muted)]">{isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"} <Link href={isLogin ? "/signup" : "/login"} className="font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">{isLogin ? "新規登録" : "ログイン"}</Link></p>
+    <Button type="button" className="min-h-13 w-full" onClick={() => void beginCloudSignIn(!isLogin, isLogin ? rememberLogin : true).catch((error) => setAuthError(error instanceof Error ? error.message : "ログインを開始できませんでした。"))}>{isLogin ? "メールアドレスでログイン" : "メールアドレスで新規登録"}</Button>
+    {isLogin ? <label className="mt-4 flex min-h-11 items-center gap-3 text-sm leading-6 text-[var(--muted)]"><input type="checkbox" checked={rememberLogin} onChange={(event) => setRememberLogin(event.target.checked)} className="size-4 shrink-0 accent-[var(--sage-deep)]" />この端末でログイン状態を記憶する</label> : null}
+    </div>
+    {authError ? <p role="alert" className="mt-4 break-words rounded-md bg-[var(--coral-soft)] p-3 text-sm leading-6 text-[var(--coral)]">{authError}</p> : null}
+    <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{isLogin ? "記録はあなたのアカウントに保存されます。" : "登録後に名前と目標を設定します。記録はあなたのアカウントに保存されます。"}</p>
+    <div className="mt-7 border-t border-[var(--line)] pt-5 text-center text-sm text-[var(--muted)]"><p>{isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"}</p><Link href={isLogin ? "/signup" : "/login"} className="inline-flex min-h-11 items-center px-3 font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">{isLogin ? "新規登録" : "ログイン"}</Link></div>
   </div></main>;
 
   return (
@@ -89,7 +91,7 @@ export function AuthPage({ mode }: AuthPageProps) {
               <TextInput id="password" name="password" type="password" placeholder="8文字以上" autoComplete={isLogin ? "current-password" : "new-password"} className="pl-11" required minLength={8} />
             </div>
           </div>
-          {isLogin ? <label className="flex min-h-11 items-center gap-2 text-xs font-medium text-[var(--muted)]"><input type="checkbox" checked={rememberLogin} onChange={(event) => setRememberLogin(event.target.checked)} className="size-4 accent-[var(--sage-deep)]" />ログイン状態を記憶する</label> : null}
+          {isLogin ? <label className="flex min-h-11 items-center gap-3 text-sm font-medium text-[var(--muted)]"><input type="checkbox" checked={rememberLogin} onChange={(event) => setRememberLogin(event.target.checked)} className="size-4 shrink-0 accent-[var(--sage-deep)]" />ログイン状態を記憶する</label> : null}
           {!isLogin ? (
             <div>
               <FieldLabel htmlFor="confirm-password">パスワード確認</FieldLabel>
@@ -101,10 +103,10 @@ export function AuthPage({ mode }: AuthPageProps) {
           </Button>
         </form>
 
-        <p className="mt-4 border-l-2 border-[var(--line)] pl-3 text-[11px] leading-6 text-[var(--muted)]">現在は認証未接続のデモ版です。パスワードは送信・保存されません。チェックを付けると、この端末にログイン状態を記憶します。</p>
-        <p className="mt-7 text-center text-xs leading-7 text-[var(--muted)]">
+        <p className="mt-4 border-l-2 border-[var(--line)] pl-3 text-xs leading-6 text-[var(--muted)]">現在は認証未接続のデモ版です。パスワードは送信・保存されません。チェックを付けると、この端末にログイン状態を記憶します。</p>
+        <p className="mt-7 text-center text-sm leading-7 text-[var(--muted)]">
           {isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"}{" "}
-          <Link href={isLogin ? "/signup" : "/login"} className="font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">
+          <Link href={isLogin ? "/signup" : "/login"} className="inline-flex min-h-11 items-center px-2 font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">
             {isLogin ? "新規登録" : "ログイン"}
           </Link>
         </p>
