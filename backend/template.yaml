@@ -25,16 +25,7 @@ Parameters:
     Type: String
     Default: "false"
     AllowedValues: ["true", "false"]
-    Description: Enable only when both Google OAuth values are provided during deployment.
-  GoogleClientId:
-    Type: String
-    Default: ""
-    Description: Google OAuth web application client ID. This is public, but do not commit account-specific values.
-  GoogleClientSecret:
-    Type: String
-    Default: ""
-    NoEcho: true
-    Description: Google OAuth web application client secret. Enter only during deployment; never commit it.
+    Description: Set true only after configuring the Google identity provider in the Cognito console.
 
 Conditions:
   GoogleSignInEnabled: !Equals [!Ref EnableGoogleSignIn, "true"]
@@ -81,22 +72,6 @@ Resources:
       PreventUserExistenceErrors: ENABLED
       EnableTokenRevocation: true
       RefreshTokenValidity: 30
-
-  GoogleIdentityProvider:
-    Type: AWS::Cognito::UserPoolIdentityProvider
-    Condition: GoogleSignInEnabled
-    Properties:
-      UserPoolId: !Ref UserPool
-      ProviderName: Google
-      ProviderType: Google
-      ProviderDetails:
-        client_id: !Ref GoogleClientId
-        client_secret: !Ref GoogleClientSecret
-        authorize_scopes: openid email profile
-      AttributeMapping:
-        email: email
-        given_name: given_name
-        family_name: family_name
 
   UserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain

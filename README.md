@@ -177,7 +177,7 @@ Google Cloud ConsoleでOAuth同意画面を設定し、種類が**ウェブア�
 https://bodymake-147997153211-ap-northeast-1.auth.ap-northeast-1.amazoncognito.com/oauth2/idpresponse
 ```
 
-続いて、GoogleのクライアントIDとクライアントシークレットを使って、`EnableGoogleSignIn=true`でSAMスタックを更新します。シークレットはGitHub Actions変数、`.env.local`、リポジトリ、チャットに書かず、デプロイ時だけのNoEchoパラメータとして入力してください。CognitoはGoogleを外部IDプロバイダーとして扱い、アプリは認可コード+PKCEでログインします。GitHub Pagesの変数`BODYMAKE_GOOGLE_SIGN_IN_ENABLED`を`true`にしてPagesを再デプロイすると、ログイン・新規登録画面に「Googleで続ける」が表示されます。
+GoogleのクライアントIDとクライアントシークレットは、Cognitoコンソールの「ソーシャルプロバイダーと外部プロバイダー」からGoogle IDプロバイダーへ直接登録します。シークレットはGitHub Actions変数、`.env.local`、リポジトリ、チャットに書かないでください。Google IDプロバイダーを追加後、`EnableGoogleSignIn=true`でSAMスタックを更新し、アプリクライアントのGoogle有効化をCloudFormationにも記録します。CognitoはGoogleを外部IDプロバイダーとして扱い、アプリは認可コード+PKCEでログインします。GitHub Pagesの変数`BODYMAKE_GOOGLE_SIGN_IN_ENABLED`を`true`にしてPagesを再デプロイすると、ログイン・新規登録画面に「Googleで続ける」が表示されます。
 
 「ログイン状態を記憶する」を選ぶと更新トークンをこのブラウザの`localStorage`へ保存し、選ばない場合は`sessionStorage`へ保存します。共有端末では選ばないでください。公開前にはCSP、利用規約・プライバシー文書、退会・データ削除フロー、料金アラート、バックアップ運用を整備してください。より強いセッション保護が必要になった時は、静的PagesからBFF/HTTP-only cookie方式への移行を検討します。
 
