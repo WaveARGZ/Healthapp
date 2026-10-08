@@ -16,7 +16,8 @@
     "food-ai:learn": "node scripts/food-ai/learn.mjs",
     "food-ai:collect": "node scripts/food-ai/collect-commons.mjs",
     "food-ai:agent": "node scripts/food-ai/agent.mjs",
-    "test:food-ai": "node --test scripts/food-ai/*.test.mjs"
+    "test:food-ai": "node --test scripts/food-ai/*.test.mjs",
+    "test:aws": "node --test backend/*.test.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.0",

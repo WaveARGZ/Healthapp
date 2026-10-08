@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, useCallback, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useState } from "react";
 import { BodyPhotoPicker } from "@/components/photos/body-photo-picker";
 import { IdealBodyEditor } from "@/components/photos/ideal-body-editor";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { normalizePhotoFile } from "@/lib/photos/photo-file";
 import { toDateInputValue } from "@/lib/utils/date";
 import { createId } from "@/lib/utils/id";
 import type { BodyPhotoView } from "@/types/progress";
+import { isCloudConfigured } from "@/lib/cloud/config";
+import { hasCloudSession } from "@/lib/auth/cognito-session";
 
 type Photos = Partial<Record<BodyPhotoView, string>>;
 type Ready = Record<BodyPhotoView, boolean>;
@@ -20,6 +22,7 @@ type ReadyIds = Partial<Record<BodyPhotoView, string>>;
 
 export function OnboardingPhotoStep() {
   const router = useRouter();
+  useEffect(() => { if (isCloudConfigured && !hasCloudSession()) router.replace("/login"); }, [router]);
   const [photos, setPhotos] = useState<Photos>({});
   const [ready, setReady] = useState<Ready>({ front: false, back: false });
   const [ids, setIds] = useState<ReadyIds>({});
@@ -57,8 +60,8 @@ export function OnboardingPhotoStep() {
       await bodyMakeClient.saveBodyPhoto({ id: ids.front, view: "front", imageUrl: photos.front, capturedAt, createdAt });
       await bodyMakeClient.saveBodyPhoto({ id: ids.back, view: "back", imageUrl: photos.back, capturedAt, createdAt });
       router.push("/dashboard");
-    } catch {
-      setNotice("端末に写真を保存できませんでした。空き容量を確認するか、この手順をスキップしてください。");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "写真を保存できませんでした。この手順をスキップすることもできます。");
       setIsSaving(false);
     }
   }
@@ -82,7 +85,7 @@ export function OnboardingPhotoStep() {
           <BodyPhotoPicker view="front" preview={photos.front} onChange={(event) => void choosePhoto("front", event)} />
           <BodyPhotoPicker view="back" preview={photos.back} onChange={(event) => void choosePhoto("back", event)} />
         </div>
-        <p className="mt-4 text-xs leading-5 text-[var(--muted)]">明るい場所で、全身を中央に写すと輪郭を推定しやすくなります。写真はサーバーへ送らず、端末内で編集します。</p>
+        <p className="mt-4 text-xs leading-5 text-[var(--muted)]">明るい場所で、全身を中央に写すと輪郭を推定しやすくなります。編集は端末内で行います。{isCloudConfigured ? "保存時には元写真を非公開のアカウント領域へ送ります。" : "写真はサーバーへ送りません。"}</p>
       </Card>
 
       {processingCount > 0 && <p role="status" className="mt-3 text-center text-xs text-[var(--muted)]">写真を準備しています…</p>}

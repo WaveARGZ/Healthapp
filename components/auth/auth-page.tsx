@@ -8,6 +8,8 @@ import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
 import { hasDemoSession, setDemoSession } from "@/lib/auth/demo-session";
+import { beginCloudSignIn, hasCloudSession } from "@/lib/auth/cognito-session";
+import { cloudConfig, isCloudConfigured } from "@/lib/cloud/config";
 
 interface AuthPageProps {
   mode: "login" | "signup";
@@ -17,17 +19,28 @@ export function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
   const isLogin = mode === "login";
   const [rememberLogin, setRememberLogin] = useState(true);
+  const [authError, setAuthError] = useState("");
 
   useEffect(() => {
-    if (isLogin && hasDemoSession()) router.replace("/dashboard");
+    if (isLogin && (isCloudConfigured ? hasCloudSession() : hasDemoSession())) router.replace("/dashboard");
   }, [isLogin, router]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // This is a local demo session only; Cognito authentication is not wired yet.
     setDemoSession(isLogin ? rememberLogin : true);
     router.push(isLogin ? "/dashboard" : "/onboarding?from=signup");
   }
+
+  if (isCloudConfigured) return <main className="setup-page"><div className="setup-content">
+    <Logo />
+    <div className="setup-heading"><p className="setup-step">身体づくりの記録帳</p><h1 className="setup-title">{isLogin ? "ログイン" : "新規登録"}</h1><p className="mt-3 text-sm leading-6 text-[var(--muted)]">アカウント情報はAWSの認証画面で安全に入力します。</p></div>
+    {isLogin ? <label className="mt-9 flex min-h-11 items-center gap-2 text-xs font-medium text-[var(--muted)]"><input type="checkbox" checked={rememberLogin} onChange={(event) => setRememberLogin(event.target.checked)} className="size-4 accent-[var(--sage-deep)]" />この端末でログイン状態を記憶する</label> : null}
+    <Button type="button" className="mt-4 w-full" onClick={() => void beginCloudSignIn(!isLogin, isLogin ? rememberLogin : true).catch((error) => setAuthError(error instanceof Error ? error.message : "ログインを開始できませんでした。"))}>{isLogin ? "メールアドレスでログイン" : "メールアドレスで新規登録"}</Button>
+    {cloudConfig.googleSignInEnabled ? <Button type="button" variant="secondary" className="mt-3 w-full" onClick={() => void beginCloudSignIn(false, isLogin ? rememberLogin : true, "Google").catch((error) => setAuthError(error instanceof Error ? error.message : "Googleログインを開始できませんでした。"))}>Googleで続ける</Button> : null}
+    {authError ? <p role="alert" className="mt-3 text-xs text-[var(--coral)]">{authError}</p> : null}
+    <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{isLogin ? "メールアドレスとパスワード、またはGoogleアカウントでログインできます。" : "メールアドレスとパスワード、またはGoogleアカウントで登録し、続けてプロフィールで名前や目標を設定します。"} 記録はアカウントごとに分けて保存します。</p>
+    <p className="mt-7 text-center text-xs leading-7 text-[var(--muted)]">{isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"} <Link href={isLogin ? "/signup" : "/login"} className="font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">{isLogin ? "新規登録" : "ログイン"}</Link></p>
+  </div></main>;
 
   return (
     <main className="setup-page">

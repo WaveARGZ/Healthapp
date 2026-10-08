@@ -24,7 +24,7 @@
   - 日本で一般的な定番料理187件と、文部科学省「日本食品標準成分表（八訂）増補2023年」の日本語食品2,537件を検索し、食べた重さからPFCを計算。ひらがな・カタカナ、料理の別名、軽微な誤字にも対応
   - 写真を端末内の無料AIで解析し、料理候補と同じ食品データに基づく栄養素を追加
   - 認識後に正解料理名とカロリー・PFCを修正可能。写真・正解ラベルを端末内に最大150件保存
-  - 学習データ共有は任意だが、共有する場合は毎回の明示同意とGoogleログインが必須。送信先はアプリ所有者が管理する共通Google Drive
+  - 学習データ共有は任意で毎回の明示同意が必要。デモ版はGoogleログイン後に共通Driveへ写真と正解を送信。AWS版は写真を含まない修正シグナルのみ学習用DynamoDBへ送信
   - 正解データに基づき以後の候補順位を個人向けに補正
   - 蓄積した写真を所有者が確認・学習・評価し、改善時だけ料理候補モデルの補正器を更新するオフライン作業ツール
   - 履歴表示・削除
@@ -34,7 +34,7 @@
 - スマホでは5項目の下部固定ナビ、PCでは左側ナビ（ホーム / 筋トレ / 食事 / 進捗 / 設定）
 - オリジナルのアプリアイコンと、PWA化の土台となる `app/manifest.ts`
 
-ログイン・新規登録はCognito未接続のデモUIです。ログイン画面の「ログイン状態を記憶する」を有効にすると、このブラウザの端末内にデモ状態を保存します。パスワードは保存しません。これは本人確認やデータ保護を提供する認証ではありません。
+AWSの5つの公開設定値を入れたビルドではCognitoのHosted UI（認可コード + PKCE）を使用します。設定がないビルドは従来どおり**デモ版**です。デモログインは本人確認ではなく、データは端末内に保存されます。公開中のGitHub PagesにAWS設定がまだ入っていない場合もデモ版のままです。
 
 ## 画面デザイン
 
@@ -45,7 +45,7 @@
 - 筋トレはセット表、食事は「検索・写真・手入力」の切り替え。切り替えても検索・写真の入力状態を維持
 - 体重は測定日順の一覧と、目盛り・日付付きの折れ線グラフで表示
 - 入力文字は基本16px、キーボード操作時のフォーカス表示、端末のセーフエリア、動きを抑える設定に対応
-- 保存形式と保存キーは変更していないため、同じブラウザ・同じURLの既存データを継続利用可能
+- デモ版の保存形式と保存キーは変更していないため、同じブラウザ・同じURLの既存データを継続利用可能。AWS版への自動移行は未実装
 
 表示例はトップページ内で「記録のイメージ」と明記しています。ダッシュボードに架空の記録は表示しません。
 
@@ -70,7 +70,7 @@
 
 3パターンの変形率は `lib/photos/body-warp.ts` の `bodyPatterns` に集約しています。具体的な強さは、実際の正面・背面写真の出力を見て調整する前提です。輪郭の変形と陰影の強調だけでは、元写真に写っていない筋肉のラインを新たに正確に生成できません。これらの画像は目標のイメージ用であり、将来の身体や体脂肪率の予測ではありません。
 
-写真編集はブラウザ内で完結し、サーバーには送信しません。編集結果はダウンロードできます。端末には容量を抑えた元写真のみを保存し、保存済み写真からも3パターンを再生成できます。背景が複雑な場合や被写体が大きくずれた場合は自動推定の精度が落ちます。
+写真編集はブラウザ内で行い、編集結果はダウンロードできます。デモ版では容量を抑えた元写真を端末に保存します。AWS版では元写真を本人専用の非公開S3領域に保存し、署名付きURLで読み込みます。保存済み写真からも3パターンを再生成できます。背景が複雑な場合や被写体が大きくずれた場合は自動推定の精度が落ちます。
 
 ## ディレクトリ構成
 
@@ -85,13 +85,15 @@ components/
 hooks/                  # クライアント側の再利用フック
 lib/
   api/                  # UIが依存する永続化インターフェースと合成ルート
-  auth/                 # 将来のCognito連携用インターフェース
+  auth/                 # デモ状態とCognito PKCEセッション
+  cloud/                # 公開AWS設定
   drive/                # Googleアカウント認証と共通Drive受け口連携
   storage/              # localStorage実装
   photos/               # 写真の読み込み・Canvas編集
   data/                 # 日本語の定番食品の選定一覧と生成済みの栄養データ
   utils/                # 日付・IDのユーティリティ
 types/                  # User / Workout / Meal / Progressの型定義
+backend/                # AWS SAM、Lambda、DynamoDB/S3の検証
 scripts/                # 公開データから食品ライブラリを再生成するスクリプト
 ```
 
@@ -116,21 +118,78 @@ npm run test:mobile-viewport
 npm run validate:food-data
 npm run test:food-catalog
 npm run test:food-ai
+npm run test:aws
+cd backend && npm run test:guard
 ```
 
 この環境ではTurbopackがCSS処理の内部プロセス用ポートを開けないため、`npm run build` は Next.js 公式の `--webpack` オプションを使う設定にしています。アプリのルーティング・コンポーネント・型チェックを含めた本番ビルドは成功済みです。
 
 `test:static-ui` はビルド済みの12画面について、日本語設定、見出し、指定ロゴの実ファイル参照、下部／左ナビの5項目と選択状態を検証します。GitHub Pagesのパス確認は `GITHUB_ACTIONS=true GITHUB_REPOSITORY=WaveARGZ/Healthapp npm run build` の後に同じテストを実行します。ブラウザ上での操作・レイアウト検証の代替ではありません。
 
-## 保存方法とAWS移行
+## 保存方法とAWS構成
 
-画面コンポーネントは `localStorage` を直接操作していません。すべて `lib/api/client.ts` の `bodyMakeClient` を経由し、現在は `lib/storage/local-bodymake-client.ts` が `BodyMakeClient` 契約を実装しています。
+通常記録は `lib/api/client.ts` の `bodyMakeClient` を経由します。AWS設定なしでは `lib/storage/local-bodymake-client.ts`、AWS設定ありでは `lib/api/aws-bodymake-client.ts` を利用します。ジム器具・お気に入りもAWS版では個人データベースに保存します。
 
-食事写真のAI候補だけは、`@huggingface/transformers` の公開ONNXモデルをブラウザ内で実行します。初回は約200MBのモデルをダウンロードしてブラウザキャッシュに保存しますが、料理写真を推論APIへ送信しません。認識後に料理名とカロリー・PFCを手で修正し、「正解として保存」できます。正解データと写真は `lib/food-ai/food-learning.ts` からこの端末の IndexedDB へ最大150件保存されます。
+`backend/template.yaml` は東京リージョン向けのAWS SAMテンプレートです。Cognitoユーザープール、JWT認証付きHTTP API、Lambda、個人記録用DynamoDB、学習シグナル専用DynamoDB、非公開の身体写真S3を構築します。LambdaはCognitoの`sub`から個人用パーティションを決め、リクエストの任意のユーザーIDを信用しません。S3の元写真も`users/<sub>/...`に保存します。学習シグナルは、明示同意後の料理名・栄養値と27分類の確率ベクトルだけを別テーブルへ保存し、写真・メールアドレスを保存しません。これは**学習素材の蓄積**であり、送信しただけでモデルが自動的に学習・更新される機能ではありません。
 
-### 共通Driveへの学習データ保存
+費用対策として、APIは**デプロイ直後は停止状態**（Lambda同時実行数0）です。別の監視Lambdaが6時間ごとにAWS Free Tier APIの当月使用量と予測使用量を確認し、いずれかの無料枠が80%以上になった場合、または確認に失敗した場合、APIを停止します。全アカウントの月額費用が$0.01の予算の1%を超えたときのAWS Budgets通知も監視Lambdaに接続し、APIを停止して通知先メールへ知らせます。APIには2リクエスト/秒・バースト5のスロットリングも設定しています。監視は停止したAPIを自動再開しません。
 
-ユーザーごとのDriveではなく、アプリ所有者のDriveに集約します。GitHub Pagesだけでは所有者のGoogle Driveへ安全に書き込めないため、リポジトリ内の `scripts/google-drive-training-ingest/Code.gs` をApps Scriptの受け口として使います。所有者アカウントで一度デプロイしてください。
+### AWSの導入手順
+
+AWS CLI **v2**・SAM CLIを導入し、ご自身のAWSアカウントでCLI認証を設定してください（可能なら一時認証を推奨）。ブラウザでAWSコンソールにログインするだけではCLIは認証されません。アクセスキーや秘密鍵をリポジトリやチャットへ貼らないでください。この開発環境にはAWS CLI v1しかなく、AWS認証情報もないため実デプロイとAWS上の動作確認は未実施です。
+
+```bash
+aws sts get-caller-identity
+cd backend
+npm ci
+PATH="$PWD/node_modules/.bin:$PATH" sam build --template-file template.yaml
+sam deploy --guided --region ap-northeast-1 --capabilities CAPABILITY_IAM
+```
+
+デプロイ時の`AlertEmail`には受信可能なメールアドレスを入力してください。メールアドレスを公開リポジトリに書かないでください。`sam deploy --guided`が保存する`backend/samconfig.toml`もGit管理対象外にしています。AWS Budgetsから届く確認メールのリンクを開かないと通知を受け取れません。
+
+初回デプロイ後はAWSコンソールでアカウントのFree/Paidプラン、クレジット、有効な無料枠、Budgetsの通知先、監視Lambdaの実行結果を確認してください。問題がなければ、出力された`ApiFunctionName`を使って手動でAPIを有効にします。以下の例は同時実行数を2に制限します。
+
+```bash
+aws lambda put-function-concurrency --function-name <ApiFunctionName> --reserved-concurrent-executions 2 --region ap-northeast-1
+```
+
+再停止する場合は`--reserved-concurrent-executions 0`に戻します。監視によって停止された後は、停止理由と費用を確認してから手動で再開してください。監視LambdaのIAM権限はIAM Policy Autopilotの生成結果を基に、停止対象のLambdaだけに限定しています。
+
+デプロイ後、出力された`ApiUrl`、`ClientId`、`AuthDomain`を使い、GitHubリポジトリの`Settings` → `Secrets and variables` → `Actions` → `Variables`に次を設定してPagesを再デプロイします。
+
+| 変数 | 値 |
+| --- | --- |
+| `BODYMAKE_API_URL` | `ApiUrl` |
+| `BODYMAKE_CLIENT_ID` | `ClientId` |
+| `BODYMAKE_AUTH_DOMAIN` | `AuthDomain` |
+| `BODYMAKE_CALLBACK_URL` | `https://waveargz.github.io/Healthapp/auth/callback/` |
+| `BODYMAKE_LOGOUT_URL` | `https://waveargz.github.io/Healthapp/` |
+| `BODYMAKE_GOOGLE_SIGN_IN_ENABLED` | Googleログインの設定完了後に `true` |
+
+ローカル開発には同じ値を`.env.local`へ`NEXT_PUBLIC_BODYMAKE_*`という名前で設定します（書式は`.env.example`参照）。これらはブラウザに公開される値であり、AWSアクセスキーや秘密鍵を入れないでください。Cognitoでの新規登録時はメール確認が必要です。AWS版への切り替え時、従来の端末内のデモ記録は自動移行されません。
+
+### Googleログインの有効化
+
+Google Cloud ConsoleでOAuth同意画面を設定し、種類が**ウェブアプリケーション**のOAuth 2.0クライアントを作成します。Google側の承認済みリダイレクトURIには、Cognitoの次のURLを登録します。
+
+```text
+https://bodymake-147997153211-ap-northeast-1.auth.ap-northeast-1.amazoncognito.com/oauth2/idpresponse
+```
+
+続いて、GoogleのクライアントIDとクライアントシークレットを使って、`EnableGoogleSignIn=true`でSAMスタックを更新します。シークレットはGitHub Actions変数、`.env.local`、リポジトリ、チャットに書かず、デプロイ時だけのNoEchoパラメータとして入力してください。CognitoはGoogleを外部IDプロバイダーとして扱い、アプリは認可コード+PKCEでログインします。GitHub Pagesの変数`BODYMAKE_GOOGLE_SIGN_IN_ENABLED`を`true`にしてPagesを再デプロイすると、ログイン・新規登録画面に「Googleで続ける」が表示されます。
+
+「ログイン状態を記憶する」を選ぶと更新トークンをこのブラウザの`localStorage`へ保存し、選ばない場合は`sessionStorage`へ保存します。共有端末では選ばないでください。公開前にはCSP、利用規約・プライバシー文書、退会・データ削除フロー、料金アラート、バックアップ運用を整備してください。より強いセッション保護が必要になった時は、静的PagesからBFF/HTTP-only cookie方式への移行を検討します。
+
+費用は「必ず無料」ではありません。Free Tier APIとBudgetsには集計遅延があり、無料枠の対象外・期限切れ・表示されない料金もあります。**API停止後もS3保存量、DynamoDBのプロビジョンド容量、Cognitoなどの費用は継続し得ます。AWSアカウント全体を無課金で強制停止する仕組みではありません。** [Cognito](https://aws.amazon.com/cognito/pricing/)、[DynamoDB](https://aws.amazon.com/dynamodb/pricing/)、[Lambda](https://aws.amazon.com/lambda/pricing/)、[API Gateway](https://aws.amazon.com/api-gateway/pricing/)、[S3](https://aws.amazon.com/s3/pricing/)の最新料金を東京リージョン・自分のアカウントで確認してください。DynamoDBは無料枠を使いやすいよう各テーブルをプロビジョンド1 RCU/1 WCUにしていますが、負荷が増えるとスロットリングが起きます。学習用データの低頻度アーカイブをGoogle Driveへ移す余地はありますが、容量だけを理由に個人記録や身体写真を自動的にDriveへ移しません。移行時は同意・アクセス制御・削除手順を別途設計してください。
+
+ユーザープール・DynamoDBテーブル・写真バケットは誤削除防止のためスタック削除時も`Retain`します。スタックを削除してもこれらのリソースと費用が残り得るため、不要になった際はデータのバックアップ・削除方針を確認してから個別に整理してください。
+
+食事写真のAI候補だけは、`@huggingface/transformers` の公開ONNXモデルをブラウザ内で実行します。初回は約200MBのモデルをダウンロードしてブラウザキャッシュに保存しますが、料理写真を推論APIへ送信しません。認識後に料理名とカロリー・PFCを手で修正できます。デモ版では正解データと写真をこの端末のIndexedDBへ最大150件保存します。AWS版では端末内の正解ラベルをログインアカウントごとに分離し、食事写真は保存しません。
+
+### 共通Driveへの学習データ保存（デモ版のみ）
+
+AWS設定がないデモ版ではユーザーごとのDriveではなく、アプリ所有者のDriveに集約できます。GitHub Pagesだけでは所有者のGoogle Driveへ安全に書き込めないため、リポジトリ内の `scripts/google-drive-training-ingest/Code.gs` をApps Scriptの受け口として使います。AWS版ではこの経路は使わず、写真を含まない学習シグナルを別のDynamoDBテーブルに保存します。
 
 1. `script.google.com` で新しいApps Scriptプロジェクトを作り、`Code.gs` の内容を貼り付けます。
 2. Apps Scriptの「プロジェクトの設定」で「マニフェスト ファイル `appsscript.json` をエディタで表示する」を有効にし、同梱の `appsscript.json` の内容に置き換えます。
@@ -183,14 +242,4 @@ npm run validate:food-data
 
 定番料理のみを再生成するには、USDAのFNDDSとSR LegacyのZIPを取得して `npm run generate:curated-food-data -- /path/to/FNDDS.zip /path/to/SR-Legacy.zip` を実行します。このコマンドには `unzip` が必要で、文部科学省の詳細データは上書きしません。このMVPの「学習」は、カタログ内の確定データに基づく個人向け候補順位の補正です。自由入力のラベルは将来のモデル学習用データとして蓄積されますが、写真認識モデル自体はオンライン学習しません。
 
-AWS連携時に主に変更する箇所は次のとおりです。
-
-| 現在 | AWS連携後 |
-| --- | --- |
-| `lib/storage/local-bodymake-client.ts` | API Gateway + Lambda のHTTPクライアント実装へ置換 |
-| `lib/api/client.ts` | `LocalBodyMakeClient` ではなくAPIクライアントを注入 |
-| `lib/auth/auth-client.ts` | Cognitoのサインアップ、ログイン、トークン更新、ログアウトを実装 |
-| `BodyPhotoEntry.imageUrl` のData URL | S3のオブジェクトキー / CloudFront URLへ置換。署名付きURLでアップロード |
-| 各エントリのローカル配列 | Lambda経由でDynamoDBへ保存・取得 |
-
-`BodyMakeClient` と `types/` の型を維持すれば、フォームや表示コンポーネントの大半を変更せずに保存先をAWSへ移行できます。Bedrockによるフィードバックや評価機能は、APIクライアントに専用メソッドを追加してダッシュボードのプレースホルダーへ接続する想定です。
+AWSの接続ポイントは実装済みです。`lib/cloud/config.ts`の設定値で`lib/api/client.ts`が保存先を切り替え、`lib/auth/cognito-session.ts`がログイン・更新・ログアウトを扱います。`backend/handler.mjs`では個人記録と学習シグナルを別テーブルへ保存します。次の段階では実アカウントへのデプロイ、E2Eテスト、端末内デモ記録の明示的な移行、退会とデータ削除、Bedrockなどの追加機能を進めます。CloudFrontはまだ導入していません。

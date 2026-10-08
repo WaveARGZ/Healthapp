@@ -1,5 +1,6 @@
 import type { BodyMakeClient } from "@/lib/api/bodymake-client";
 import { LocalBodyMakeClient } from "@/lib/storage/local-bodymake-client";
+import { AwsBodyMakeClient } from "@/lib/api/aws-bodymake-client";
+import { isCloudConfigured } from "@/lib/cloud/config";
 
-// Replace this composition root with an API Gateway client when AWS is added.
-export const bodyMakeClient: BodyMakeClient = new LocalBodyMakeClient();
+export const bodyMakeClient: BodyMakeClient = isCloudConfigured ? new AwsBodyMakeClient() : new LocalBodyMakeClient();

@@ -28,6 +28,7 @@ const smoothstep = (t: number) => { const x = clamp(t, 0, 1); return x * x * (3 
 
 async function decodeImage(source: string): Promise<HTMLImageElement> {
   const image = new Image();
+  image.crossOrigin = "anonymous";
   image.src = source;
   await image.decode();
   return image;

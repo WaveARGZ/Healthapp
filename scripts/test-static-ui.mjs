@@ -11,6 +11,7 @@ const imagePaths = new Set();
 
 for (const page of pages) {
   const html = await readFile(resolve("out", page, "index.html"), "utf8");
+  const cloudGate = appPages.has(page) && html.includes("ログイン状態を確認しています");
   assert.match(html, /<html[^>]*lang="ja"/, `${page}: Japanese document`);
   assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1, `${page}: one page title`);
   const viewport = html.match(/<meta name="viewport" content="([^"]+)"/)?.[1];
@@ -27,13 +28,13 @@ for (const page of pages) {
   imagePaths.add(image[1]);
   await stat(resolve("out", image[1].slice(basePath.length + 1)));
   assert.doesNotMatch(html, /WORKOUT LOG|MEAL LOG|CURRENT WEIGHT|your body, your pace/);
-  if (appPages.has(page)) {
+  if (appPages.has(page) && !cloudGate) {
     const nav = html.match(/<nav[\s\S]*?<\/nav>/)?.[0];
     assert.ok(nav, `${page}: navigation`);
     assert.equal((nav.match(/<a /g) ?? []).length, 5, `${page}: five destinations`);
     assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1, `${page}: active destination`);
   }
-  if (["workouts", "meals", "weight"].includes(page)) {
+  if (["workouts", "meals", "weight"].includes(page) && !cloudGate) {
     assert.match(html, /<main[^>]*data-recording="true"/, `${page}: content clears the dock`);
     const form = html.match(/<form[\s\S]*?<\/form>/)?.[0];
     assert.ok(form, `${page}: record form`);
@@ -41,8 +42,8 @@ for (const page of pages) {
     assert.equal((form.match(/type="submit"/g) ?? []).length, 1, `${page}: one native submit control`);
   }
   if (page === "login") assert.match(html, /ログイン状態を記憶する/, "login: remember-session option");
-  if (page === "meals") assert.match(html, /写真からメニューを追加/, "meals: photo correction entry point");
-  if (page === "settings") assert.match(html, /共有Driveへの学習データ保存/, "settings: shared Drive training-data setup");
+  if (page === "meals" && !cloudGate) assert.match(html, /写真からメニューを追加/, "meals: photo correction entry point");
+  if (page === "settings" && !cloudGate) assert.match(html, /共有Driveへの学習データ保存/, "settings: shared Drive training-data setup");
 }
 assert.equal(imagePaths.size, 1, "all pages use the same artwork");
 console.log(`${pages.length} pages validated: Japanese headings, logo, navigation, mobile viewport and recording controls. Base path: ${basePath || "/"}`);

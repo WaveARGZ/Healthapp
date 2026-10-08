@@ -7,7 +7,7 @@ import { Icon, type IconName } from "@/components/ui/icon";
 import { EmptyState } from "@/components/ui/empty-state";
 import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
 import { bodyMakeClient } from "@/lib/api/client";
-import { getWorkoutPreferences } from "@/lib/storage/workout-preferences";
+import { loadWorkoutPreferences } from "@/lib/api/workout-preferences-client";
 import { formatDate, formatToday, toDateInputValue } from "@/lib/utils/date";
 import { fitnessGoalLabels, type UserProfile } from "@/types/user";
 import type { MealEntry } from "@/types/meal";
@@ -39,7 +39,7 @@ export function DashboardContent() {
   const [hasFacilityEquipment, setHasFacilityEquipment] = useState<boolean | null>(null);
   const today = toDateInputValue();
   useEffect(() => {
-    void Promise.all([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), bodyMakeClient.getBodyPhotos(), Promise.resolve().then(getWorkoutPreferences)])
+    void Promise.all([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), bodyMakeClient.getBodyPhotos(), loadWorkoutPreferences()])
       .then(([profile, workouts, meals, weights, photos, preferences]) => {
         setData({ profile, workouts, meals, weights, photos });
         setHasFacilityEquipment(preferences.facilityEquipment.length + preferences.customEquipment.length > 0);

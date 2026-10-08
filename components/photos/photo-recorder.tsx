@@ -14,6 +14,7 @@ import { normalizePhotoFile } from "@/lib/photos/photo-file";
 import { formatDate, toDateInputValue } from "@/lib/utils/date";
 import { createId } from "@/lib/utils/id";
 import { bodyPhotoViewLabels, type BodyPhotoEntry, type BodyPhotoView } from "@/types/progress";
+import { isCloudConfigured } from "@/lib/cloud/config";
 
 type Previews = Partial<Record<BodyPhotoView, string>>;
 
@@ -54,10 +55,10 @@ export function PhotoRecorder() {
         await bodyMakeClient.saveBodyPhoto({ id: createId("photo"), view, imageUrl, capturedAt, createdAt: new Date().toISOString() });
       }
       setIsSaved(true);
-      setNotice("元写真を端末に保存しました。編集画像は各パターンから保存できます。");
+      setNotice(isCloudConfigured ? "元写真を非公開のアカウント領域に保存しました。" : "元写真を端末に保存しました。編集画像は各パターンから保存できます。");
       await loadPhotos();
-    } catch {
-      setNotice("写真を保存できませんでした。端末の空き容量をご確認ください。");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "写真を保存できませんでした。");
     } finally { setIsSaving(false); }
   }
 
@@ -79,9 +80,9 @@ export function PhotoRecorder() {
     <Card>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-bold text-[var(--ink)]">今回の写真</p><p className="mt-1 text-xs text-[var(--muted)]">正面・背面をそれぞれ選択</p></div><label className="text-xs font-semibold text-[var(--muted)]">撮影日<input type="date" aria-label="撮影日" value={capturedAt} onChange={(event) => { setCapturedAt(event.target.value); setIsSaved(false); }} className="form-input ml-2 inline-block h-11 w-40" /></label></div>
       <div className="grid grid-cols-2 gap-3"><BodyPhotoPicker view="front" preview={previews.front} onChange={(event) => void handleFile("front", event)} /><BodyPhotoPicker view="back" preview={previews.back} onChange={(event) => void handleFile("back", event)} /></div>
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">選ぶだけで自動編集します。写真はサーバーへ送らず、この端末内で処理します。単色背景・全身・正面向きの撮影が目安です。</p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">{isCloudConfigured ? "自動編集は端末内で処理します。保存すると元写真は非公開のアカウント領域へ送られます。単色背景・全身・正面向きの撮影が目安です。" : "選ぶだけで自動編集します。写真はサーバーへ送らず、この端末内で処理します。単色背景・全身・正面向きの撮影が目安です。"}</p>
     </Card>
-    <Button type="button" className="mt-4 w-full" onClick={() => void savePhotos()} disabled={isSaving || isSaved || !previews.front && !previews.back}>{isSaving ? "保存中..." : isSaved ? "元写真を保存済み" : "元写真を端末に保存"}</Button>
+    <Button type="button" className="mt-4 w-full" onClick={() => void savePhotos()} disabled={isSaving || isSaved || !previews.front && !previews.back}>{isSaving ? "保存中..." : isSaved ? "元写真を保存済み" : isCloudConfigured ? "元写真を保存" : "元写真を端末に保存"}</Button>
     {notice && <p className="mt-3 text-center text-xs font-medium text-[var(--sage-deep)]" role="status">{notice}</p>}
 
     {(previews.front || previews.back) && <section className="mt-8"><h2 className="section-title">自動編集プレビュー</h2><p className="mt-1 text-xs leading-5 text-[var(--muted)]">3パターンは見た目の比較用シミュレーションです。変形率は実際の写真を見ながら調整できます。</p>{previews.front && <IdealBodyEditor key={`front-${previews.front.slice(0, 60)}`} source={previews.front} view="front" />}{previews.back && <IdealBodyEditor key={`back-${previews.back.slice(0, 60)}`} source={previews.back} view="back" />}</section>}

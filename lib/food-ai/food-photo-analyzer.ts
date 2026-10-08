@@ -8,6 +8,12 @@ export interface FoodPhotoCandidate extends FoodCatalogItem {
   modelScore: number;
 }
 
+export interface FoodPhotoAnalysis {
+  candidates: FoodPhotoCandidate[];
+  /** Scores in the stable order of foodCatalog; used only with a confirmed label. */
+  scores: number[];
+}
+
 export interface ModelProgress {
   label: string;
   percent?: number;
@@ -44,19 +50,29 @@ export async function analyzeFoodPhoto(
   image: Blob,
   onProgress?: (progress: ModelProgress) => void,
 ): Promise<FoodPhotoCandidate[]> {
+  return (await analyzeFoodPhotoDetailed(image, onProgress)).candidates;
+}
+
+export async function analyzeFoodPhotoDetailed(
+  image: Blob,
+  onProgress?: (progress: ModelProgress) => void,
+): Promise<FoodPhotoAnalysis> {
   const classifier = await getClassifier(onProgress);
   onProgress?.({ label: "写真から料理候補を探しています" });
   const outputs = await classifier(image, foodCatalog.map((food) => food.clipLabel));
   const rawScores = new Map(outputs.map((output) => [output.label, output.score]));
   const labelIds = foodCatalog.map((food) => food.id);
+  const raw = foodCatalog.map((food) => rawScores.get(food.clipLabel) ?? 0);
+  const total = raw.reduce((sum, value) => sum + value, 0);
+  const normalized = total > 0 ? raw.map((value) => value / total) : raw.map(() => 1 / raw.length);
   const probabilities = applyFoodCalibration(
-    foodCatalog.map((food) => rawScores.get(food.clipLabel) ?? 0),
+    normalized,
     labelIds,
     deployedCalibration,
   );
   const signals = getFoodLearningSignals();
 
-  return foodCatalog
+  const candidates = foodCatalog
     .map((item, index) => {
       const modelScore = probabilities[index];
       const learnedBoost = Math.min(0.12, (signals[item.id]?.confirmed ?? 0) * 0.02);
@@ -64,4 +80,5 @@ export async function analyzeFoodPhoto(
     })
     .sort((first, second) => second.score - first.score)
     .slice(0, 5);
+  return { candidates, scores: probabilities };
 }

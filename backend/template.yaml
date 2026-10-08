@@ -1,0 +1,381 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: BodyMake account data and private training signals (Tokyo region recommended)
+
+Parameters:
+  AppOrigin:
+    Type: String
+    Default: https://waveargz.github.io
+  CallbackUrl:
+    Type: String
+    Default: https://waveargz.github.io/Healthapp/auth/callback/
+  LogoutUrl:
+    Type: String
+    Default: https://waveargz.github.io/Healthapp/
+  AlertEmail:
+    Type: String
+    NoEcho: true
+    Description: Address for AWS cost alerts (enter during deployment; never commit it)
+  StopThresholdPercent:
+    Type: Number
+    Default: 80
+    MinValue: 1
+    MaxValue: 99
+  EnableGoogleSignIn:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Enable only when both Google OAuth values are provided during deployment.
+  GoogleClientId:
+    Type: String
+    Default: ""
+    Description: Google OAuth web application client ID. This is public, but do not commit account-specific values.
+  GoogleClientSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Google OAuth web application client secret. Enter only during deployment; never commit it.
+
+Conditions:
+  GoogleSignInEnabled: !Equals [!Ref EnableGoogleSignIn, "true"]
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: !Sub ${AWS::StackName}-users
+      UserPoolTier: LITE
+      DeletionProtection: ACTIVE
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 10
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: bodymake-web
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      SupportedIdentityProviders: !If [GoogleSignInEnabled, [COGNITO, Google], [COGNITO]]
+      CallbackURLs:
+        - !Ref CallbackUrl
+        - http://localhost:3000/auth/callback/
+      LogoutURLs:
+        - !Ref LogoutUrl
+        - http://localhost:3000/
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      RefreshTokenValidity: 30
+
+  GoogleIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Condition: GoogleSignInEnabled
+    Properties:
+      UserPoolId: !Ref UserPool
+      ProviderName: Google
+      ProviderType: Google
+      ProviderDetails:
+        client_id: !Ref GoogleClientId
+        client_secret: !Ref GoogleClientSecret
+        authorize_scopes: openid email profile
+      AttributeMapping:
+        email: email
+        given_name: given_name
+        family_name: family_name
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub bodymake-${AWS::AccountId}-${AWS::Region}
+      UserPoolId: !Ref UserPool
+      ManagedLoginVersion: 1
+
+  UserRecords:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+
+  TrainingSignals:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+
+  BodyPhotos:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - !Ref AppOrigin
+              - http://localhost:3000
+            AllowedMethods: [GET, POST]
+            AllowedHeaders: ["*"]
+            MaxAge: 600
+
+  BodyMakeApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 5
+        ThrottlingRateLimit: 2
+      DefinitionBody:
+        openapi: "3.0.1"
+        info:
+          title: BodyMake API
+          version: "1.0"
+        paths: {}
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AppOrigin
+          - http://localhost:3000
+        AllowHeaders: [Authorization, Content-Type]
+        AllowMethods: [GET, PUT, POST, DELETE, OPTIONS]
+        MaxAge: 600
+      Auth:
+        DefaultAuthorizer: CognitoJwt
+        Authorizers:
+          CognitoJwt:
+            AuthorizationScopes: [openid]
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+              audience:
+                - !Ref UserPoolClient
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: handler.handler
+      Runtime: nodejs22.x
+      MemorySize: 256
+      Timeout: 10
+      ReservedConcurrentExecutions: 0
+      Environment:
+        Variables:
+          USER_TABLE: !Ref UserRecords
+          TRAINING_TABLE: !Ref TrainingSignals
+          PHOTO_BUCKET: !Ref BodyPhotos
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:Query]
+              Resource: !GetAtt UserRecords.Arn
+            - Effect: Allow
+              Action: [dynamodb:PutItem]
+              Resource: !GetAtt TrainingSignals.Arn
+            - Effect: Allow
+              Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+              Resource: !Sub ${BodyPhotos.Arn}/users/*
+      Events:
+        GetRecords:
+          Type: HttpApi
+          Properties: { ApiId: !Ref BodyMakeApi, Path: "/records/{kind}", Method: GET }
+        PutRecord:
+          Type: HttpApi
+          Properties: { ApiId: !Ref BodyMakeApi, Path: "/records/{kind}/{id}", Method: PUT }
+        DeleteRecord:
+          Type: HttpApi
+          Properties: { ApiId: !Ref BodyMakeApi, Path: "/records/{kind}/{id}", Method: DELETE }
+        PhotoUpload:
+          Type: HttpApi
+          Properties: { ApiId: !Ref BodyMakeApi, Path: /photos/upload, Method: POST }
+        TrainingSignal:
+          Type: HttpApi
+          Properties: { ApiId: !Ref BodyMakeApi, Path: /training/signals, Method: POST }
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints: [handler.mjs]
+        Target: es2022
+        Format: esm
+        Minify: true
+        OutExtension: [".js=.mjs"]
+
+  ApiLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ApiFunction}
+      RetentionInDays: 7
+
+  FreeTierGuard:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: free-tier-guard.handler
+      Runtime: nodejs22.x
+      MemorySize: 128
+      Timeout: 30
+      Environment:
+        Variables:
+          API_FUNCTION_NAME: !Ref ApiFunction
+          STOP_THRESHOLD_PERCENT: !Ref StopThresholdPercent
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: aws-portal:ViewBilling
+              Resource: "*"
+            - Effect: Allow
+              Action: freetier:GetFreeTierUsage
+              Resource: "*"
+            - Effect: Allow
+              Action: lambda:PutFunctionConcurrency
+              Resource: !GetAtt ApiFunction.Arn
+      Events:
+        CheckEverySixHours:
+          Type: Schedule
+          Properties:
+            Schedule: rate(6 hours)
+        BudgetBreach:
+          Type: SNS
+          Properties:
+            Topic: !Ref CostAlertTopic
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints: [free-tier-guard.js]
+        Target: es2022
+        Format: esm
+        Minify: true
+        OutExtension: [".js=.mjs"]
+
+  FreeTierGuardLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${FreeTierGuard}
+      RetentionInDays: 7
+
+  CostAlertTopic:
+    Type: AWS::SNS::Topic
+
+  CostAlertEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+      TopicArn: !Ref CostAlertTopic
+
+  CostAlertTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [!Ref CostAlertTopic]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowBudgetNotification
+            Effect: Allow
+            Principal:
+              Service: budgets.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref CostAlertTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub arn:${AWS::Partition}:budgets::${AWS::AccountId}:*
+
+  CostAlert:
+    Type: AWS::Budgets::Budget
+    DependsOn: CostAlertTopicPolicy
+    Properties:
+      Budget:
+        BudgetName: !Sub ${AWS::StackName}-monthly-cost-alert
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 0.01
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 1
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+            - SubscriptionType: SNS
+              Address: !Ref CostAlertTopic
+
+Outputs:
+  ApiUrl:
+    Value: !Sub https://${BodyMakeApi}.execute-api.${AWS::Region}.amazonaws.com
+  UserPoolId:
+    Value: !Ref UserPool
+  ClientId:
+    Value: !Ref UserPoolClient
+  AuthDomain:
+    Value: !Sub https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com
+  PhotoBucket:
+    Value: !Ref BodyPhotos
+  UserTable:
+    Value: !Ref UserRecords
+  TrainingTable:
+    Value: !Ref TrainingSignals
+  ApiFunctionName:
+    Value: !Ref ApiFunction
+  FreeTierGuardName:
+    Value: !Ref FreeTierGuard
+  BudgetName:
+    Value: !Ref CostAlert

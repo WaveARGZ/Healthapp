@@ -9,6 +9,8 @@ import { Logo } from "@/components/ui/logo";
 import { bodyMakeClient } from "@/lib/api/client";
 import { createId } from "@/lib/utils/id";
 import { fitnessGoalLabels, type FitnessGoal, type Gender, type UserProfile } from "@/types/user";
+import { hasCloudSession } from "@/lib/auth/cognito-session";
+import { isCloudConfigured } from "@/lib/cloud/config";
 
 const goals = Object.entries(fitnessGoalLabels) as Array<[FitnessGoal, string]>;
 
@@ -24,6 +26,7 @@ export function OnboardingForm() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
+    if (isCloudConfigured && !hasCloudSession()) { router.replace("/login"); return; }
     void bodyMakeClient.getProfile().then((profile) => {
       if (!profile) return;
       setName(profile.name);
@@ -32,8 +35,8 @@ export function OnboardingForm() {
       setHeightCm(profile.heightCm?.toString() ?? "");
       setWeightKg(profile.startingWeightKg?.toString() ?? "");
       setGoal(profile.goal);
-    });
-  }, []);
+    }).catch(() => setNotice("プロフィールを読み込めませんでした。再度ログインしてください。"));
+  }, [router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

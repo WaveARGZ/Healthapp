@@ -1,5 +1,7 @@
 import { readStorage, writeStorage } from "@/lib/storage/local-storage";
 import type { MealPhotoTrainingSample } from "@/types/meal";
+import { getCloudSubject } from "@/lib/auth/cognito-session";
+import { isCloudConfigured } from "@/lib/cloud/config";
 
 const metadataKey = "bodymake.food-photo-training.v1";
 const databaseName = "bodymake-food-photo-training";
@@ -16,14 +18,18 @@ export interface FoodLearningSignal {
 }
 
 function getSamples(): MealPhotoTrainingSample[] {
-  return readStorage<MealPhotoTrainingSample[]>(metadataKey, []);
+  const subject = isCloudConfigured ? getCloudSubject() : null;
+  if (isCloudConfigured && !subject) return [];
+  return readStorage<MealPhotoTrainingSample[]>(subject ? `${metadataKey}.${subject}` : metadataKey, []);
 }
 
 function openTrainingDatabase(): Promise<IDBDatabase | null> {
   if (typeof window === "undefined" || !("indexedDB" in window)) return Promise.resolve(null);
 
   return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open(databaseName, 1);
+    const subject = isCloudConfigured ? getCloudSubject() : null;
+    if (isCloudConfigured && !subject) { resolve(null); return; }
+    const request = window.indexedDB.open(subject ? `${databaseName}-${subject}` : databaseName, 1);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(storeName)) request.result.createObjectStore(storeName, { keyPath: "id" });
     };
@@ -56,6 +62,8 @@ export async function recordFoodPhotoTrainingSample(input: {
   nutrition: { calories: number; proteinG: number; fatG: number; carbsG: number };
   createdAt: string;
 }): Promise<void> {
+  const subject = isCloudConfigured ? getCloudSubject() : null;
+  if (isCloudConfigured && !subject) throw new Error("ログインが必要です。");
   const sample: MealPhotoTrainingSample = {
     id: input.id,
     predictedFoodIds: input.predictedFoodIds,
@@ -67,12 +75,14 @@ export async function recordFoodPhotoTrainingSample(input: {
   const existing = getSamples();
   const next = [sample, ...existing].slice(0, maxStoredSamples);
   const staleIds = existing.slice(maxStoredSamples - 1).map((item) => item.id);
-  writeStorage(metadataKey, next);
+  writeStorage(subject ? `${metadataKey}.${subject}` : metadataKey, next);
 
-  try {
-    await storeImageSample({ ...sample, image: input.image }, staleIds);
-  } catch {
-    // The feedback metadata is still useful for local ranking if image storage is unavailable.
+  if (!isCloudConfigured) {
+    try {
+      await storeImageSample({ ...sample, image: input.image }, staleIds);
+    } catch {
+      // The feedback metadata is still useful for local ranking if image storage is unavailable.
+    }
   }
 }
 

@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
 import { hasDemoSession } from "@/lib/auth/demo-session";
+import { hasCloudSession } from "@/lib/auth/cognito-session";
+import { isCloudConfigured } from "@/lib/cloud/config";
 
 const features: Array<{ number: string; icon: IconName; title: string; text: string }> = [
   { number: "01", icon: "dumbbell", title: "トレーニングを残す", text: "種目を選んで、重さと回数をセットごとに。前回の記録も振り返れます。" },
@@ -15,7 +17,7 @@ const features: Array<{ number: string; icon: IconName; title: string; text: str
 
 export function LandingPage() {
   const router = useRouter();
-  useEffect(() => { if (hasDemoSession()) router.replace("/dashboard"); }, [router]);
+  useEffect(() => { if (isCloudConfigured ? hasCloudSession() : hasDemoSession()) router.replace("/dashboard"); }, [router]);
 
   return <main className="min-h-dvh bg-white">
     <header className="safe-top border-b border-[var(--line)]">
@@ -47,6 +49,6 @@ export function LandingPage() {
         <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">{features.map((item) => <div key={item.number} className="border-t border-[var(--line)] pt-5 text-center"><div className="flex items-center justify-center gap-3"><span className="metric text-xs text-[var(--muted)]">{item.number}</span><Icon name={item.icon} className="size-5 text-[var(--sage-deep)]" /></div><h3 className="mt-4 text-base font-bold">{item.title}</h3><p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.text}</p></div>)}</div>
       </div>
     </section>
-    <footer className="border-t border-[var(--line)]"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 safe-gutters safe-bottom pt-6 text-[11px] text-[var(--muted)]"><span>BodyMake</span><span>現在はこのブラウザ内に記録を保存します。</span></div></footer>
+    <footer className="border-t border-[var(--line)]"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 safe-gutters safe-bottom pt-6 text-[11px] text-[var(--muted)]"><span>BodyMake</span><span>{isCloudConfigured ? "記録はアカウントごとに保管されます。" : "現在はこのブラウザ内に記録を保存します。"}</span></div></footer>
   </main>;
 }

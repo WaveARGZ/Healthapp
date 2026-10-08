@@ -36,6 +36,12 @@ jobs:
       - name: Build static site
         env:
           NEXT_PUBLIC_BODYMAKE_TRAINING_ENDPOINT: ${{ vars.BODYMAKE_TRAINING_ENDPOINT }}
+          NEXT_PUBLIC_BODYMAKE_AUTH_DOMAIN: ${{ vars.BODYMAKE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_BODYMAKE_CLIENT_ID: ${{ vars.BODYMAKE_CLIENT_ID }}
+          NEXT_PUBLIC_BODYMAKE_API_URL: ${{ vars.BODYMAKE_API_URL }}
+          NEXT_PUBLIC_BODYMAKE_CALLBACK_URL: ${{ vars.BODYMAKE_CALLBACK_URL }}
+          NEXT_PUBLIC_BODYMAKE_LOGOUT_URL: ${{ vars.BODYMAKE_LOGOUT_URL }}
+          NEXT_PUBLIC_BODYMAKE_GOOGLE_SIGN_IN_ENABLED: ${{ vars.BODYMAKE_GOOGLE_SIGN_IN_ENABLED }}
         run: npm run build
 
       - name: Verify mobile keyboard detection

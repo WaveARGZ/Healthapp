@@ -6,11 +6,13 @@ import { TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { exerciseCatalog, exerciseCount } from "@/lib/data/exercise-catalog";
 import { detectMuscleFocus, recommendExercises } from "@/lib/workouts/workout-recommender";
-import { getWorkoutPreferences, saveWorkoutPreferences } from "@/lib/storage/workout-preferences";
+import { getWorkoutPreferences } from "@/lib/storage/workout-preferences";
+import { loadWorkoutPreferences, storeWorkoutPreferences } from "@/lib/api/workout-preferences-client";
 import { bodyMakeClient } from "@/lib/api/client";
 import type { FitnessGoal } from "@/types/user";
 import type { WorkoutEntry } from "@/types/workout";
-import type { WorkoutPreferences } from "@/types/workout-preferences";
+import { defaultWorkoutPreferences, type WorkoutPreferences } from "@/types/workout-preferences";
+import { isCloudConfigured } from "@/lib/cloud/config";
 
 interface ExercisePickerProps {
   onSelect: (exerciseName: string) => void;
@@ -22,7 +24,7 @@ export function ExercisePicker({ onSelect }: ExercisePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("すべて");
-  const [preferences, setPreferences] = useState<WorkoutPreferences>(() => getWorkoutPreferences());
+  const [preferences, setPreferences] = useState<WorkoutPreferences>(() => isCloudConfigured ? defaultWorkoutPreferences : getWorkoutPreferences());
   const [showEquipmentEditor, setShowEquipmentEditor] = useState(false);
   const [equipmentInput, setEquipmentInput] = useState("");
   const [goal, setGoal] = useState<FitnessGoal>("maintain");
@@ -33,9 +35,10 @@ export function ExercisePicker({ onSelect }: ExercisePickerProps) {
   const queryFocus = detectMuscleFocus(query);
 
   useEffect(() => {
-    void Promise.all([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts()]).then(([profile, history]) => {
+    void Promise.all([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), loadWorkoutPreferences()]).then(([profile, history, savedPreferences]) => {
       if (profile) setGoal(profile.goal);
       setWorkouts(history);
+      setPreferences(savedPreferences);
     });
   }, []);
 
@@ -90,7 +93,7 @@ export function ExercisePicker({ onSelect }: ExercisePickerProps) {
   function updatePreferences(patch: Partial<WorkoutPreferences>) {
     const next = { ...preferences, ...patch };
     setPreferences(next);
-    saveWorkoutPreferences(next);
+    void storeWorkoutPreferences(next).catch(() => setPreferences(preferences));
   }
 
   function toggleEquipment(equipment: string) {
