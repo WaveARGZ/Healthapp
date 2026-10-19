@@ -3,7 +3,8 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 // Run after a normal build or a GitHub Pages build. No browser data is modified.
-const pages = ["", "dashboard", "workouts", "meals", "progress", "weight", "photos", "settings", "login", "signup", "onboarding", "onboarding/photos", "auth/callback"];
+// Both the root route and /bodymake render the BodyMake landing page.
+const pages = ["", "bodymake", "dashboard", "workouts", "meals", "progress", "weight", "photos", "settings", "login", "signup", "onboarding", "onboarding/photos", "auth/callback"];
 const appPages = new Set(["dashboard", "workouts", "meals", "progress", "weight", "photos", "settings"]);
 const manifest = JSON.parse(await readFile("out/manifest.webmanifest", "utf8"));
 const basePath = manifest.scope.replace(/\/$/, "");
@@ -11,6 +12,10 @@ const imagePaths = new Set();
 
 for (const page of pages) {
   const html = await readFile(resolve("out", page, "index.html"), "utf8");
+  if (page === "") {
+    assert.match(html, /理想の身体を、/, "root: BodyMake landing page");
+    assert.doesNotMatch(html, /PORTFOLIO|わべ/, "root: portfolio removed");
+  }
   const cloudGate = appPages.has(page) && html.includes("ログイン状態を確認しています");
   assert.match(html, /<html[^>]*lang="ja"/, `${page}: Japanese document`);
   assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1, `${page}: one page title`);
@@ -38,10 +43,18 @@ for (const page of pages) {
     assert.match(html, /<main[^>]*data-recording="true"/, `${page}: content clears the dock`);
     const form = html.match(/<form[\s\S]*?<\/form>/)?.[0];
     assert.ok(form, `${page}: record form`);
-    assert.match(form, /data-record-actions="true"/, `${page}: save action remains in its form`);
-    assert.equal((form.match(/type="submit"/g) ?? []).length, 1, `${page}: one native submit control`);
+    if (page === "meals") {
+      assert.match(form, /メニューを追加すると、そのまま食事記録に保存されます/, "meals: add action saves directly");
+      assert.equal((form.match(/type="submit"/g) ?? []).length, 0, "meals: no second submit for search mode");
+    } else {
+      assert.match(form, /data-record-actions="true"/, `${page}: save action remains in its form`);
+      assert.equal((form.match(/type="submit"/g) ?? []).length, 1, `${page}: one native submit control`);
+    }
   }
-  if (page === "login") assert.match(html, /ログイン状態を記憶する/, "login: remember-session option");
+  if (page === "login") assert.match(html, /ログイン.*記憶/, "login: remember-session option");
+  if (page === "login" && html.includes("Googleアカウントで記録を続けられます。")) {
+    assert.equal(manifest.start_url, `${basePath}/dashboard`, "Firebase install opens the guarded home screen");
+  }
   if (page === "meals" && !cloudGate) assert.match(html, /写真からメニューを追加/, "meals: photo correction entry point");
   if (page === "settings" && !cloudGate) assert.match(html, /共有Driveへの学習データ保存/, "settings: shared Drive training-data setup");
 }

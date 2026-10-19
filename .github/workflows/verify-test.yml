@@ -1,0 +1,43 @@
+name: Verify BodyMake test environment
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build without production AWS settings
+        env:
+          NEXT_PUBLIC_BODYMAKE_AUTH_DOMAIN: https://production-should-not-be-used.invalid
+          NEXT_PUBLIC_BODYMAKE_CLIENT_ID: production-placeholder
+          NEXT_PUBLIC_BODYMAKE_API_URL: https://production-api-should-not-be-used.invalid
+          NEXT_PUBLIC_BODYMAKE_CALLBACK_URL: https://production-should-not-be-used.invalid/auth/callback/
+          NEXT_PUBLIC_BODYMAKE_LOGOUT_URL: https://production-should-not-be-used.invalid/
+        run: npm run build:test
+
+      - name: Verify test build isolation
+        run: npm run test:environment-build
+
+      - name: Verify mobile viewport behavior
+        run: npm run test:mobile-viewport

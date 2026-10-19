@@ -8,8 +8,9 @@ import { Icon } from "@/components/ui/icon";
 import { RecordActions } from "@/components/ui/record-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExercisePicker } from "@/components/workouts/exercise-picker";
+import { WorkoutPlanSetup } from "@/components/workouts/workout-plan-setup";
 import { bodyMakeClient } from "@/lib/api/client";
-import { formatDate, toDateInputValue } from "@/lib/utils/date";
+import { formatDate, toDateInputValue, toTimeInputValue } from "@/lib/utils/date";
 import { createId } from "@/lib/utils/id";
 import type { WorkoutEntry, WorkoutExercise, WorkoutSet } from "@/types/workout";
 
@@ -37,12 +38,18 @@ function volumeFor(exercise: WorkoutExercise): number {
 
 export function WorkoutRecorder() {
   const [performedAt, setPerformedAt] = useState(toDateInputValue());
-  const [exercises, setExercises] = useState<WorkoutExercise[]>([newExercise()]);
+  const [performedTime, setPerformedTime] = useState("");
+  // Stable first-render IDs keep the server HTML and hydrated client inputs identical.
+  const [exercises, setExercises] = useState<WorkoutExercise[]>([{ id: "exercise-initial", name: "", setRecords: [{ id: "set-initial", weightKg: undefined, reps: undefined, completed: false }] }]);
   const [history, setHistory] = useState<WorkoutEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState("");
 
-  useEffect(() => { void loadHistory(); }, []);
+  useEffect(() => {
+    void loadHistory();
+    const frame = requestAnimationFrame(() => setPerformedTime(toTimeInputValue()));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   async function loadHistory() { setHistory(await bodyMakeClient.getWorkouts()); }
   function updateExercise(id: string, patch: Partial<WorkoutExercise>) { setExercises((current) => current.map((exercise) => exercise.id === id ? { ...exercise, ...patch } : exercise)); }
@@ -60,8 +67,9 @@ export function WorkoutRecorder() {
     setIsSaving(true);
     setNotice("");
     try {
-      await bodyMakeClient.saveWorkout({ id: createId("workout"), performedAt, exercises: validExercises, createdAt: new Date().toISOString() });
+      await bodyMakeClient.saveWorkout({ id: createId("workout"), performedAt, performedTime, exercises: validExercises, createdAt: new Date().toISOString() });
       setExercises([newExercise()]);
+      setPerformedTime(toTimeInputValue());
       await loadHistory();
       setNotice("筋トレを保存しました。");
     } catch {
@@ -73,9 +81,13 @@ export function WorkoutRecorder() {
 
   return <>
     <PageHeader title="筋トレ" description="種目を選んで、セットごとに記録。" />
+    <WorkoutPlanSetup date={performedAt} />
     <form onSubmit={handleSubmit}>
-      <div className="mb-6 flex items-end justify-between gap-4">
-        <div className="w-48 max-w-[65%]"><FieldLabel htmlFor="workout-date">記録日</FieldLabel><TextInput id="workout-date" type="date" value={performedAt} onChange={(event) => setPerformedAt(event.target.value)} required /></div>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div className="grid w-full min-w-0 grid-cols-2 gap-3 sm:max-w-sm">
+          <div className="min-w-0"><FieldLabel htmlFor="workout-date">記録日</FieldLabel><TextInput id="workout-date" type="date" value={performedAt} onChange={(event) => setPerformedAt(event.target.value)} required /></div>
+          <div className="min-w-0"><FieldLabel htmlFor="workout-time">時刻</FieldLabel><TextInput id="workout-time" type="time" step="60" value={performedTime} onChange={(event) => setPerformedTime(event.target.value)} required /></div>
+        </div>
         <p className="pb-3 text-xs text-[var(--muted)]">{exercises.length} 種目</p>
       </div>
       <div className="space-y-6">
@@ -90,7 +102,7 @@ export function WorkoutRecorder() {
             <div className="px-3 py-5 sm:px-5">
               <FieldLabel htmlFor={`exercise-${exercise.id}`}>種目名</FieldLabel>
               <TextInput id={`exercise-${exercise.id}`} value={exercise.name} onChange={(event) => updateExercise(exercise.id, { name: event.target.value })} placeholder="例：ベンチプレス" />
-              <ExercisePicker onSelect={(name) => updateExercise(exercise.id, { name })} />
+              <ExercisePicker date={performedAt} startWithEquipmentSetup={index === 0} onSelect={(name) => updateExercise(exercise.id, { name })} />
               <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span><span>完了 {completedCount} / {sets.length}</span></div>
               <div className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] gap-1.5 border-y border-[var(--line)] py-2 text-center text-xs font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>回数</span><span>完了</span><span className="sr-only">削除</span></div>
               <div className="mt-3 space-y-2">{sets.map((set, setIndex) => <div key={set.id} className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] items-center gap-1.5">
@@ -111,7 +123,7 @@ export function WorkoutRecorder() {
     <section className="mt-12">
       <div className="mb-4 flex items-center justify-between"><h2 className="section-title">これまでの記録</h2><span className="text-xs text-[var(--muted)]">{history.length}件</span></div>
       {history.length === 0 ? <EmptyState description="保存したトレーニングはここに表示されます。" /> : <div className="border-t border-[var(--line)]">{history.map((entry) => <article key={entry.id} className="border-b border-[var(--line)] py-5">
-        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">{formatDate(entry.performedAt)}</p><p className="mt-2 break-words text-sm font-semibold leading-6">{entry.exercises.map((exercise) => exercise.name).join("・")}</p></div><button type="button" aria-label="この筋トレ記録を削除" onClick={() => void deleteEntry(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button></div>
+        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">{formatDate(entry.performedAt)}{entry.performedTime && <> <span className="metric">{entry.performedTime}</span></>}</p><p className="mt-2 break-words text-sm font-semibold leading-6">{entry.exercises.map((exercise) => exercise.name).join("・")}</p></div><button type="button" aria-label="この筋トレ記録を削除" onClick={() => void deleteEntry(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button></div>
         <div className="mt-3 space-y-3">{entry.exercises.map((exercise) => <div key={exercise.id} className="text-xs leading-6 text-[var(--muted)]"><p className="break-words font-medium">{exercise.name}</p><div className="mt-1 flex flex-wrap gap-2">{setsFor(exercise).map((set, setIndex) => <span key={set.id} className="metric rounded bg-[var(--sand)] px-2 py-1"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{set.weightKg ?? "—"}kg × {set.reps ?? "—"}回</span>)}</div></div>)}</div>
       </article>)}</div>}
     </section>

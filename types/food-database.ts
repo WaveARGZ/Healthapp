@@ -7,6 +7,7 @@ export interface FoodLibraryItem {
   aliases: string;
   suggestedGrams: number;
   sourceDataset: string;
+  sourceUrl?: string;
   fdcId?: number;
   foodCode?: string;
   sourceDescription?: string;
@@ -27,11 +28,11 @@ export interface FoodLibraryDataset {
   foods: FoodLibraryItem[];
 }
 
-export function foodToMealItem(food: FoodLibraryItem, grams: number): Omit<MealFoodItem, "id"> {
+export function foodToMealItem(food: FoodLibraryItem, grams: number, portion?: { unit: "g" | "個" | "本"; quantity: number; gramsPerPiece?: number }): Omit<MealFoodItem, "id"> {
   const factor = grams / 100;
   const roundOne = (value: number) => Math.round(value * factor * 10) / 10;
   return {
-    name: `${food.name}（${grams}g）`,
+    name: `${food.name}（${portion?.unit && portion.unit !== "g" ? `${portion.quantity}${portion.unit}・約${grams}g` : `${grams}g`}）`,
     calories: Math.round(food.per100g.calories * factor),
     proteinG: roundOne(food.per100g.proteinG),
     fatG: roundOne(food.per100g.fatG),
@@ -39,5 +40,8 @@ export function foodToMealItem(food: FoodLibraryItem, grams: number): Omit<MealF
     ...(food.fdcId ? { sourceFdcId: food.fdcId } : {}),
     ...(food.foodCode ? { sourceFoodCode: food.foodCode } : {}),
     portionGrams: grams,
+    portionUnit: portion?.unit ?? "g",
+    portionQuantity: portion?.quantity ?? grams,
+    ...(portion?.unit && portion.unit !== "g" && portion.gramsPerPiece ? { gramsPerPiece: portion.gramsPerPiece } : {}),
   };
 }

@@ -27,5 +27,6 @@ assert.ok(searchFoodGroups(foods, "納豆", "すべて").groups.some((group) => 
 assert.ok(searchFoodGroups(foods, "チキンカレイ", "すべて").groups.some((group) => group.name === "チキンカレーライス"));
 assert.ok(searchFoodGroups(foods, "チャーハン", "調理済み料理").groups.some((group) => group.name.includes("チャーハン")));
 assert.ok(searchFoodGroups(foods, "バナナ", "果物").groups.every((group) => group.variants.every((food) => food.category === "果物")));
+assert.equal(searchFoodGroups(foods, "シャオエッセン", "すべて").groups[0]?.name, "シャウエッセン");
 
 console.log(`${foods.length} records grouped into ${all.groups.length} Japanese display names`);

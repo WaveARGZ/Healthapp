@@ -101,6 +101,9 @@ html { scroll-padding-bottom: 180px; }
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
+  .workout-guide-enter { animation: workout-guide-enter 240ms ease-out both; }
+  .workout-favorite-nudge { animation: workout-guide-pulse 900ms ease-in-out 2; background: var(--sage-soft); }
+  .workout-recommendation-nudge { animation: workout-guide-pulse 900ms ease-in-out 2; }
   @media (min-width: 640px) {
     .panel { padding: 20px; }
     .app-content { padding-top: 32px; }
@@ -120,6 +123,15 @@ html { scroll-padding-bottom: 180px; }
     .record-actions { position: static; margin-top: 24px; border: 0; padding: 0; }
     .exercise-dialog-panel { max-height: min(740px, 88dvh); }
   }
+}
+
+@keyframes workout-guide-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes workout-guide-pulse {
+  50% { box-shadow: inset 0 0 0 2px var(--sage-deep); }
 }
 
 /* Date fields have an intrinsic minimum width in iOS Safari. */

@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-09",
+  "purpose": "商用展開を予定するBodyMakeの公開学習データ候補。permittedも出典・ライセンス・加工履歴を保持すること。未知の権利を許諾済みと解釈しない。",
+  "sources": [
+    {
+      "id": "nutrition5k",
+      "name": "Nutrition5k",
+      "status": "permitted",
+      "imageLicense": "CC-BY-4.0",
+      "annotationLicense": "CC-BY-4.0",
+      "sourceUrl": "https://github.com/google-research-datasets/Nutrition5k",
+      "licenseEvidenceUrl": "https://github.com/google-research-datasets/Nutrition5k#license--contact",
+      "downloadBaseUrl": "https://storage.googleapis.com/nutrition5k_dataset/nutrition5k_dataset/",
+      "declaredScale": "5,006皿。全アーカイブ181.4GB（動画・深度を含む）。真上RGBは一部の皿のみ。",
+      "labels": "材料と重量、kcal、脂質・炭水化物・タンパク質。27料理分類の正解ラベルではない。",
+      "limitations": "カリフォルニアの社員食堂中心。日本料理を網羅しない。同じ皿の追加盛り付けや動画フレームを独立した正解事例と数えず、公式train/test分離を守る。"
+    },
+    {
+      "id": "myfoodrepo-2022-v2.1",
+      "name": "AIcrowd Food Recognition Benchmark 2022 / MyFoodRepo v2.1",
+      "status": "permitted",
+      "imageLicense": "CC-BY-4.0",
+      "annotationLicense": "CC-BY-4.0",
+      "sourceUrl": "https://www.aicrowd.com/challenges/food-recognition-benchmark-2022",
+      "licenseEvidenceUrl": "https://www.aicrowd.com/challenges/food-recognition-benchmark-2022/challenge_rules",
+      "downloadUrl": "https://www.aicrowd.com/challenges/food-recognition-benchmark-2022/dataset_files",
+      "declaredScale": "54,392訓練画像、100,256注釈、323クラス。検証946画像。容量は取得前に確認。",
+      "labels": "実際の食事写真の分類・領域。COCO形式。",
+      "limitations": "公式dataset_filesは2026-10-09確認時にログインへ転送された。ログインや規約確認を迂回しない。第三者ミラーのCC0表記を信用して公式CC BYを外さない。栄養や量の正解は別。"
+    },
+    {
+      "id": "wikimedia-commons",
+      "name": "Wikimedia Commons（個別ライセンス確認済み部分集合）",
+      "status": "permitted",
+      "imageLicense": "ファイルごと。既存収集器はCC0・CC BY・Public domainのみ許可。",
+      "annotationLicense": "独自目視確認。カテゴリ名は正解扱いしない。",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Category:Food",
+      "licenseEvidenceUrl": "https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia",
+      "declaredScale": "検索結果と個別権利に依存。全世界の食事画像総数ではない。",
+      "limitations": "画像とページ本文のライセンスを区別。作者・出典・ライセンスURLを保存し、肖像など非著作権上の制約にも注意。"
+    },
+    {
+      "id": "open-images-v7",
+      "name": "Open Images V7（食品部分集合候補）",
+      "status": "unclear",
+      "imageLicense": "CC-BY-2.0と表示されるが、提供元は各画像の権利再確認を要求。",
+      "annotationLicense": "CC-BY-4.0",
+      "sourceUrl": "https://storage.googleapis.com/openimages/web/factsfigures_v7.html",
+      "licenseEvidenceUrl": "https://storage.googleapis.com/openimages/web/factsfigures_v7.html#licenses",
+      "downloadUrl": "https://storage.googleapis.com/openimages/web/download_v7.html",
+      "declaredScale": "全体9,178,275画像。食品限定ではない。食品部分集合の容量は未確認。",
+      "limitations": "元画像・作者・ライセンスを個別確認したファイルだけ許可できる。人間確認ラベルと機械生成ラベルを区別し、食品全体が写っていても一料理の分類と混同しない。"
+    },
+    {
+      "id": "food-101",
+      "name": "Food-101",
+      "status": "research-only",
+      "imageLicense": "Foodspotting画像の権利は各写真所有者。scientific fair useを超える使用は所有者との交渉が必要。",
+      "annotationLicense": "画像の商用権利を与えるものではない。",
+      "sourceUrl": "https://data.vision.ee.ethz.ch/cvl/datasets_extra/food-101/",
+      "licenseEvidenceUrl": "https://huggingface.co/datasets/ethz/food101#licensing-information",
+      "declaredScale": "101,000画像、101分類、約5GB。",
+      "limitations": "商用向け自動収集・学習から除外。訓練ラベルは意図的に未清掃。個別許諾なしに第三者ミラーの寛容ライセンス表記で置き換えない。"
+    },
+    {
+      "id": "uecfood256",
+      "name": "UEC FOOD 256",
+      "status": "research-only",
+      "imageLicense": "非商用研究用途限定。その他の用途は提供者へ許諾確認。",
+      "annotationLicense": "非商用研究用途限定。",
+      "sourceUrl": "https://foodcam.mobi/dataset256.html",
+      "licenseEvidenceUrl": "https://foodcam.mobi/dataset256.html",
+      "declaredScale": "256食品分類。日本語カテゴリとバウンディングボックス付き。容量未確認。",
+      "limitations": "日本の料理に有用だが商用向け自動収集・学習から除外。"
+    },
+    {
+      "id": "food2k",
+      "name": "Food2K",
+      "status": "unclear",
+      "imageLicense": "商用画像利用許諾を一次情報から確認できず。",
+      "annotationLicense": "明確な商用許諾を未確認。コードのMITは画像に適用しない。",
+      "sourceUrl": "https://arxiv.org/abs/2103.16107",
+      "downloadUrl": "http://123.57.42.89/FoodProject.html",
+      "declaredScale": "1,036,564画像、2,000分類。容量未確認。",
+      "limitations": "Meituan等の画像。論文の公開宣言は商用許諾と同義ではない。権利を確認するまで自動取得・学習対象にしない。"
+    },
+    {
+      "id": "open-food-facts",
+      "name": "Open Food Facts（包装食品）",
+      "status": "unclear",
+      "imageLicense": "CC BY-SA。包装の第三者著作物・商標等には追加の留意が必要。",
+      "annotationLicense": "データベースODbL、個別内容DbCL。",
+      "sourceUrl": "https://openfoodfacts.github.io/openfoodfacts-server/api/tutorials/license-be-on-the-legal-side/",
+      "licenseEvidenceUrl": "https://openfoodfacts.github.io/openfoodfacts-server/api/tutorials/license-be-on-the-legal-side/",
+      "declaredScale": "更新される包装食品DB。食事皿写真の分類データとは別。",
+      "limitations": "NCではないが、ShareAlike・ODbLの運用方針を決めるまで自動混合しない。料理写真の重量や栄養の正解として使わない。"
+    }
+  ]
+}

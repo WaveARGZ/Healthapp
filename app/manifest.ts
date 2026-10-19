@@ -1,16 +1,18 @@
 import type { MetadataRoute } from "next";
+import { isFirebaseSelected } from "@/lib/firebase/config";
 
 export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "Healthapp";
   const basePath = process.env.GITHUB_ACTIONS === "true" ? `/${repositoryName}` : "";
+  const startPage = isFirebaseSelected ? "dashboard" : "bodymake";
 
   return {
     name: "BodyMake",
     short_name: "BodyMake",
     description: "理想の身体を、見える目標に。",
-    start_url: `${basePath}/`,
+    start_url: `${basePath}/${startPage}`,
     scope: `${basePath}/`,
     display: "standalone",
     background_color: "#ffffff",

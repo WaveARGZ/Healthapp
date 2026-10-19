@@ -4,12 +4,13 @@ import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { searchFoodGroups } from "@/lib/food-catalog-groups.mjs";
+import { portionGrams, suggestedGramsPerPiece, validPortion, type FoodPortionUnit } from "@/lib/food-portions";
 import libraryJson from "@/lib/data/food-library.json";
 import { foodToMealItem, type FoodLibraryDataset, type FoodLibraryItem } from "@/types/food-database";
 import type { MealFoodItem } from "@/types/meal";
 
 interface FoodLibrarySearchProps {
-  onAddFood: (food: Omit<MealFoodItem, "id">) => void;
+  onAddFood: (food: Omit<MealFoodItem, "id">) => Promise<void>;
 }
 
 type FoodGroup = ReturnType<typeof searchFoodGroups>["groups"][number];
@@ -19,11 +20,11 @@ const popularIds = ["rice", "natto", "miso-soup", "chicken-breast", "grilled-sal
 const popularFoods = popularIds.map((id) => library.foods.find((food) => food.id === id)).filter((food): food is FoodLibraryItem => Boolean(food));
 
 function sourceLink(food: FoodLibraryItem): string {
-  return food.foodCode ? "https://fooddb.mext.go.jp/" : `https://fdc.nal.usda.gov/food-search/?query=${food.fdcId}`;
+  return food.sourceUrl ?? (food.foodCode ? "https://fooddb.mext.go.jp/" : `https://fdc.nal.usda.gov/food-search/?query=${food.fdcId}`);
 }
 
 function sourceLabel(food: FoodLibraryItem): string {
-  return food.foodCode ? `文部科学省・食品番号 ${food.foodCode}` : "定番食品データ";
+  return food.foodCode ? `文部科学省・食品番号 ${food.foodCode}` : food.sourceUrl ? food.sourceDataset : "定番食品データ";
 }
 
 function detailLabel(food: FoodLibraryItem): string {
@@ -41,7 +42,11 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
   const [selectedFood, setSelectedFood] = useState<FoodLibraryItem | null>(null);
   const [variantQuery, setVariantQuery] = useState("");
   const [visibleVariants, setVisibleVariants] = useState(10);
-  const [grams, setGrams] = useState(100);
+  const [quantity, setQuantity] = useState(100);
+  const [unit, setUnit] = useState<FoodPortionUnit>("g");
+  const [gramsPerPiece, setGramsPerPiece] = useState(100);
+  const [isAdding, setIsAdding] = useState(false);
+  const addingFood = useRef(false);
   const loadingCatalog = useRef<Promise<void> | null>(null);
 
   const allFoods = useMemo(() => [...library.foods, ...extendedFoods], [extendedFoods]);
@@ -80,7 +85,16 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     if (!needle) return activeGroup.variants;
     return activeGroup.variants.filter((food) => `${food.name} ${food.foodCode ?? food.fdcId ?? ""} ${food.foodCode ? food.sourceDescription ?? "" : ""}`.toLocaleLowerCase().includes(needle));
   }, [activeGroup, variantQuery]);
-  const nutrition = selectedFood ? foodToMealItem(selectedFood, grams) : null;
+  const grams = portionGrams(quantity, unit, gramsPerPiece);
+  const valid = validPortion(quantity, unit, gramsPerPiece);
+  const nutrition = selectedFood && valid ? foodToMealItem(selectedFood, grams, { unit, quantity, gramsPerPiece }) : null;
+
+  function setFoodPortion(food: FoodLibraryItem) {
+    const pieceGrams = suggestedGramsPerPiece(food.id, food.name, food.suggestedGrams);
+    setUnit(pieceGrams ? (food.id === "schau-essen" ? "本" : "個") : "g");
+    setGramsPerPiece(pieceGrams ?? food.suggestedGrams);
+    setQuantity(pieceGrams ? 1 : food.suggestedGrams);
+  }
 
   function chooseGroup(group: FoodGroup) {
     setActiveGroup(group);
@@ -88,19 +102,24 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     setVisibleVariants(10);
     const onlyFood = group.variants.length === 1 ? group.variants[0] : null;
     setSelectedFood(onlyFood);
-    if (onlyFood) setGrams(onlyFood.suggestedGrams);
+    if (onlyFood) setFoodPortion(onlyFood);
   }
 
   function chooseVariant(food: FoodLibraryItem) {
     setSelectedFood(food);
-    setGrams(food.suggestedGrams);
+    setFoodPortion(food);
   }
 
-  function addSelectedFood() {
-    if (!selectedFood || !Number.isFinite(grams) || grams <= 0 || grams > 3000) return;
-    onAddFood(foodToMealItem(selectedFood, grams));
-    clearSelection();
-    setQuery("");
+  async function addSelectedFood() {
+    if (!selectedFood || !valid || addingFood.current) return;
+    addingFood.current = true;
+    setIsAdding(true);
+    try {
+      await onAddFood(foodToMealItem(selectedFood, grams, { unit, quantity, gramsPerPiece }));
+      clearSelection();
+      setQuery("");
+    } catch { /* Keep the selection so the user can retry; the parent shows the error. */ }
+    finally { addingFood.current = false; setIsAdding(false); }
   }
 
   return <section className="mt-5">
@@ -146,14 +165,18 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
         {variantResults.length === 0 && <p className="mt-2 text-xs text-[var(--muted)]">一致する候補がありません。</p>}
         {variantResults.length > visibleVariants && <button type="button" onClick={() => setVisibleVariants((count) => count + 10)} className="text-link mt-2 underline underline-offset-2">さらに候補を表示</button>}
       </div>}
-      {selectedFood && nutrition ? <div className="mt-3 border-t border-[var(--line)] pt-3">
+      {selectedFood ? <div className="mt-3 border-t border-[var(--line)] pt-3">
         <p className="text-xs font-bold text-[var(--ink)]">選択中：{selectedFood.name}</p>
         {selectedFood.foodCode && <p className="mt-2 text-xs text-[var(--muted)]">食品番号：{selectedFood.foodCode}</p>}
-        <label htmlFor="food-portion-grams" className="mt-4 block text-sm font-semibold text-[var(--ink)]">食べた量</label>
-        <div className="mt-2 flex items-center gap-2"><input id="food-portion-grams" type="number" min="1" max="3000" step="1" inputMode="numeric" value={grams || ""} onChange={(event) => setGrams(Number(event.target.value))} className="form-input max-w-40" /><span className="text-sm text-[var(--muted)]">g</span></div>
-        <p className="mt-2 text-xs text-[var(--muted)]">1食分の目安：{selectedFood.suggestedGrams}g</p>
-        <div className="mt-4 rounded bg-[var(--sand)] p-3"><p className="metric text-xl font-bold text-[var(--ink)]">{nutrition.calories}<span className="ml-1 text-xs font-normal text-[var(--muted)]">kcal</span></p><div className="metric mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]"><span>P {nutrition.proteinG}g</span><span>F {nutrition.fatG}g</span><span>C {nutrition.carbsG}g</span></div></div>
-        <Button type="button" className="mt-4 w-full" onClick={addSelectedFood} disabled={!Number.isFinite(grams) || grams <= 0 || grams > 3000}>この食品を追加</Button>
+        <p className="mt-4 text-sm font-semibold text-[var(--ink)]">食べた量</p>
+        <div className="mt-2 flex gap-2" role="group" aria-label="量の単位">{(["g", selectedFood.id === "schau-essen" ? "本" : "個"] as const).map((value) => <button key={value} type="button" aria-pressed={unit === value} onClick={() => { if (value === unit) return; setUnit(value); setQuantity(value === "g" ? grams : 1); }} className={`min-h-11 min-w-16 rounded border px-3 text-sm font-bold ${unit === value ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] bg-white text-[var(--muted)]"}`}>{value}</button>)}</div>
+        <div className="mt-2 flex items-center gap-2"><input aria-label="食べた量" type="number" min="1" max={unit === "g" ? "3000" : "100"} step="1" inputMode="numeric" value={quantity || ""} onChange={(event) => setQuantity(event.target.value === "" ? 0 : Number(event.target.value))} className="form-input max-w-40" /><span className="text-sm text-[var(--muted)]">{unit}</span></div>
+        {unit !== "g" && <label className="mt-3 block text-xs font-medium text-[var(--ink)]">1{unit}あたりの重さ（目安・変更可）<span className="mt-2 flex items-center gap-2"><input aria-label={`1${unit}あたりの重さ`} type="number" min="1" max="3000" step="1" inputMode="numeric" value={gramsPerPiece || ""} onChange={(event) => setGramsPerPiece(event.target.value === "" ? 0 : Number(event.target.value))} className="form-input max-w-40" /><span>g</span></span></label>}
+        <p className="mt-2 text-xs text-[var(--muted)]">{unit !== "g" ? `${quantity}${unit} ≒ ${grams}g。大きさによって変わるため目安です。` : `1食分の目安：${selectedFood.suggestedGrams}g`}</p>
+        {selectedFood.sourceUrl && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{selectedFood.sourceDescription}</p>}
+        {nutrition && <div className="mt-4 rounded bg-[var(--sand)] p-3"><p className="metric text-xl font-bold text-[var(--ink)]">{nutrition.calories}<span className="ml-1 text-xs font-normal text-[var(--muted)]">kcal</span></p><div className="metric mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]"><span>P {nutrition.proteinG}g</span><span>F {nutrition.fatG}g</span><span>C {nutrition.carbsG}g</span></div></div>}
+        {!valid && <p className="mt-2 text-xs text-[var(--coral)]">量と1個あたりの重さを確認してください（合計3,000gまで）。</p>}
+        <Button type="button" className="mt-4 w-full" onClick={() => void addSelectedFood()} disabled={!valid || isAdding}>{isAdding ? "保存中…" : "この食品を追加して保存"}</Button>
         <a href={sourceLink(selectedFood)} target="_blank" rel="noreferrer" className="text-link mt-1 underline underline-offset-2">栄養値の出典を見る</a>
       </div> : null}
     </div>}

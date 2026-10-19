@@ -1,6 +1,8 @@
 import { exerciseCatalog } from "@/lib/data/exercise-catalog";
 import type { FitnessGoal } from "@/types/user";
 import type { WorkoutEntry } from "@/types/workout";
+import type { WorkoutSplitPlan } from "@/types/workout-preferences";
+import { getWorkoutDayPlan } from "@/lib/workouts/workout-split";
 
 export interface WorkoutSuggestion {
   name: string;
@@ -40,7 +42,7 @@ function requirementsFor(name: string): string[] {
   if (/ダンベル/.test(name)) requirements.add("ダンベル");
   if (/スミス/.test(name)) requirements.add("スミスマシン");
   if (/ケーブル/.test(name)) requirements.add("ケーブルマシン");
-  if (/マシン|ペックデック|チェストプレス|ラットプルダウン|レッグプレス|ハックスクワット|レッグカール|レッグエクステンション|アダクション|アブダクション|ステアクライマー/.test(name)) requirements.add("ウェイトマシン");
+  if (/マシン|ペックデック|チェストプレス|ラットプルダウン|レッグプレス|ハックスクワット|レッグカール|レッグエクステンション|アダクション|アブダクション|ステアクライマー/.test(name) && !/スミス|ケーブル|クロストレーナー|ローイングマシン/.test(name)) requirements.add("ウェイトマシン");
   if (/ベンチプレス|ダンベルプレス|ダンベルフライ|ベンチディップ/.test(name)) requirements.add("ベンチ");
   if (/アシストプルアップ|アシストディップス/.test(name)) requirements.add("ウェイトマシン");
   else if (/懸垂|プルアップ|チンアップ|ハンギング|デッドハング|ハング/.test(name)) requirements.add("懸垂バー");
@@ -81,6 +83,11 @@ function hasEquipment(available: string[], requirement: string): boolean {
   });
 }
 
+export function usesRegisteredEquipment(name: string, available: string[]): boolean {
+  const requirements = requirementsFor(name);
+  return requirements.length > 0 && requirements.every((item) => hasEquipment(available, item));
+}
+
 export function recommendExercises(input: {
   goal?: FitnessGoal;
   availableEquipment: string[];
@@ -89,12 +96,17 @@ export function recommendExercises(input: {
   selectedCategory: string;
   query: string;
   limit?: number;
+  splitPlan?: WorkoutSplitPlan;
+  date?: string;
 }): WorkoutSuggestion[] {
   const { goal = "maintain", availableEquipment, favorites, workouts, selectedCategory, query } = input;
   const search = query.trim().toLocaleLowerCase();
   const focus = selectedCategory !== "すべて" && selectedCategory !== "お気に入り"
     ? selectedCategory
     : detectMuscleFocus(search);
+  const scheduledDay = input.splitPlan && input.date ? getWorkoutDayPlan(input.splitPlan, input.date) : undefined;
+  if (scheduledDay?.isRest) return [];
+  const useSchedule = scheduledDay && !focus && !search;
   const recentlyUsed = new Map<string, number>();
   for (const workout of workouts) {
     const daysAgo = Math.max(0, (Date.now() - new Date(`${workout.performedAt}T12:00:00`).getTime()) / 86_400_000);
@@ -105,10 +117,11 @@ export function recommendExercises(input: {
     }
   }
 
-  return candidates
+  const ranked = candidates
     // Recommendations are deliberately restricted to the user's gym favorites.
     .filter((candidate) => favorites.includes(candidate.name))
     .filter((candidate) => selectedCategory === "すべて" || selectedCategory === "お気に入り" || candidate.category === selectedCategory)
+    .filter((candidate) => !useSchedule || scheduledDay.categories.includes(candidate.category))
     .filter((candidate) => search.length < 2 || `${candidate.name} ${candidate.category} ${candidate.group}`.toLocaleLowerCase().includes(search) || focus === candidate.category)
     .filter((candidate) => {
       const requirements = requirementsFor(candidate.name);
@@ -118,6 +131,7 @@ export function recommendExercises(input: {
       let score = 0;
       const reasons: string[] = [];
       if (focus === candidate.category) { score += 4; reasons.push(`${candidate.category}を重点的に`); }
+      if (useSchedule && scheduledDay.categories.includes(candidate.category)) { score += 4; reasons.push(`今日の${scheduledDay.label}の日に対応`); }
       if (search && `${candidate.name} ${candidate.category} ${candidate.group}`.toLocaleLowerCase().includes(search)) { score += 2; reasons.push("入力内容に一致"); }
       if (favorites.includes(candidate.name)) { score += 3; reasons.push("お気に入り"); }
 
@@ -133,7 +147,21 @@ export function recommendExercises(input: {
       if (availableEquipment.length > 0) { score += 1; if (reasons.length < 3) reasons.push("施設の器具で実施可能"); }
       return { ...candidate, score, reasons: reasons.slice(0, 2) };
     })
-    .sort((first, second) => second.score - first.score || first.name.localeCompare(second.name, "ja"))
-    .slice(0, input.limit ?? 5)
-    .map(({ name, category, group, reasons }) => ({ name, category, group, reasons }));
+    .sort((first, second) => second.score - first.score || first.name.localeCompare(second.name, "ja"));
+
+  const limit = input.limit ?? 5;
+  const selected: typeof ranked = [];
+  if (useSchedule && scheduledDay.categories.length > 1) {
+    // Combined/full-body days should not be filled by a single body part.
+    const priority = input.splitPlan?.kind === "full" ? ["胸", "背中", "脚", "肩", "腕", "腹筋・体幹"] : scheduledDay.categories;
+    for (const category of priority) {
+      const candidate = ranked.find((item) => item.category === category);
+      if (candidate && selected.length < limit) selected.push(candidate);
+    }
+  }
+  for (const candidate of ranked) {
+    if (selected.length >= limit) break;
+    if (!selected.some((item) => item.name === candidate.name)) selected.push(candidate);
+  }
+  return selected.map(({ name, category, group, reasons }) => ({ name, category, group, reasons }));
 }

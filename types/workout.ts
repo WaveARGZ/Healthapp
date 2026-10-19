@@ -17,7 +17,10 @@ export interface WorkoutExercise {
 
 export interface WorkoutEntry {
   id: string;
+  /** Local calendar date (YYYY-MM-DD). */
   performedAt: string;
+  /** Local clock time (HH:mm). Optional for records saved before time tracking. */
+  performedTime?: string;
   exercises: WorkoutExercise[];
   createdAt: string;
 }

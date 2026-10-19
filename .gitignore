@@ -16,7 +16,10 @@
 
 # next.js
 /.next/
+/.next-test/
 /out/
+/.firebase/
+/.private-backups/
 /.aws-sam/
 /backend/.aws-sam/
 /backend/samconfig.toml

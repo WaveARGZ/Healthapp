@@ -1,8 +1,8 @@
 {
   "version": "bodymake-jp-2023-v1",
-  "sourceName": "米国農務省・食品データベース",
+  "sourceName": "米国農務省・食品データベース／日本ハム公式商品情報",
   "sourceUrl": "https://fdc.nal.usda.gov/",
-  "license": "CC0 1.0 Universal",
+  "license": "米国農務省データはCC0。日本ハム商品の栄養表示は公式公表値を参照。商品画像は含まない。",
   "basis": "100g当たり。1食の初期目安量はBodyMake独自設定で変更できます。",
   "foods": [
     {
@@ -1203,6 +1203,22 @@
         "proteinG": 18.5,
         "fatG": 27.2,
         "carbsG": 1.42
+      }
+    },
+    {
+      "id": "schau-essen",
+      "name": "シャウエッセン",
+      "category": "肉料理",
+      "aliases": "シャオエッセン シャウエッセン ソーセージ ウインナー 日本ハム SCHAU ESSEN",
+      "suggestedGrams": 20,
+      "sourceDataset": "日本ハム公式商品情報",
+      "sourceUrl": "https://www.nipponham.co.jp/products/ham_sausages/sausages/win/2125/",
+      "sourceDescription": "100g当たりの公式栄養値。1本20gは目安で、商品・時期により異なります。",
+      "per100g": {
+        "calories": 325,
+        "proteinG": 12.4,
+        "fatG": 29.3,
+        "carbsG": 2.9
       }
     },
     {

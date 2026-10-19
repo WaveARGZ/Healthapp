@@ -10,7 +10,8 @@ const sourceIds = new Set();
 for (const food of [...curated.foods, ...extended.foods]) {
   if (ids.has(food.id)) throw new Error(`Duplicate food ID: ${food.id}`);
   ids.add(food.id);
-  const sourceId = food.foodCode ? `mext:${food.foodCode}` : `fdc:${food.fdcId}`;
+  const sourceId = food.foodCode ? `mext:${food.foodCode}` : food.fdcId ? `fdc:${food.fdcId}` : food.sourceUrl ? `source:${food.sourceUrl}` : null;
+  if (!sourceId) throw new Error(`Missing food source: ${food.id}`);
   if (sourceIds.has(sourceId)) throw new Error(`Duplicate source ID: ${sourceId}`);
   sourceIds.add(sourceId);
   if (!food.name || !food.category || !food.sourceDataset || food.suggestedGrams <= 0) {

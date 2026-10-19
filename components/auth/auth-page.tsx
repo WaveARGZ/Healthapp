@@ -10,6 +10,8 @@ import { Logo } from "@/components/ui/logo";
 import { hasDemoSession, setDemoSession } from "@/lib/auth/demo-session";
 import { beginCloudSignIn, hasCloudSession } from "@/lib/auth/cognito-session";
 import { cloudConfig, isCloudConfigured } from "@/lib/cloud/config";
+import { isFirebaseSelected } from "@/lib/firebase/config";
+import { FirebaseAuthPage } from "@/components/auth/firebase-auth-page";
 
 interface AuthPageProps {
   mode: "login" | "signup";
@@ -31,7 +33,7 @@ export function AuthPage({ mode }: AuthPageProps) {
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
-    if (isLogin && (isCloudConfigured ? hasCloudSession() : hasDemoSession())) router.replace("/dashboard");
+    if (!isFirebaseSelected && isLogin && (isCloudConfigured ? hasCloudSession() : hasDemoSession())) router.replace("/dashboard");
   }, [isLogin, router]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -39,6 +41,8 @@ export function AuthPage({ mode }: AuthPageProps) {
     setDemoSession(isLogin ? rememberLogin : true);
     router.push(isLogin ? "/dashboard" : "/onboarding?from=signup");
   }
+
+  if (isFirebaseSelected) return <FirebaseAuthPage />;
 
   if (isCloudConfigured) return <main className="setup-page"><div className="setup-content">
     <Logo />

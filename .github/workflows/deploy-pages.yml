@@ -35,6 +35,7 @@ jobs:
 
       - name: Build static site
         env:
+          NEXT_PUBLIC_BODYMAKE_ENV: production
           NEXT_PUBLIC_BODYMAKE_TRAINING_ENDPOINT: ${{ vars.BODYMAKE_TRAINING_ENDPOINT }}
           NEXT_PUBLIC_BODYMAKE_AUTH_DOMAIN: ${{ vars.BODYMAKE_AUTH_DOMAIN }}
           NEXT_PUBLIC_BODYMAKE_CLIENT_ID: ${{ vars.BODYMAKE_CLIENT_ID }}

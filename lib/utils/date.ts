@@ -3,6 +3,10 @@ export function toDateInputValue(date = new Date()): string {
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
 
+export function toTimeInputValue(date = new Date()): string {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
 export function formatDate(dateValue: string, options?: Intl.DateTimeFormatOptions): string {
   return new Intl.DateTimeFormat("ja-JP", {
     month: "long",

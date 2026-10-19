@@ -1,3 +1,5 @@
+import { validateTrainingReceipt } from "@/lib/drive/training-receipt.mjs";
+
 const identityScope = "openid email profile";
 const identityScriptUrl = "https://accounts.google.com/gsi/client";
 
@@ -108,7 +110,7 @@ export async function sanitizeTrainingPhoto(file: Blob): Promise<Blob> {
   }
 }
 
-/** Posts to the owner-operated Apps Script endpoint; the response is cross-origin and cannot be read. */
+/** Only a validated, readable receipt confirms storage. Tokens/photos remain in RAM. */
 export async function submitFoodCorrectionToSharedDrive(input: {
   endpoint: string;
   accessToken: string;
@@ -119,14 +121,17 @@ export async function submitFoodCorrectionToSharedDrive(input: {
   confirmedFoodName: string;
   nutrition: { calories: number; proteinG: number; fatG: number; carbsG: number };
   createdAt: string;
-}): Promise<void> {
+  consent: true;
+}): Promise<{ id: string; imageSha256: string; imageFileId: string; jsonFileId: string }> {
   const endpoint = new URL(input.endpoint);
-  if (endpoint.protocol !== "https:" || endpoint.hostname !== "script.google.com") {
+  if (endpoint.protocol !== "https:" || endpoint.hostname !== "script.google.com" || !/^\/macros\/s\/[\w-]+\/exec$/.test(endpoint.pathname) || endpoint.search || endpoint.hash) {
     throw new Error("共有Driveの保存先URLが正しくありません。");
   }
   const image = await sanitizeTrainingPhoto(input.image);
+  const digest = await crypto.subtle.digest("SHA-256", await image.arrayBuffer());
+  const imageSha256 = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
   const payload = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: input.id,
     imageBase64: await blobToBase64(image),
     imageMimeType: "image/jpeg",
@@ -135,38 +140,15 @@ export async function submitFoodCorrectionToSharedDrive(input: {
     confirmedFoodName: input.confirmedFoodName,
     nutrition: input.nutrition,
     createdAt: input.createdAt,
+    imageSha256,
+    consent: { granted: input.consent, version: "food-photo-training-v2", purpose: "food-recognition", at: input.createdAt },
   };
-
-  const frameName = `bodymake_${crypto.randomUUID().replaceAll("-", "")}`;
-  const frame = document.createElement("iframe");
-  frame.name = frameName;
-  frame.title = "共有学習データ送信先";
-  frame.hidden = true;
-  await new Promise<void>((resolve) => {
-    frame.addEventListener("load", () => resolve(), { once: true });
-    frame.src = "about:blank";
-    document.body.append(frame);
+  const response = await fetch(endpoint.href, {
+    method: "POST", mode: "cors", credentials: "omit", redirect: "follow", cache: "no-store",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ accessToken: input.accessToken, payload }),
+    signal: AbortSignal.timeout(60_000),
   });
-  const responseLoaded = new Promise<void>((resolve) => {
-    frame.addEventListener("load", () => resolve(), { once: true });
-  });
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = endpoint.href;
-  form.target = frameName;
-  form.hidden = true;
-  for (const [name, value] of Object.entries({ accessToken: input.accessToken, payload: JSON.stringify(payload) })) {
-    const field = document.createElement("input");
-    field.type = "hidden";
-    field.name = name;
-    field.value = value;
-    form.append(field);
-  }
-  document.body.append(form);
-  form.submit();
-  form.remove();
-  let timeoutId: number | undefined;
-  await Promise.race([responseLoaded, new Promise<void>((resolve) => { timeoutId = window.setTimeout(resolve, 20_000); })]);
-  if (timeoutId !== undefined) window.clearTimeout(timeoutId);
-  frame.remove();
+  if (!response.ok || response.type === "opaque") throw new Error("Driveの保存結果を受信できませんでした。再送して確認してください。");
+  return validateTrainingReceipt(await response.json(), input.id, imageSha256);
 }

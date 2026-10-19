@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "site": "healthapp-14a3f",
+    "public": "out",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "cleanUrls": true,
+    "trailingSlash": true,
+    "redirects": [
+      { "source": "/", "destination": "/bodymake/", "type": 302 }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

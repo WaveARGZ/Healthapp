@@ -20,6 +20,10 @@ export interface MealFoodItem {
   sourceFoodCode?: string;
   /** Weight used for the initial nutrient calculation; the user can edit it before adding. */
   portionGrams?: number;
+  /** Entered serving, kept separate from the estimated edible weight. */
+  portionUnit?: "g" | "個" | "本";
+  portionQuantity?: number;
+  gramsPerPiece?: number;
 }
 
 export interface FoodPhotoPrediction {
@@ -47,6 +51,9 @@ export interface MealEntry {
   carbsG?: number;
   /** Foods that make up this meal. The scalar fields are the meal total. */
   items?: MealFoodItem[];
+  /** Local calendar date (YYYY-MM-DD). */
   recordedAt: string;
+  /** Local clock time (HH:mm). Optional for records saved before time tracking. */
+  recordedTime?: string;
   createdAt: string;
 }

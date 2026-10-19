@@ -1,4 +1,5 @@
 import { Logo } from "@/components/ui/logo";
+import { isTestEnvironment } from "@/lib/cloud/config";
 
 interface PageHeaderProps {
   title: string;
@@ -16,5 +17,5 @@ export function PageHeader({ title, description, compact = false }: PageHeaderPr
 }
 
 export function AppTopBar() {
-  return <header className="safe-top border-b border-[var(--line)] bg-white"><div className="safe-gutters mx-auto flex min-h-[68px] max-w-6xl items-center justify-between gap-3 sm:min-h-[76px]"><Logo href="/dashboard" /><span className="shrink-0 text-xs text-[var(--muted)]">身体の記録帳</span></div></header>;
+  return <header className="safe-top border-b border-[var(--line)] bg-white"><div className="safe-gutters mx-auto flex min-h-[68px] max-w-6xl items-center justify-between gap-3 sm:min-h-[76px]"><Logo href="/dashboard" /><span className={`shrink-0 text-xs ${isTestEnvironment ? "rounded border border-[var(--coral)] px-2 py-1 font-bold text-[var(--coral)]" : "text-[var(--muted)]"}`}>{isTestEnvironment ? "テスト環境" : "身体の記録帳"}</span></div></header>;
 }

@@ -8,6 +8,8 @@ import { Logo } from "@/components/ui/logo";
 import { hasDemoSession } from "@/lib/auth/demo-session";
 import { hasCloudSession } from "@/lib/auth/cognito-session";
 import { isCloudConfigured } from "@/lib/cloud/config";
+import { isFirebaseConfigured, isFirebaseSelected } from "@/lib/firebase/config";
+import { watchFirebaseUser } from "@/lib/auth/firebase-session";
 
 const features: Array<{ number: string; icon: IconName; title: string; text: string }> = [
   { number: "01", icon: "dumbbell", title: "トレーニングを残す", text: "種目を選んで、重さと回数をセットごとに。前回の記録も振り返れます。" },
@@ -17,7 +19,13 @@ const features: Array<{ number: string; icon: IconName; title: string; text: str
 
 export function LandingPage() {
   const router = useRouter();
-  useEffect(() => { if (isCloudConfigured ? hasCloudSession() : hasDemoSession()) router.replace("/dashboard"); }, [router]);
+  useEffect(() => {
+    if (isFirebaseSelected) {
+      if (isFirebaseConfigured) return watchFirebaseUser((user) => { if (user) router.replace("/dashboard"); });
+      return;
+    }
+    if (isCloudConfigured ? hasCloudSession() : hasDemoSession()) router.replace("/dashboard");
+  }, [router]);
 
   return <main className="min-h-dvh bg-white">
     <header className="safe-top border-b border-[var(--line)]">
@@ -49,6 +57,6 @@ export function LandingPage() {
         <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">{features.map((item) => <div key={item.number} className="border-t border-[var(--line)] pt-5 text-center"><div className="flex items-center justify-center gap-3"><span className="metric text-xs text-[var(--muted)]">{item.number}</span><Icon name={item.icon} className="size-5 text-[var(--sage-deep)]" /></div><h3 className="mt-4 text-base font-bold">{item.title}</h3><p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.text}</p></div>)}</div>
       </div>
     </section>
-    <footer className="border-t border-[var(--line)]"><div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 safe-gutters safe-bottom pt-6 text-center text-xs leading-6 text-[var(--muted)] sm:flex-row sm:gap-4 sm:text-left"><span>BodyMake</span><span>{isCloudConfigured ? "記録はアカウントごとに保管されます。" : "現在はこのブラウザ内に記録を保存します。"}</span></div></footer>
+    <footer className="border-t border-[var(--line)]"><div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 safe-gutters safe-bottom pt-6 text-center text-xs leading-6 text-[var(--muted)] sm:flex-row sm:gap-4 sm:text-left"><span>BodyMake</span><span>{isFirebaseSelected ? "記録はアカウントごと、身体写真はこの端末に保存します。" : isCloudConfigured ? "記録はアカウントごとに保管されます。" : "現在はこのブラウザ内に記録を保存します。"}</span></div></footer>
   </main>;
 }

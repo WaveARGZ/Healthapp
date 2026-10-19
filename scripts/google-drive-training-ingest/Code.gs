@@ -1,40 +1,104 @@
-const TRAINING_FOLDER_NAME = 'BodyMake 共通食事学習データ';
+const FOOD_DB_FOLDER_ID = '1qumdyNBQbUoQWgQHcI_6BpYnzYlNB9iW';
+// The previous folder is preserved. New records go ONLY to 01_app_feedback/inbox.
 const GOOGLE_OAUTH_CLIENT_ID = '660995834538-7bg97is2n8emvfnc365i12c3earac8pq.apps.googleusercontent.com';
-const MAX_IMAGE_BASE64_LENGTH = 2_100_000;
+const MAX_IMAGE_BASE64_LENGTH = 2100000;
 const MAX_UPLOADS_PER_SIX_HOURS = 10;
 
 function doPost(event) {
+  var lock;
   try {
-    const accessToken = String(event.parameter.accessToken || '');
-    const payloadText = String(event.parameter.payload || '');
-    if (!accessToken || payloadText.length > 2_200_000) throw new Error('invalid_request');
-
-    // Validate the Google-issued token by resolving it against Google's OpenID userinfo endpoint.
-    // The account identifier is used only for a short-lived quota key and is never saved to Drive.
-    const payload = validatePayload_(JSON.parse(payloadText));
+    if (!event || !event.postData || event.postData.contents.length > 2200000) throw new Error('invalid_request');
+    const request = JSON.parse(event.postData.contents);
+    const accessToken = String(request.accessToken || '');
+    if (!accessToken || accessToken.length > 8192) throw new Error('invalid_request');
+    const payload = validatePayload_(request.payload);
     const account = verifyGoogleAccount_(accessToken);
-    enforceUploadLimit_(account.sub);
-
     const imageBytes = Utilities.base64Decode(payload.imageBase64);
-    const imageBlob = Utilities.newBlob(imageBytes, 'image/jpeg', payload.id + '.jpg');
+    assertCleanJpeg_(imageBytes);
+    const imageSha256 = sha256_(imageBytes);
+    if (imageSha256 !== payload.imageSha256) throw new Error('image_hash_mismatch');
     const folder = getTrainingFolder_();
-    const imageFile = folder.createFile(imageBlob);
+    // A keyed opaque name prevents cross-account replay/collision without storing an account ID.
+    const secret = PropertiesService.getScriptProperties().getProperty('INGEST_HMAC_SECRET');
+    if (!secret) throw new Error('setup_required');
+    const key = Utilities.computeHmacSha256Signature(account.sub + ':' + payload.id, secret)
+      .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
+    lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    const fingerprint = sha256_(Utilities.newBlob(JSON.stringify(payload)).getBytes());
+    var jsonFile = uniqueFile_(folder, key + '.json');
+    if (jsonFile) {
+      const existing = JSON.parse(jsonFile.getBlob().getDataAsString());
+      if (existing.requestFingerprint !== fingerprint) throw new Error('idempotency_conflict');
+      const image = DriveApp.getFileById(existing.imageFileId);
+      assertPrivate_(image.getId(), folder.getId());
+      if (sha256_(image.getBlob().getBytes()) !== imageSha256) throw new Error('saved_image_mismatch');
+      return jsonResponse_({ ok: true, id: payload.id, imageFileId: image.getId(), jsonFileId: jsonFile.getId(), imageSha256: imageSha256 });
+    }
+    enforceUploadLimit_(account.sub);
+    var imageFile = uniqueFile_(folder, key + '.jpg');
+    if (!imageFile) imageFile = folder.createFile(Utilities.newBlob(imageBytes, 'image/jpeg', key + '.jpg'));
+    assertPrivate_(imageFile.getId(), folder.getId());
+    if (sha256_(imageFile.getBlob().getBytes()) !== imageSha256) throw new Error('saved_image_mismatch');
     const record = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: payload.id,
       imageFileId: imageFile.getId(),
+      imageSha256: imageSha256,
+      requestFingerprint: fingerprint,
+      source: payload.predictedFoodIds[0] === payload.confirmedFoodId ? 'app_user_confirmed' : 'app_user_corrected',
+      consent: { granted: true, version: 'food-photo-training-v2', purpose: 'food-recognition', at: payload.createdAt },
+      review: { status: 'pending' },
+      // User-provided nutrition values are not ground truth for weight/PFC training.
+      nutritionProvenance: 'user_estimate',
       predictedFoodIds: payload.predictedFoodIds,
       confirmedFoodId: payload.confirmedFoodId,
       confirmedFoodName: payload.confirmedFoodName,
       nutrition: payload.nutrition,
       createdAt: payload.createdAt,
     };
-    folder.createFile(Utilities.newBlob(JSON.stringify(record, null, 2), 'application/json', payload.id + '.json'));
-    return jsonResponse_({ ok: true });
+    const text = JSON.stringify(record, null, 2);
+    jsonFile = folder.createFile(Utilities.newBlob(text, 'application/json', key + '.json'));
+    assertPrivate_(jsonFile.getId(), folder.getId());
+    if (jsonFile.getBlob().getDataAsString() !== text) throw new Error('saved_json_mismatch');
+    return jsonResponse_({ ok: true, id: payload.id, imageFileId: imageFile.getId(), jsonFileId: jsonFile.getId(), imageSha256: imageSha256 });
   } catch (error) {
-    console.error('Training upload rejected: ' + String(error && error.message || error));
+    // Do not log tokens, photo data, names, emails or free-form labels.
     return jsonResponse_({ ok: false });
+  } finally {
+    if (lock && lock.hasLock()) lock.releaseLock();
   }
+}
+
+function sha256_(bytes) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes)
+    .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
+}
+
+function uniqueFile_(folder, name) {
+  const files = folder.getFilesByName(name);
+  if (!files.hasNext()) return null;
+  const file = files.next();
+  if (files.hasNext()) throw new Error('duplicate_filename');
+  assertPrivate_(file.getId(), folder.getId());
+  return file;
+}
+
+function assertCleanJpeg_(signedBytes) {
+  const bytes = signedBytes.map(function (b) { return b & 255; });
+  if (bytes.length < 4 || bytes.length > 1500000 || bytes[0] !== 255 || bytes[1] !== 216) throw new Error('invalid_jpeg');
+  var offset = 2;
+  while (offset < bytes.length - 3) {
+    if (bytes[offset++] !== 255) throw new Error('invalid_jpeg');
+    while (bytes[offset] === 255) offset++;
+    const marker = bytes[offset++];
+    if (marker === 218) return; // start of scan; metadata must have appeared before this.
+    if (marker === 225 || marker === 237 || marker === 254) throw new Error('image_metadata_not_removed');
+    const length = bytes[offset] * 256 + bytes[offset + 1];
+    if (length < 2 || offset + length > bytes.length) throw new Error('invalid_jpeg');
+    offset += length;
+  }
+  throw new Error('invalid_jpeg');
 }
 
 function verifyGoogleAccount_(accessToken) {
@@ -67,19 +131,15 @@ function enforceUploadLimit_(subject) {
     return ('0' + (byte & 255).toString(16)).slice(-2);
   }).join('');
   const cache = CacheService.getScriptCache();
-  const lock = LockService.getScriptLock();
-  lock.waitLock(5000);
-  try {
-    const count = Number(cache.get(key) || '0');
-    if (count >= MAX_UPLOADS_PER_SIX_HOURS) throw new Error('upload_limit');
-    cache.put(key, String(count + 1), 21600);
-  } finally {
-    lock.releaseLock();
-  }
+  const count = Number(cache.get(key) || '0');
+  if (count >= MAX_UPLOADS_PER_SIX_HOURS) throw new Error('upload_limit');
+  cache.put(key, String(count + 1), 21600);
 }
 
 function validatePayload_(payload) {
-  if (!payload || payload.schemaVersion !== 1) throw new Error('invalid_schema');
+  if (!payload || payload.schemaVersion !== 2) throw new Error('invalid_schema');
+  if (!payload.consent || payload.consent.granted !== true || payload.consent.version !== 'food-photo-training-v2' || payload.consent.purpose !== 'food-recognition' || payload.consent.at !== payload.createdAt) throw new Error('consent_required');
+  if (!/^[a-f0-9]{64}$/.test(payload.imageSha256 || '')) throw new Error('invalid_hash');
   if (typeof payload.id !== 'string' || !/^[a-zA-Z0-9_-]{8,100}$/.test(payload.id)) throw new Error('invalid_id');
   if (typeof payload.imageBase64 !== 'string' || payload.imageBase64.length > MAX_IMAGE_BASE64_LENGTH) throw new Error('invalid_image');
   if (payload.imageMimeType !== 'image/jpeg') throw new Error('invalid_image_type');
@@ -95,18 +155,38 @@ function validatePayload_(payload) {
 }
 
 function getTrainingFolder_() {
-  const properties = PropertiesService.getScriptProperties();
-  const folderId = properties.getProperty('TRAINING_FOLDER_ID');
-  if (folderId) {
-    try {
-      return DriveApp.getFolderById(folderId);
-    } catch (error) {
-      properties.deleteProperty('TRAINING_FOLDER_ID');
-    }
-  }
-  const folder = DriveApp.createFolder(TRAINING_FOLDER_NAME);
-  properties.setProperty('TRAINING_FOLDER_ID', folder.getId());
+  assertPrivate_(FOOD_DB_FOLDER_ID);
+  const parent = uniqueFolder_(DriveApp.getFolderById(FOOD_DB_FOLDER_ID), '01_app_feedback', false);
+  const folder = uniqueFolder_(parent, 'inbox', false);
   return folder;
+}
+
+function assertPrivate_(id, parentId) {
+  const response = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) + '?fields=id,parents,trashed,permissions(type,role)', {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true,
+  });
+  if (response.getResponseCode() !== 200) throw new Error('folder_permission_check_failed');
+  const meta = JSON.parse(response.getContentText());
+  if (meta.trashed !== false || !meta.permissions || !meta.permissions.length || meta.permissions.some(function (p) { return p.type !== 'user' || p.role !== 'owner'; })) throw new Error('not_owner_only');
+  if (parentId && (meta.parents.length !== 1 || meta.parents[0] !== parentId)) throw new Error('outside_food_db');
+}
+
+function uniqueFolder_(parent, name, create) {
+  const folders = parent.getFoldersByName(name);
+  const folder = folders.hasNext() ? folders.next() : create ? parent.createFolder(name) : null;
+  if (!folder || folders.hasNext()) throw new Error('missing_or_duplicate_folder');
+  assertPrivate_(folder.getId(), parent.getId());
+  return folder;
+}
+
+/** Run once in the Apps Script editor as owner; never exposed via doPost. */
+function setupTrainingInbox() {
+  assertPrivate_(FOOD_DB_FOLDER_ID);
+  const parent = uniqueFolder_(DriveApp.getFolderById(FOOD_DB_FOLDER_ID), '01_app_feedback', true);
+  const inbox = uniqueFolder_(parent, 'inbox', true);
+  const properties = PropertiesService.getScriptProperties();
+  if (!properties.getProperty('INGEST_HMAC_SECRET')) properties.setProperty('INGEST_HMAC_SECRET', Utilities.getUuid() + Utilities.getUuid());
+  return { folderId: inbox.getId() };
 }
 
 function jsonResponse_(body) {

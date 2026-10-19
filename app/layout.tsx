@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
-  themeColor: "#ffffff",
+  themeColor: "#fafaf7",
   colorScheme: "light",
 };
 

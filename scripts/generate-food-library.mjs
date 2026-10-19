@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { foodSelections } from "../lib/data/food-selections.mjs";
@@ -49,15 +50,19 @@ const foods = foodSelections.filter(([id]) => !excludedFromJapanQuickPicks.has(i
   };
 });
 
+const outputPath = resolve("lib/data/food-library.json");
+// Product-specific official values are maintained in the existing catalog, not the USDA ZIP.
+const productFoods = existsSync(outputPath)
+  ? JSON.parse(readFileSync(outputPath, "utf8")).foods.filter((food) => food.sourceUrl && !food.fdcId && !food.foodCode)
+  : [];
 const output = {
   version: "bodymake-jp-2023-v1",
-  sourceName: "米国農務省・食品データベース",
+  sourceName: "米国農務省・食品データベース／日本ハム公式商品情報",
   sourceUrl: "https://fdc.nal.usda.gov/",
-  license: "CC0 1.0 Universal",
+  license: "米国農務省データはCC0。日本ハム商品の栄養表示は公式公表値を参照。商品画像は含まない。",
   basis: "100g当たり。1食の初期目安量はBodyMake独自設定で変更できます。",
-  foods,
+  foods: [...foods, ...productFoods],
 };
-const outputPath = resolve("lib/data/food-library.json");
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(output, null, 2)}\n`);
 console.log(`${foods.length} Japanese quick picks written. Detailed food data is generated separately from MEXT.`);
