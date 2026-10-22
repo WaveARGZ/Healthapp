@@ -3,6 +3,8 @@ import hashlib
 import io
 import json
 import os
+import re
+import time
 import uuid
 
 import requests
@@ -26,6 +28,7 @@ LAYOUT = {
     "logs": "05_models_and_reports/training_logs",
 }
 MAX_BLOB = 384 * 1024 * 1024
+UPLOAD_CHUNK = 4 * 1024 * 1024  # Google requires a 256 KiB multiple except the last chunk.
 
 
 class MissingDriveFolder(RuntimeError):
@@ -138,6 +141,18 @@ class DriveStore:
         return result
 
     def read(self, file_id, limit=MAX_BLOB):
+        for attempt in range(3):
+            try:
+                return self._read_once(file_id, limit)
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout,
+                    requests.exceptions.ChunkedEncodingError):
+                if attempt == 2:
+                    raise
+                # Only retry a complete read, never a create/write. Each attempt rechecks
+                # private ancestry and size; a partial RAM buffer is discarded.
+                time.sleep(attempt + 1)
+
+    def _read_once(self, file_id, limit):
         meta = self.guard(file_id)
         if int(meta.get("size", limit + 1)) > limit:
             raise ValueError("RAM byte limit exceeded")
@@ -189,14 +204,73 @@ class DriveStore:
         location = response.headers["Location"]
         if not location.startswith("https://www.googleapis.com/"):
             raise RuntimeError("Unexpected upload host")
-        response = self.session.put(location, data=data, headers={"Content-Type": mime}, timeout=(15, 180))
-        if not response.ok:
-            raise RuntimeError(f"Drive upload HTTP {response.status_code}")
-        saved = private(response.json(), parent)
+        saved = private(self._upload_content(location, data, mime), parent)
         # Full fresh download, never a local-copy checksum masquerading as verification.
         if sha(self.read(saved["id"])) != sha(data):
             raise RuntimeError("Drive readback SHA-256 mismatch")
         return saved["id"]
+
+    def _upload_content(self, location, data, mime):
+        """Resume one upload session in RAM; never retry file creation blindly."""
+        total, offset, failures = len(data), 0, 0
+        network_errors = (requests.exceptions.ConnectionError, requests.exceptions.Timeout,
+            requests.exceptions.ChunkedEncodingError)
+
+        def status():
+            for attempt in range(3):
+                try:
+                    response = self.session.put(location, data=b"", headers={
+                        "Content-Length": "0", "Content-Range": f"bytes */{total}"},
+                        timeout=(60, 180), allow_redirects=False)
+                    if response.status_code < 500 or attempt == 2:
+                        return response
+                    response.close()
+                except network_errors:
+                    if attempt == 2:
+                        raise
+                time.sleep(attempt + 1)
+
+        while offset < total or total == 0:
+            end = min(total, offset + UPLOAD_CHUNK)
+            try:
+                response = self.session.put(location, data=data[offset:end], headers={
+                    "Content-Type": mime, "Content-Length": str(end - offset),
+                    "Content-Range": f"bytes {offset}-{end - 1}/{total}" if total else "bytes */0",
+                }, timeout=(60, 180), allow_redirects=False)
+            except network_errors:
+                failures += 1
+                if failures > 3:
+                    raise
+                response = status()
+            if response.status_code >= 500:
+                response.close()
+                failures += 1
+                if failures > 3:
+                    raise RuntimeError("Drive upload retry limit exceeded")
+                time.sleep(failures)
+                response = status()
+            try:
+                if response.status_code in (200, 201):
+                    return response.json()
+                if response.status_code != 308:
+                    raise RuntimeError(f"Drive upload HTTP {response.status_code}")
+                value = response.headers.get("Range")
+                match = re.fullmatch(r"bytes=0-(\d+)", value) if value else None
+                if value and not match:
+                    raise ValueError("Invalid Drive upload received range")
+                received = int(match[1]) + 1 if match else 0
+                if not offset <= received <= end or received >= total:
+                    raise ValueError("Invalid Drive upload received range")
+                if received == offset:
+                    failures += 1
+                    if failures > 3:
+                        raise RuntimeError("Drive upload retry limit exceeded")
+                else:
+                    failures = 0
+                offset = received
+            finally:
+                response.close()
+        raise RuntimeError("Drive upload completion not confirmed")
 
     def put_json(self, parent, name, value, replace=False):
         return self.put(parent, name, encoded(value), "application/json", replace)

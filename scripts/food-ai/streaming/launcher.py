@@ -58,6 +58,21 @@ def watch(process):
             MODEL = None
 
 
+def app_training_consent(record):
+    """Use the same explicit consent contract before displaying a private photo."""
+    consent = record.get("consent", {})
+    if not isinstance(consent, dict) or consent.get("granted") is not True or consent.get("version") != "food-photo-training-v2" or consent.get("purpose") != "food-recognition":
+        return False
+    at = consent.get("at")
+    if not isinstance(at, str) or not at:
+        return False
+    try:
+        datetime.fromisoformat(at.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return True
+
+
 def next_review():
     global REVIEW
     drive = DriveStore()
@@ -72,7 +87,7 @@ def next_review():
                 continue
             if record.get("id") in revocations.get("ids", []) or record.get("imageSha256") in revocations.get("imageSha256", []):
                 continue
-            if kind == "app_inbox" and record.get("consent", {}).get("granted") is not True:
+            if kind == "app_inbox" and (record.get("source") not in {"app_user_confirmed", "app_user_corrected"} or not app_training_consent(record)):
                 continue
             raw = drive.read(record["imageFileId"], 5_000_000)
             if sha(raw) != record["imageSha256"]:
@@ -96,13 +111,19 @@ def save_review(options):
     record = json.loads(drive.read(file["id"], 2_500_000))
     if record != original or sha(drive.read(record["imageFileId"], 5_000_000)) != record["imageSha256"]:
         raise ValueError("Image/record changed during review")
+    if record.get("source", "").startswith("app_") and not app_training_consent(record):
+        raise ValueError("Explicit photo training consent is missing")
     labels = dict(json.loads((HERE.parents[2] / "lib/food-ai/test-photo-labels.json").read_text()))
     label, decision = options.get("foodId"), options.get("decision")
     if decision not in {"accepted", "rejected"} or (decision == "accepted" and label not in labels):
         raise ValueError("Invalid review choice")
     if decision == "accepted":
         record.setdefault("submittedFoodId", record["confirmedFoodId"])
+        if "confirmedFoodName" in record:
+            record.setdefault("submittedFoodName", record["confirmedFoodName"])
+        names = {food["id"]: food["name"] for food in json.loads((HERE.parents[2] / "lib/data/food-library.json").read_text())["foods"]}
         record["confirmedFoodId"] = label
+        record["confirmedFoodName"] = names.get(label, label)
         if record["source"].startswith("app_"):
             record["source"] = "app_user_confirmed" if (record.get("predictedFoodIds") or [None])[0] == label else "app_user_corrected"
     record["review"] = {"decision": decision, "method": "human", "reviewer": "Local owner visual review",

@@ -2,11 +2,15 @@
   "name": "helthapp",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.13.0 <23",
+    "npm": ">=10 <11"
+  },
   "scripts": {
     "dev": "next dev",
-    "dev:test": "NEXT_PUBLIC_BODYMAKE_ENV=test next dev --port 3001",
+    "dev:test": "node scripts/run-test-environment.mjs dev",
     "build": "next build --webpack",
-    "build:test": "NEXT_PUBLIC_BODYMAKE_ENV=test next build --webpack",
+    "build:test": "node scripts/run-test-environment.mjs build",
     "start": "next start",
     "lint": "eslint",
     "generate:food-data": "python3 scripts/generate-mext-food-library.py",
@@ -17,6 +21,9 @@
     "test:mobile-viewport": "node scripts/test-mobile-viewport.mjs",
     "test:workout-split": "node --experimental-strip-types --test scripts/test-workout-split.mjs",
     "test:environment-build": "node scripts/test-environment-build.mjs",
+    "test:team-runtime": "node --test scripts/test-team-runtime.mjs",
+    "test:photo-submission": "node --test scripts/food-ai/submission-client.test.mjs scripts/food-ai/public-photo-flow.test.mjs scripts/food-ai/jpeg-metadata.test.mjs scripts/food-ai/streaming-upload.test.mjs",
+    "test:food-ai:model-cache": "node --test scripts/food-ai/streaming/model-cache.test.mjs",
     "food-ai:learn": "node scripts/food-ai/learn.mjs",
     "food-ai:launcher": "PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/food-ai/streaming/launcher.py",
     "food-ai:stream:check": "PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/food-ai/streaming/pipeline.py --preflight",

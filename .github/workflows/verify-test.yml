@@ -1,6 +1,8 @@
 name: Verify BodyMake test environment
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -8,9 +10,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -18,14 +28,37 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
+
+      - name: Set up Python for in-memory image fixtures and mocked learning tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test-only Python dependencies
+        run: python3 -m pip install --no-cache-dir -r scripts/food-ai/streaming/requirements.txt
 
       - name: Install dependencies
         run: npm ci
 
       - name: Lint
         run: npm run lint
+
+      - name: Verify shared test launcher
+        run: npm run test:team-runtime
+
+      - name: Verify consent, photo upload, metadata removal and receipts in memory
+        run: npm run test:photo-submission
+
+      - name: Verify model-cache logic with mocks
+        run: npm run test:food-ai:model-cache
+
+      - name: Verify learning safety using mocks only (no Drive or training run)
+        run: npm run test:food-ai:stream
+
+      - name: Verify workout plans
+        run: npm run test:workout-split
 
       - name: Build without production AWS settings
         env:

@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 // Run after a normal build or a GitHub Pages build. No browser data is modified.
 // Both the root route and /bodymake render the BodyMake landing page.
-const pages = ["", "bodymake", "dashboard", "workouts", "meals", "progress", "weight", "photos", "settings", "login", "signup", "onboarding", "onboarding/photos", "auth/callback"];
+const pages = ["", "bodymake", "food-photo", "dashboard", "workouts", "meals", "progress", "weight", "photos", "settings", "login", "signup", "onboarding", "onboarding/photos", "auth/callback"];
 const appPages = new Set(["dashboard", "workouts", "meals", "progress", "weight", "photos", "settings"]);
 const manifest = JSON.parse(await readFile("out/manifest.webmanifest", "utf8"));
 const basePath = manifest.scope.replace(/\/$/, "");
@@ -15,6 +15,16 @@ for (const page of pages) {
   if (page === "") {
     assert.match(html, /理想の身体を、/, "root: BodyMake landing page");
     assert.doesNotMatch(html, /PORTFOLIO|わべ/, "root: portfolio removed");
+    assert.match(html, /食事写真AIを無料で試す/, "root: public photo entry point");
+  }
+  if (page === "food-photo") {
+    assert.match(html, /食事写真AIを試す/, "food-photo: public analyzer title");
+    assert.match(html, /アカウント不要で解析/, "food-photo: anonymous local analysis");
+    assert.match(html, /学習用の共有は任意/, "food-photo: sharing is optional");
+    assert.match(html, /写真をアルバムから選ぶ/, "food-photo: mobile photo library picker");
+    assert.match(html, /カメラで撮影/, "food-photo: mobile camera picker");
+    assert.match(html, /<input[^>]*type="file"[^>]*accept="image\/\*"(?![^>]*capture=)[^>]*>/, "food-photo: library picker does not force camera capture");
+    assert.doesNotMatch(html, /ログイン状態を確認しています/, "food-photo: no app account gate");
   }
   const cloudGate = appPages.has(page) && html.includes("ログイン状態を確認しています");
   assert.match(html, /<html[^>]*lang="ja"/, `${page}: Japanese document`);
