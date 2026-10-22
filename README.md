@@ -4,9 +4,67 @@
 
 Firebase（Spark）版は `healthapp-14a3f` に接続し、Googleログイン・個人別Firestoreルール・静的サイトを公開しました。接続状態と残る検証は [FIREBASE-MIGRATION.md](./FIREBASE-MIGRATION.md) を参照してください。身体写真は端末内保存です。旧AWS環境は2026年10月11日に削除しました。旧記録のFirebaseへの自動移行は行っていません。
 
+## チーム共通の始め方（現行）
+
+共有する最新版は [WaveARGZ/Healthapp の `main`](https://github.com/WaveARGZ/Healthapp) です。GitHubの招待を受け取り、各自のアカウントで承諾してから作業します。Codexでは各自が取得したこのリポジトリのフォルダを開いてください。チャット履歴はGitでは共有されないため、最初にこのREADMEと `AGENTS.md` を読みます。
+
+初回はGit、Node.js **22.23.4**（`.nvmrc`）、npm **10系**を用意します。Node.jsの最低対応版は22.13.0です。通常の画面開発に `.env.local`、本番の認証情報、Driveへのアクセス権は不要です。
+
+```bash
+git clone https://github.com/WaveARGZ/Healthapp.git
+cd Healthapp
+npm ci
+npm run dev:test
+```
+
+[テスト画面](http://localhost:3001/bodymake/)／[食事写真画面](http://localhost:3001/food-photo/)を開きます。初期状態は各ブラウザ内のデモ保存で、学習写真の送信は無効です。`dev:test`・`build:test` はmacOS・Linux・Windowsで同じコマンドを使います。GitHubでコードを取得しても、他人の個人記録やDriveデータが端末に同期されることはありません。
+
+### 毎回、最新版から作業を始める
+
+未保存の変更があれば先に自分の作業ブランチへコミットしてください。変更を消す `reset --hard` や強制pushで揃えません。作業がない状態で次を実行します。
+
+```bash
+git switch main
+git pull --ff-only origin main
+npm ci
+git switch -c codex/自分の名前-今回の作業名
+npm run dev:test
+```
+
+ブランチ名は作業ごとに新しくします。変更はそのブランチへpushし、`main` 宛てのPull Requestを作成します。自動チェックと別のメンバーのレビューを確認してからマージします。全員が同じブランチを直接書き換えず、他の人のマージ後は次の作業前にもう一度最新版を取得してください。`pull --ff-only` が失敗したら強制上書きせず、分岐や作業中の変更を確認します。
+
+**コードの共有と本番公開は別です。** `main` へのpush・マージではサイトを公開しません。旧GitHub Pagesは手動実行のみ、Firebase Hosting・Apps Script・本番モデルの変更は所有者の明示承認後に別途実施します。GitHubの参加権限はGoogle/Drive/Firebaseの権限ではありません。
+
+### 共有前の安全なテスト
+
+写真送信のテストには `python3` コマンドで呼び出せるPython **3.12** と、画像生成用のPillow **12.0.0**などが必要です。macOS・Linuxでは次のように開発用の依存ライブラリを準備します。Windowsの画面開発は上記の起動方法を利用でき、Pythonを含む全テストは実機検証が済むまでWSLでの実行を推奨します。
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --no-cache-dir -r scripts/food-ai/streaming/requirements.txt
+npm run lint
+npm run test:team-runtime
+npm run test:photo-submission
+npm run test:food-ai:model-cache
+npm run test:food-ai:stream
+npm run test:workout-split
+npm run test:mobile-viewport
+npm run build:test
+npm run test:environment-build
+```
+
+テスト開発サーバーを停止してから `build:test` を実行してください。写真送信・ストリーミングの上記テストはRAM上の合成データとモックを使用し、実写真送信・Google認証・Drive書き込み・学習は行いません。依存ライブラリやアプリのビルド成果物には通常の開発用ディスク容量が必要です。旧 `npm run test:food-ai` は一時ファイルを作るテストを含むため、現在の学習データ保存方針では一括実行しません。
+
+### 学習処理は所有者の検証済みPCだけ
+
+チームメンバーはソースとモックテストを共有できますが、実データの学習環境まで複製する設定ではありません。現行のDrive専用処理は、所有者PCにあるGit対象外の過去の出典・受領台帳・確認済み分割・除外記録を読み取り専用で必要とします。新規cloneなどで必要な履歴がない場合は `owner_learning_state_missing` で停止します。空の台帳を作って回避したり、認証JSON・写真・非公開台帳をリポジトリへ追加したりしないでください。
+
+学習ランチャーや実行プログラムは所有者以外のPCでは起動しません。3003の同時実行防止は**同じPC内だけ**であり、複数PCのDrive書き込みを排他制御しません。所有者も同じDriveへの実行を1台に限定します。新しい画像・ラベル・レビュー・評価・モデル・台帳・アーカイブ・キャッシュはPCへ保存せず、既存のローカル学習データは削除・上書きしません。実行条件は [Drive専用方式の運用](scripts/food-ai/streaming/README.md) と最新のDrive上の記録を確認してください。以下に残るAWSと旧ローカル学習の手順は履歴であり、チーム参加時のセットアップではありません。
+
 ## 公開ビュー
 
-Firebase版は [BodyMakeを開く](https://healthapp-14a3f.web.app/) から利用できます。ルートURLは `/bodymake/` に転送されます。ポートフォリオ画面は削除しました。従来の [GitHub Pages版](https://waveargz.github.io/Healthapp/) も残っていますが、この変更はGitHubへpushするまで反映されません。`main` ブランチへのpushは引き続きGitHub Pagesへデプロイするため、Firebase Hostingへの反映にはローカルでビルドと明示的なデプロイが必要です。
+Firebase版は [BodyMakeを開く](https://healthapp-14a3f.web.app/) から利用できます。ルートURLは `/bodymake/` に転送されます。ポートフォリオ画面は削除しました。従来の [GitHub Pages版](https://waveargz.github.io/Healthapp/) も残っていますが、更新は `deploy-pages.yml` の手動実行だけです。`main` へのpushではどちらも自動公開しません。Firebase Hostingへの反映にはビルドと明示的なデプロイが必要です。
 
 ## テスト環境と本番環境
 
@@ -14,15 +72,15 @@ Firebase版は [BodyMakeを開く](https://healthapp-14a3f.web.app/) から利�
 | --- | --- | --- | --- |
 | ローカルテスト | `npm run dev:test` → `http://localhost:3001/bodymake` | 初期状態はこのブラウザ・ポート専用の端末内保存 | なし |
 | Firebase公開版 | `https://healthapp-14a3f.web.app/` → `/bodymake/` | Googleログイン・ユーザー別Firestore。身体写真は端末内 | ローカルでビルド後、Firebase CLIで明示デプロイ |
-| 旧GitHub Pages版 | `main` → GitHub Pagesの公開URL | 旧AWS接続先は削除済み（AWS未登録のビルドはデモ保存） | `main`へのpushでデプロイ |
+| 旧GitHub Pages版 | GitHub Pagesの公開URL | 旧AWS接続先は削除済み（AWS未登録のビルドはデモ保存） | 承認後にワークフローを手動実行 |
 
 `npm run dev:test` は画面に「テスト環境」と表示し、ビルド先も `.next-test` に分けるため、通常の開発サーバーと同時に起動できます。`localhost:3000` と `localhost:3001` はブラウザの保存領域が異なり、筋トレ・食事・写真・ログイン状態を共有しません。テスト環境は本番用の `NEXT_PUBLIC_BODYMAKE_*` 設定を読み取らず、AWSテスト用の設定がなければ端末内保存になります。学習データの送信先も初期状態では無効です。
 
-AWSを使った結合テストをする場合は、**本番と別のAWSスタック**を用意してから、`.env.local` に `NEXT_PUBLIC_BODYMAKE_TEST_AUTH_DOMAIN`、`NEXT_PUBLIC_BODYMAKE_TEST_CLIENT_ID`、`NEXT_PUBLIC_BODYMAKE_TEST_API_URL` を設定します。必要なら `NEXT_PUBLIC_BODYMAKE_TEST_CALLBACK_URL`（初期値は `http://localhost:3001/auth/callback/`）、`NEXT_PUBLIC_BODYMAKE_TEST_LOGOUT_URL`、`NEXT_PUBLIC_BODYMAKE_TEST_GOOGLE_SIGN_IN_ENABLED` も設定します。テストのAPI URLまたはCognitoドメインが同じファイルの本番値と一致する場合、誤接続を避けるためAWS接続を有効にしません。テスト用スタックをまだ作成していないので、これらの値は現時点では空欄のままにしてください。別スタックはAWSリソースと費用が増える可能性があり、作成前に予算・停止設定を確認します。
+旧AWS結合テスト用の設定項目はコードに残っていますが、現在のチーム開発では使いません。`NEXT_PUBLIC_BODYMAKE_TEST_AUTH_DOMAIN`、`NEXT_PUBLIC_BODYMAKE_TEST_CLIENT_ID`、`NEXT_PUBLIC_BODYMAKE_TEST_API_URL` などは空欄のままとし、この手順のためにAWSスタックを作成しないでください。
 
 `npm run build:test` はテスト設定の静的ビルドをローカルで検証します。テストの成果物は `.next-test/`、本番ビルドの静的書き出しは `out/` に分かれます。ただし、テスト開発サーバーとテストビルドは同じ `.next-test/` を使うため同時実行しないでください。現在、テスト環境の公開URLはありません。GitHub Pagesは1リポジトリにつき1つのサイトであり、公開テストサイトには別の公開先が必要です。本番URLと本番AWSにはこの設定だけで変更を加えません。
 
-コードの確認は作業ブランチから `main` へPull Requestを作ると `verify-test.yml` がテスト設定でlint・ビルド・本番認証を継承しないこと・画面幅ロジックを検証します。合格を確認してから `main` にマージすると、既存の `deploy-pages.yml` が本番設定で公開します。直接 `main` にpushするとPull Requestの検証を経由しないため、本番公開前はPull Requestを利用してください。
+コードの確認は `main` 宛てのPull Requestと `main` 更新時に `verify-test.yml` が行います。lint・写真送信と学習処理のモックテスト・テストビルド・本番認証の分離・画面幅と筋トレ分割を検証します。これは実スマホ撮影や本番Drive保存の実動作確認ではありません。合格後のマージはコードの共有だけで、公開ワークフローは実行されません。
 
 ## 実装済みの機能
 
@@ -42,8 +100,8 @@ AWSを使った結合テストをする場合は、**本番と別のAWSスタッ
   - 料理別のカロリー・PFCと食事合計を記録
   - 日本で一般的な定番料理187件と、文部科学省「日本食品標準成分表（八訂）増補2023年」の日本語食品2,537件を検索し、食べた重さからPFCを計算。ひらがな・カタカナ、料理の別名、軽微な誤字にも対応
   - 写真を端末内の無料AIで解析し、料理候補と同じ食品データに基づく栄養素を追加
-  - 認識後に正解料理名とカロリー・PFCを修正可能。写真・正解ラベルを端末内に最大150件保存
-  - 学習データ共有は任意で毎回の明示同意が必要。デモ版はGoogleログイン後に共通Driveへ写真と正解を送信。AWS版は写真を含まない修正シグナルのみ学習用DynamoDBへ送信
+  - 認識後に正解料理名とカロリー・PFCを修正可能。学習用写真・正解は画面のメモリ内で扱い、同意時だけ非公開Driveへ送信
+  - 学習データ共有は任意で毎回の明示同意が必要。Google認証後に共通Driveへ写真と正解を送信し、学習用写真・正解・認証情報は端末へ永続保存しない
   - 利用者の修正は付加データとして保存。登録回数だけで写真認識の順位は上げない
   - 公開画像の収集・目視確認キュー・学習・評価・実行履歴を持つ学習サイクル。合格時だけテスト環境の補正器を更新
   - 履歴表示・削除
@@ -116,34 +174,29 @@ scripts/                # 公開データから食品ライブラリを再生成
 
 ## 起動方法
 
-Node.js と npm を用意して、プロジェクト直下で実行します。
+チーム開発では冒頭の「チーム共通の始め方」を使用します。取得済みのプロジェクト直下で、Node.js 22.12.0・npm 10系を使います。
 
 ```bash
-npm install
-npm run dev
+npm ci
+npm run dev:test
 ```
 
-ブラウザで [http://localhost:3000](http://localhost:3000) を開いてください。
+ブラウザで [http://localhost:3001/bodymake/](http://localhost:3001/bodymake/) を開いてください。通常の `npm run dev` は本番用の接続設定を読み込む可能性があるため、チーム共通の確認には使いません。
 
-品質チェックは次で実行できます。
+品質チェックは冒頭の安全なテスト一覧を使用してください。食品辞書の読み取り検証は追加で次を実行できます。
 
 ```bash
-npm run lint
-npm run build
-npm run test:static-ui
-npm run test:mobile-viewport
 npm run validate:food-data
 npm run test:food-catalog
-npm run test:food-ai
-npm run test:aws
-cd backend && npm run test:guard
 ```
 
 この環境ではTurbopackがCSS処理の内部プロセス用ポートを開けないため、`npm run build` は Next.js 公式の `--webpack` オプションを使う設定にしています。アプリのルーティング・コンポーネント・型チェックを含めた本番ビルドは成功済みです。
 
 `test:static-ui` はビルド済みの12画面について、日本語設定、見出し、指定ロゴの実ファイル参照、下部／左ナビの5項目と選択状態を検証します。GitHub Pagesのパス確認は `GITHUB_ACTIONS=true GITHUB_REPOSITORY=WaveARGZ/Healthapp npm run build` の後に同じテストを実行します。ブラウザ上での操作・レイアウト検証の代替ではありません。
 
-## 保存方法とAWS構成
+## 保存方法と旧AWS構成（履歴・現行セットアップでは実行しない）
+
+この節のAWS導入・Googleログイン設定は削除済みの旧環境の資料です。現在の公開版はFirebaseです。チーム参加のためにAWSリソース、Google認証設定、公開先を作成・変更する必要はありません。再構築は別途の明示承認が必要です。
 
 通常記録は `lib/api/client.ts` の `bodyMakeClient` を経由します。AWS設定なしでは `lib/storage/local-bodymake-client.ts`、AWS設定ありでは `lib/api/aws-bodymake-client.ts` を利用します。ジム器具・お気に入りもAWS版では個人データベースに保存します。
 
@@ -196,25 +249,34 @@ GoogleのクライアントIDとクライアントシークレットは、Cognit
 
 ユーザープール・DynamoDBテーブル・写真バケットは誤削除防止のためスタック削除時も`Retain`します。2026年10月11日の削除では、バックアップ後にこれらも個別に削除しました。将来再デプロイして削除する場合は、同じ確認が必要です。旧記録のローカルバックアップと復旧上の制約は [Firebase移行記録](./FIREBASE-MIGRATION.md) を参照してください。
 
-食事写真のAI候補だけは、`@huggingface/transformers` の公開ONNXモデルをブラウザ内で実行します。初回は約200MBのモデルをダウンロードしてブラウザキャッシュに保存しますが、料理写真を推論APIへ送信しません。認識後に料理名とカロリー・PFCを手で修正できます。デモ版では正解データと写真をこの端末のIndexedDBへ最大150件保存します。AWS版では端末内の正解ラベルをログインアカウントごとに分離し、食事写真は保存しません。
+食事写真のAI候補だけは、`@huggingface/transformers` の公開ONNXモデルをブラウザ内で実行します。初回は約200MBのモデルをダウンロードしてブラウザキャッシュに保存しますが、料理写真を推論APIへ送信しません。認識後に料理名とカロリー・PFCを手で修正できます。解析できない場合も料理名を手入力して続けられます。写真と学習用の正解は画面のメモリ内で扱い、IndexedDBへ新規保存しません。
 
-### 共通Driveへの学習データ保存（Firebase版・デモ版）
+### 共通Driveへの学習データ保存
 
-AWS設定がないデモ版ではユーザーごとのDriveではなく、アプリ所有者のDriveに集約できます。GitHub Pagesだけでは所有者のGoogle Driveへ安全に書き込めないため、リポジトリ内の `scripts/google-drive-training-ingest/Code.gs` をApps Scriptの受け口として使います。AWS版ではこの経路は使わず、写真を含まない学習シグナルを別のDynamoDBテーブルに保存します。
+食事写真画面の学習共有は、アプリ所有者の非公開Driveへ集約します。リポジトリ内の `scripts/google-drive-training-ingest/Code.gs` をApps Scriptの受け口として使い、学習用写真・正解の送信先はこの経路に統一しています。
 
 Firebase Hostingの本番版には、2026年10月15日に承認・デプロイしたApps Scriptの公開URLを既定の送信先として組み込んでいます。テスト環境は分離し、`NEXT_PUBLIC_BODYMAKE_TEST_TRAINING_ENDPOINT` を設定しない限り共有Driveへ送りません。送信先URLを変更した場合は本番を再ビルド・再デプロイしてください。
 
 1. `script.google.com` で新しいApps Scriptプロジェクトを作り、`Code.gs` の内容を貼り付けます。
 2. Apps Scriptの「プロジェクトの設定」で「マニフェスト ファイル `appsscript.json` をエディタで表示する」を有効にし、同梱の `appsscript.json` の内容に置き換えます。
+   初回のみ所有者として `setupTrainingInbox` を実行し、非公開の受信フォルダと再送照合用の鍵を設定します。既存の受信設定・鍵は変更しません。
 3. 「デプロイ」→「新しいデプロイ」→「ウェブアプリ」を選び、「次のユーザーとして実行」は自分、「アクセスできるユーザー」は全員（匿名ユーザーを含む）にしてデプロイします。Driveへの保存は所有者権限で行い、リクエスト内のGoogleトークンをGoogleのToken InfoとUserInfoで検証します。未認証の送信は受け付けません。
-4. 表示された `/exec` URLをGitHubリポジトリの `Settings` → `Secrets and variables` → `Actions` → `Variables` に `BODYMAKE_TRAINING_ENDPOINT` という名前で登録し、Pagesワークフローを再実行します。URLは全利用者共通の公開設定としてビルドへ埋め込みます。OAuthクライアントIDは初期設定済みです。Google Cloudの承認済みJavaScript生成元に `https://waveargz.github.io` と `http://localhost:3000` を登録してください。
-5. 正解データを共有する時は、利用者が同意チェックを入れ、Googleログインを完了した場合だけ送信されます。写真はブラウザ上で最大1280pxのJPEGに再生成してEXIFを除去します。保存するのは写真、AI候補ID、正解料理名・ID、カロリー・PFC、記録日時です。氏名・メールアドレス・GoogleトークンはDriveに保存しません。
+4. 表示された `/exec` URLをGitHubリポジトリの `Settings` → `Secrets and variables` → `Actions` → `Variables` に `BODYMAKE_TRAINING_ENDPOINT` という名前で登録し、Pagesワークフローを再実行します。URLは全利用者共通の公開設定としてビルドへ埋め込みます。OAuthクライアントIDは初期設定済みです。Google Cloudの承認済みJavaScript生成元には公開先の `https://healthapp-14a3f.web.app`、GitHub Pagesも使う場合は `https://waveargz.github.io`、ローカル確認には `http://localhost:3000` を登録してください。
+5. 正解データを共有する時は、利用者が同意チェックを入れ、Googleログインを完了した場合だけ送信されます。写真はブラウザ上で最大1280pxのJPEGに再生成し、エンコーダが再付与するEXIFも除去します。古い画面からの送信にも対応するため、受信側でもメモリ上で付加情報を除去し、構造検証した写真だけを保存します。利用者による除去操作は不要です。保存するのは写真、AI候補ID、正解料理名・ID、カロリー・PFC、記録日時です。氏名・メールアドレス・GoogleトークンはDriveに保存しません。
 
-アプリから同意を得て送信された正解の保存先は、非公開の `foodDB` 内にある [BodyMake アプリ修正データ](https://drive.google.com/drive/folders/1Xwg_SFmpQAukpXMdBdZx8T5J9w66-vuG) です。`Code.gs` は親が `foodDB` であることと共有設定を検査し、条件が違えば保存せず失敗します。リポジトリ内のスクリプトを変更しても稼働中のApps Scriptは自動更新されません。既存のApps Scriptへ反映して新バージョンをデプロイし、実際のDrive保存を確認するまでは送信・学習が完了したとは扱わないでください。
+アプリから明示的な同意を得て送信する正解データの指定先は、非公開の `foodDB/01_app_feedback/` 内にある [inbox](https://drive.google.com/drive/folders/1EFN0vkkKJUbCDv9LwBj-ILatj3s-1Ezm) です。旧 [BodyMake アプリ修正データ](https://drive.google.com/drive/folders/1Xwg_SFmpQAukpXMdBdZx8T5J9w66-vuG) は保管用として残し、移動・削除・再アップロードしません。`Code.gs` は `foodDB → 01_app_feedback → inbox` の親子関係と非公開設定を検査し、条件が違えば保存せず失敗します。リポジトリ内のスクリプトを変更しても稼働中のApps Scriptは自動更新されません。実際の送信とDrive上の保存を検証するまでは、受領・学習済みとは扱わないでください。
 
-Apps Scriptのウェブアプリはブラウザから応答本文を読み取れないため、画面は送信操作の完了までを表示し、Driveへの保存成否を確約しません。GitHub Pages版でActionsの変数が未設定でも同じ既定URLを利用します。Apps Scriptの無料枠・容量・実行回数に依存し、1アカウントあたり6時間で10件に制限します。匿名HTTP入口自体は公開されますが、GoogleアカウントトークンをGoogle側で照合し、写真サイズ・入力値・件数を検証してから保存します。大規模公開や高い可用性が必要になった場合は、別の認証付き保存基盤を検討してください。
+Apps ScriptのContentService応答はGoogleの一時URLへリダイレクトされます。画面は共有前に受信サービスの種類・スキーマ・OAuthクライアント設定を照合し、Google認証を事前に読み込みます。認証画面を閉じた場合や開けない場合は待機を解除し、再試行できます。送信後は受付番号・写真SHA-256・写真とJSONの両ファイルIDが一致した場合だけ保存完了と表示します。通信や応答の読み取りに失敗した場合は同じ送信内容・受付番号で1回自動再送し、それでも確認できなければ画面内の写真と入力を保持します。ページを閉じるとメモリ内の内容は失われます。実利用者の同意済み写真を使った本番送信・Drive原本照合は別途確認が必要です。GitHub Pages版でActionsの変数が未設定でも同じ既定URLを利用します。Apps Scriptの無料枠・容量・実行回数に依存し、1アカウントあたり6時間で10件に制限します。匿名HTTP入口自体は公開されますが、GoogleアカウントトークンをGoogle側で照合し、写真サイズ・入力値・件数を検証してから保存します。[Apps Script ContentServiceのリダイレクト仕様](https://developers.google.com/apps-script/guides/content#redirects)
 
-### 写真認識の学習・評価（所有者のPCで実行）
+受領応答v3は `requestImageSha256` と `storedImageSha256` を分け、後者はDriveから完全再取得した保存画像のSHA-256です。古い画面向けの応答フィールド `imageSha256` は要求の確認値として残していますが、新しいクライアントは保存画像の値を返します。Drive内の正解JSONの `imageSha256` は従来どおり実際の保存画像のハッシュです。受信時の除去後の画像で再送照合するため、付加情報だけの違いでは重複保存しません。Apps Script所有者は `testPhotoMetadataInMemory` で、写真やDriveを使わず合成1px画像の除去・Blob・SHA-256処理を確認できます。
+
+### 公開の食事写真AIページ
+
+`/food-photo/` はBodyMakeの記録アカウントなしで利用できます。写真の解析はブラウザ内で行い、個人の食事記録や身体写真へアクセスしません。トップページからも移動できます。スマホではアルバム選択とカメラ撮影を別々に選べます。AI解析が長引く場合は待たずに料理名の手入力へ進めます。解析失敗後も同様に共有できます。正解データの共有は別操作で、同意チェックとGoogle認証を必須にしています。共有時に限りEXIFを除去した写真、AI候補ID、確認した料理名、栄養値の目安を上記の非公開inboxへ送ります。写真・栄養値をそのまま正解として自動学習しません。受領後は写真を独立に確認し、出典を分けた固定分割と評価を通過した場合のみテストモデルへの利用候補にします。本番モデルの変更は別途承認が必要です。削除依頼には画面の受付番号を用います。
+
+### 写真認識の旧ローカル学習・評価（履歴・実行禁止）
+
+**この節のコマンドは現在の運用では実行しません。** `food-ai:agent`、`food-ai:collect`、`food-ai:collect:nutrition`、`food-ai:review`、`food-ai:review:apply`、`food-ai:archive prepare`、`snapshot-learning`、`food-ai:learn` はPCへ学習データを書き込みます。新しいDrive専用方式が使える場合も禁止は解除されません。過去の仕様を残すため以下の説明は保持しますが、現行方式の最新状態や採用結果は [ストリーミング運用](scripts/food-ai/streaming/README.md) とDrive上の記録を確認してください。
 
 公開画像から基本モデルを改善する流れと、利用者が修正した付加データは分離しています。自律サイクルは `training-data/commons/` だけを扱います。Wikimedia Commons APIでファイルごとのCC0・CC BY・パブリックドメインの表示を確認して取得し、作者・元ページ・ライセンスを `sources.json` に記録します。カテゴリ由来の料理名は仮ラベルです。`training-data/` と `ml/artifacts/` はGitの対象外です。
 

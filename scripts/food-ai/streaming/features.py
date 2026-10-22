@@ -15,8 +15,9 @@ from hybrid import CONTRACT
 
 class Features:
     """Persistent CLIP process with an authenticated RAM-to-Drive cache bridge."""
-    def __init__(self, drive, folder):
+    def __init__(self, drive, folder, progress=None):
         self.drive, self.folder, self.failure = drive, folder, None
+        self.progress = progress or (lambda detail: None)
         self.token = secrets.token_urlsafe(32)
         self.mutex = threading.Lock()
         owner = self
@@ -39,20 +40,25 @@ class Features:
                             data = self.rfile.read(length)
                             if len(data) != length:
                                 raise ValueError("Truncated model asset")
+                            owner.progress(f"CLIP資材をDriveへ保存・完全再取得照合中（{length:,} bytes）")
                             owner.drive.put(owner.folder, name, data)
                             data = b"ok"
                         else:
+                            owner.progress("CLIP資材のDrive保存状態を確認中")
                             file = owner.drive.find(owner.folder, name)
                             if not file:
                                 self.send_error(404)
                                 return
+                            owner.progress(f"CLIP資材をDriveからRAMへ読み込み中（{int(file.get('size', 0)):,} bytes）")
                             data = owner.drive.read(file["id"])
                     self.send_response(200)
                     self.send_header("Content-Length", str(len(data)))
                     self.end_headers()
                     self.wfile.write(data)
-                except Exception:
-                    owner.failure = "Drive model cache could not be verified"
+                except Exception as error:
+                    # Keep the exception in RAM for the caller's fixed-code classifier;
+                    # do not send the provider body or credentials through the bridge.
+                    owner.failure = error
                     self.send_error(502)
 
             def do_GET(self):
@@ -63,8 +69,9 @@ class Features:
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self._stdout_buffer = b""
         self.process = subprocess.Popen(["node", "--max-old-space-size=1536", str(Path(__file__).with_name("feature-worker.mjs"))],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             env={**os.environ, "OMP_NUM_THREADS": "1", "TOKENIZERS_PARALLELISM": "false"})
         try:
             output = self.call({"op": "init", "cacheUrl": f"http://127.0.0.1:{self.server.server_port}", "cacheToken": self.token}, timeout=900)
@@ -75,26 +82,41 @@ class Features:
             raise
 
     def call(self, value, timeout=180):
-        self.process.stdin.write(json.dumps(value) + "\n")
+        self.process.stdin.write((json.dumps(value) + "\n").encode())
         self.process.stdin.flush()
-        # Native library diagnostics are not training output; skip non-protocol lines.
+        # Read the descriptor directly, keeping partial/multiple lines in RAM.
+        # TextIOWrapper.readline can prefetch a JSON reply after a warning;
+        # selecting that descriptor again then waits despite the buffered reply.
         import time
         deadline = time.monotonic() + timeout
         with selectors.DefaultSelector() as selector:
             selector.register(self.process.stdout, selectors.EVENT_READ)
             while time.monotonic() < deadline:
+                while b"\n" in self._stdout_buffer:
+                    line, self._stdout_buffer = self._stdout_buffer.split(b"\n", 1)
+                    try:
+                        result = json.loads(line)
+                    except ValueError:
+                        continue
+                    # Native diagnostics are not protocol replies, even when
+                    # they happen to contain valid JSON scalars or arrays.
+                    if not isinstance(result, dict) or "ok" not in result:
+                        continue
+                    if self.failure:
+                        raise self.failure
+                    if result.get("ok") is not True:
+                        code = result.get("error", "feature_worker_failed")
+                        safe_codes = {"model_asset_missing", "model_download_failed", "model_cache_failed", "model_contract_mismatch", "model_initialization_failed", "image_feature_failed"}
+                        raise RuntimeError("CLIP " + code if code in safe_codes else "CLIP feature extraction failed")
+                    return result
                 if not selector.select(max(0, deadline - time.monotonic())):
                     break
-                line = self.process.stdout.readline()
-                if not line:
+                chunk = os.read(self.process.stdout.fileno(), 65536)
+                if not chunk:
                     raise RuntimeError("CLIP worker exited")
-                try:
-                    result = json.loads(line)
-                except ValueError:
-                    continue
-                if self.failure or result.get("ok") is not True:
-                    raise RuntimeError(self.failure or "CLIP feature extraction failed")
-                return result
+                self._stdout_buffer += chunk
+                if len(self._stdout_buffer) > 4 * 1024 * 1024:
+                    raise RuntimeError("CLIP worker protocol exceeded RAM limit")
         raise TimeoutError("CLIP worker exceeded time limit")
 
     def extract(self, image, labels):

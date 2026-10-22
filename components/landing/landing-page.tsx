@@ -40,6 +40,8 @@ export function LandingPage() {
         <p className="mx-auto mt-4 max-w-md text-center text-sm leading-7 text-[var(--muted)] sm:mt-6 sm:leading-8">何を食べたか。どれだけ動いたか。<br />そして、身体はどう変わったか。<br />毎日の記録を、ひとつの場所に。</p>
         <Link href="/signup" className="relative mx-auto mt-6 flex min-h-14 w-full max-w-64 items-center justify-center rounded-md bg-[var(--sage-deep)] px-12 text-base font-semibold text-white hover:bg-[var(--ink)] sm:mt-8">はじめる<Icon name="arrow-right" className="absolute right-5 size-5" /></Link>
         <p className="mt-3 text-center text-xs leading-6 text-[var(--muted)]">筋トレ・食事・体重・写真をまとめて記録</p>
+        <Link href="/food-photo" className="mx-auto mt-5 flex min-h-12 max-w-64 items-center justify-center rounded-md border border-[var(--sage-deep)] px-4 text-center text-sm font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)]">食事写真AIを無料で試す</Link>
+        <p className="mt-2 text-center text-xs leading-6 text-[var(--muted)]">写真の解析はログイン不要。正解の共有は任意です。</p>
       </div>
       <div className="relative min-w-0 border border-[var(--line)] bg-[var(--sand)] p-5 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[var(--ink)] pb-4"><p className="text-lg font-bold">わたしの記録</p><span className="text-xs text-[var(--muted)]">記録のイメージ</span></div>
