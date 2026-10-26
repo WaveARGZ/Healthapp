@@ -15,7 +15,6 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
   return <div className="rounded-xl border border-[#b7c8bb] bg-[#f9fbf7] px-2 pb-4 pt-4 text-center">
     <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
     <svg viewBox="0 0 160 345" aria-hidden="true" className="mx-auto mt-2 h-[340px] w-full max-w-[220px] sm:h-[350px]">
-      <circle cx="80" cy="166" r="77" fill="#edf3ed" />
       <g fill="#f3eee4" stroke="#637e6b" strokeLinejoin="round" strokeWidth="2.2">
         <circle cx="80" cy="25" r="17" />
         <path d="M73 40h14l2 15H71z" />
