@@ -11,6 +11,7 @@ interface GoogleTokenResponse {
   scope?: string;
   error?: string;
   error_description?: string;
+  expires_in?: number | string;
 }
 
 interface GoogleTokenClient {
@@ -68,6 +69,13 @@ export function preloadGoogleIdentity(): Promise<void> {
 
 /** Requests a short-lived Google account token from an explicit user action. */
 export function requestGoogleAccountToken(clientId: string): Promise<string> {
+  return requestGoogleAccountSession(clientId, { timeoutMs: 120_000 }).then((session) => session.accessToken);
+}
+
+export type GoogleAccountSession = { accessToken: string; expiresAt: number };
+
+/** Memory-only authorization, obtained BEFORE entering a shared-photo draft. */
+export function requestGoogleAccountSession(clientId: string, options: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<GoogleAccountSession> {
   const oauth2 = window.google?.accounts?.oauth2;
   // Opening the account chooser after awaiting a script download loses the
   // original tap on mobile. Prepare first, then invoke directly from the tap.
@@ -77,20 +85,27 @@ export function requestGoogleAccountToken(clientId: string): Promise<string> {
   }
   return new Promise((resolve, reject) => {
     let settled = false;
-    const finish = (token?: string, error?: Error) => {
+    const finish = (session?: GoogleAccountSession, error?: Error) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      if (token) resolve(token);
+      options.signal?.removeEventListener("abort", abort);
+      if (session) resolve(session);
       else reject(error ?? new Error("Google認証を確認できませんでした。"));
     };
-    const timer = setTimeout(() => finish(undefined, new Error("Google認証の確認が時間切れになりました。認証画面を閉じて、もう一度お試しください。")), 120_000);
+    const abort = () => finish(undefined, new Error("Google認証を中断しました。認証画面を閉じてから、もう一度お試しください。"));
+    // 2FA may involve another app. Allow time, with an explicit cancel/retry UI.
+    const timer = setTimeout(() => finish(undefined, new Error("Google認証の確認が時間切れになりました。認証画面を閉じて、もう一度お試しください。")), options.timeoutMs ?? 600_000);
+    options.signal?.addEventListener("abort", abort, { once: true });
+    if (options.signal?.aborted) { abort(); return; }
     try {
     const client = oauth2.initTokenClient({
       client_id: clientId,
       scope: identityScope,
       callback: (response) => {
-        if (response.access_token) finish(response.access_token);
+        const seconds = Number(response.expires_in);
+        if (response.access_token) finish({ accessToken: response.access_token,
+          expiresAt: Date.now() + (Number.isFinite(seconds) ? Math.max(0, seconds - 60) * 1000 : 0) });
         else finish(undefined, new Error(response.error === "access_denied" ? "Google認証がキャンセルされました。同じ写真のまま再試行できます。" : "Google認証を完了できませんでした。もう一度お試しください。"));
       },
       error_callback: (error) => finish(undefined, new Error(error.type === "popup_closed"
