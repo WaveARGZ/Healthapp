@@ -86,7 +86,7 @@ test("slow or failed receiver readiness cannot block Google auth or photo select
 test("home-screen modes provide a credential-free browser handoff before entry without claiming authentication", async () => {
   for (const display of ["ios", "standalone", "fullscreen"]) {
     const h = publicPhotoHarness(false, display);
-    h.find((n) => n.props.children === "ホーム画面のアイコンから開いています");
+    h.find((n) => n.props.children === "ホーム画面・全画面からの認証について");
     assert.equal(h.authorizations.length, 0);
     const link = h.find((n) => n.type === "a" && n.props.target === "_blank");
     assert.equal(link.props.href, "https://example.invalid/food-photo/");

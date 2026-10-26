@@ -289,7 +289,7 @@ export function PublicFoodPhoto() {
         <p className="mt-2 text-xs leading-6 text-[var(--muted)]">写真・入力・認証情報はこの画面のメモリ内だけで扱います。ページの再読み込みやブラウザの切り替えでは復元できません。認証後にこの画面が最初から表示された場合は、先にもう一度認証してから入力してください。</p>
         {file && !account && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">入力後の再認証中にスマホがページを再読み込みすると、写真と入力を選び直す必要があります。</p>}
         {(standalone || authPending) && <div className="mt-3 rounded-md bg-[var(--sand)] p-3" aria-label="ブラウザで認証を続ける">
-          <p className="text-sm font-bold">{standalone ? "ホーム画面のアイコンから開いています" : "Googleから戻っても認証済みにならない場合"}</p>
+          <p className="text-sm font-bold">{standalone ? "ホーム画面・全画面からの認証について" : "Googleから戻っても認証済みにならない場合"}</p>
           <p className="mt-2 text-xs leading-6">Googleの画面で操作が終わっても、この画面に認証結果が戻らない場合があります。その場合はSafari／Chromeでこのページを開き、認証・写真選択・共有まで同じブラウザ内で行ってください。ホーム画面のアイコンには戻らないでください。</p>
           <div className="mt-3 flex flex-wrap gap-3">
             <Button type="button" variant="secondary" onClick={() => void copyBrowserUrl()} disabled={!handoffUrl}>Safari／Chrome用のURLをコピー</Button>
