@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "BodyMake | 理想の身体を、見える目標に。",
   description: "筋トレ・食事・体重・身体写真を記録する、体づくり支援アプリ。",
+  manifest: `${process.env.GITHUB_ACTIONS === "true" ? `/${process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "Healthapp"}` : ""}/manifest.webmanifest`,
 };
 
 // Keep pinch-to-zoom available. Insets are handled by the shared mobile layout.
