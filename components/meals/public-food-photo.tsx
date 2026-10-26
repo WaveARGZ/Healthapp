@@ -174,9 +174,16 @@ export function PublicFoodPhoto() {
       <p className="mt-4 text-sm leading-7 text-[var(--muted)]">写真を選ぶと、端末上のAIが料理候補を表示します。初回は約200MBの無料モデルをダウンロードします。判定が違えば正しい料理名を教えてください。学習用の共有は任意で、Google認証と同意をした時だけ送信します。</p>
       <section className="mt-7 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4 text-xs leading-6 sm:p-5" aria-label="写真とデータの取り扱い"><p className="font-bold">写真の取り扱い</p><p className="mt-1">解析だけなら食事写真は送信されません。共有する場合は写真の位置情報などを除去し、料理名・AI候補・入力した栄養値と一緒に非公開のfoodDBへ保存します。人物や個人情報が写った写真は選ばないでください。</p></section>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-6 text-[var(--muted)]" aria-label="共有先の接続状態">
-        <p role="status">{connection.ready ? "共有先に接続済み" : connection.checking ? "共有先を確認中…" : connection.error}</p>
+        <p role="status">{connection.ready ? "共有先に接続済み" : connection.checking ? "共有先を確認中… 通信が遅い場合は自動で再接続します。写真の選択は先に進められます。" : connection.error}</p>
         {!connection.ready && !connection.checking && <Button type="button" variant="secondary" disabled={busy} onClick={connection.retry}>再接続</Button>}
       </div>
+      <details className="mt-3 rounded-md border border-[var(--line)] p-3 text-xs leading-6 text-[var(--muted)]">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold">Discord・LINEなどから開いた方／接続できない方へ</summary>
+        <p>アプリ内の画面では認証や通信が制限される場合があります。右下のコンパス、共有メニュー、または「…」から「Safariで開く」「ブラウザで開く」を選んでください。AndroidはChromeで開いてください。</p>
+        <p className="mt-2">切り替え先には写真・入力内容を引き継げません。切り替えてから写真を選び直してください。この画面の「再接続」なら写真・入力内容はそのままです。</p>
+        <label className="mt-2 block">ブラウザに貼り付けるURL（長押しでコピー）<input aria-label="食事写真ページのURL" className="form-input mt-1 w-full" readOnly value="https://healthapp-14a3f.web.app/food-photo/" onFocus={(event) => event.currentTarget.select()} /></label>
+        <p className="mt-2">Safari／Chromeでも接続できない場合はWi-Fiとモバイル通信を切り替えて「再接続」をお試しください。接続確認だけでは写真は送信されません。</p>
+      </details>
       <section className="mt-8" aria-label="食事写真の解析">
         <h2 className="text-lg font-bold">1. 食事写真を選ぶ</h2>
         <div className="mt-4 flex items-start gap-4">

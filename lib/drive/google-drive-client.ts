@@ -104,15 +104,18 @@ export function requestGoogleAccountToken(clientId: string): Promise<string> {
   });
 }
 
-async function fetchJsonWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<{ response: Response; value: unknown }> {
+async function fetchJsonWithTimeout(url: string, options: RequestInit, timeoutMs: number, signal?: AbortSignal): Promise<{ response: Response; value: unknown }> {
   const controller = new AbortController();
+  const abort = () => controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  if (signal?.aborted) controller.abort();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
     const value: unknown = await response.json();
     return { response, value };
   }
-  finally { clearTimeout(timeout); }
+  finally { clearTimeout(timeout); signal?.removeEventListener("abort", abort); }
 }
 
 function trainingEndpoint(value: string): URL {
@@ -124,19 +127,34 @@ function trainingEndpoint(value: string): URL {
 }
 
 /** Checks the deployed receiver before asking the user to sign in or upload. */
-export async function checkTrainingConnection(endpointValue: string, clientId: string): Promise<void> {
+export async function checkTrainingConnection(endpointValue: string, clientId: string, signal?: AbortSignal): Promise<void> {
   const endpoint = trainingEndpoint(endpointValue);
-  const { response, value: raw } = await fetchJsonWithTimeout(endpoint.href, { credentials: "omit", mode: "cors", cache: "no-store", redirect: "follow" }, 20_000);
-  if (!response.ok) throw new Error("共有先に接続できませんでした。通信を確認して再接続してください。");
-  const value = raw as { ok?: boolean; service?: string; schemaVersion?: number; clientId?: string } | null;
-  if (value?.ok !== true || value.service !== "bodymake-training-ingest" || value.schemaVersion !== 2 || value.clientId !== clientId) {
-    throw new Error("共有先の準備が完了していません。時間をおいて再接続してください。");
+  // Only retry the public, read-only readiness request. A slow mobile connection
+  // or Apps Script startup must not permanently disable sharing after 20 seconds.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (signal?.aborted) throw Object.assign(new Error("Connection check cancelled"), { name: "AbortError" });
+    let result: { response: Response; value: unknown };
+    try {
+      result = await fetchJsonWithTimeout(endpoint.href, { credentials: "omit", mode: "cors", cache: "no-store", redirect: "follow" }, 45_000, signal);
+    } catch (error) {
+      // Temporary gateway pages can be HTML, not JSON. Never accept them as ready.
+      if (!signal?.aborted && attempt === 0 && error instanceof Error && ["AbortError", "TypeError", "SyntaxError"].includes(error.name)) continue;
+      throw error;
+    }
+    const { response, value: raw } = result;
+    if (attempt === 0 && (response.status === 408 || response.status === 429 || response.status >= 500)) continue;
+    if (!response.ok) throw new Error("共有先に接続できませんでした。通信を確認して再接続してください。");
+    const value = raw as { ok?: boolean; service?: string; schemaVersion?: number; clientId?: string } | null;
+    if (value?.ok !== true || value.service !== "bodymake-training-ingest" || value.schemaVersion !== 2 || value.clientId !== clientId) {
+      throw new Error("共有先の準備が完了していません。時間をおいて再接続してください。");
+    }
+    return;
   }
 }
 
 /** Do not display browser exception details or remote response fragments. */
 export function trainingConnectionError(error: unknown): string {
-  if (error instanceof Error && error.name === "AbortError") return "共有先の確認が時間切れになりました。通信を確認して再接続してください。";
+  if (error instanceof Error && error.name === "AbortError") return "共有先の確認が時間切れになりました。写真と入力内容はこの画面に残っています。通信を確認して再接続してください。";
   if (error instanceof Error && /^(Google認証を読み込めませんでした|共有先を確認できませんでした|共有先に接続できませんでした|共有先の準備が完了していません)/.test(error.message)) return error.message;
   return "共有先に接続できませんでした。通信を確認して再接続してください。";
 }
