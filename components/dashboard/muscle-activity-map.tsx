@@ -39,12 +39,12 @@ export function MuscleActivityMap({ workouts, today, loading, unavailable }: { w
           <div className="mt-5">
             <p className="text-xs font-semibold text-[var(--ink-soft)]">色の目安</p>
             <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[10px] text-[var(--muted)]">
-              {["0日", "1日", "2日", "3日以上"].map((label, index) => <div key={label}><span className="mx-auto mb-1 block h-3 w-full max-w-9 rounded-sm border border-[#ced9cf]" style={{ backgroundColor: activityColors[index] }} />{label}</div>)}
+              {["0日", "1日", "2日", "3日以上"].map((label, index) => <div key={label}><span className="mx-auto mb-1 block h-3 w-full max-w-9 rounded-sm border border-[#ced9cf]" style={index === 0 ? { backgroundImage: "conic-gradient(#d5ded7 25%, #fff 0 50%, #d5ded7 0 75%, #fff 0)", backgroundSize: "8px 8px" } : { backgroundColor: activityColors[index] }} />{label}</div>)}
             </div>
           </div>
         </div>
       </div>
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は各部位につき1日として数えます。種目名から部位を判定できない記録は色に含みません。14日間に記録がなければ元の色に戻ります。</p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は各部位につき1日として数えます。0日は透明、1日は緑、2日は青、3日以上は元の色です。種目名から部位を判定できない記録は色に含みません。14日間に記録がなければ透明に戻ります。</p>
     </>}
   </section>;
 }

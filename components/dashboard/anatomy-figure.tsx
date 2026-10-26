@@ -1,8 +1,8 @@
 import anatomyImage from "@/public/images/muscle-anatomy.png";
 import type { MuscleActivity, MuscleGroup } from "@/lib/workouts/muscle-activity";
 
-export const activityColors = ["#ca8b80", "#99d0a6", "#55ae73", "#246b43"];
-const overlayOpacity = [0, 0.6, 0.78, 0.9];
+export const activityColors = ["transparent", "#42ad61", "#397fcb", "#ca8b80"];
+const overlayOpacity = [0, 0.85, 0.9, 0];
 
 const frontRegions: Record<MuscleGroup, string[]> = {
   "胸": ["M211 240Q360 206 510 240L504 356Q360 388 218 356Z"],
@@ -42,10 +42,13 @@ const backRegions: Record<MuscleGroup, string[]> = {
 
 export function AnatomyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
   const maskId = `muscle-anatomy-${view}-mask`;
+  const visibilityMaskId = `muscle-anatomy-${view}-visibility`;
   const edgeFilterId = `muscle-anatomy-${view}-edge`;
+  const outlineFilterId = `muscle-anatomy-${view}-outline`;
   const clipId = `muscle-anatomy-${view}-clip`;
   const regions = view === "front" ? frontRegions : backRegions;
   const viewBox = view === "front" ? "0 0 720 1280" : "560 0 720 1280";
+  const visibleRegions = Object.entries(regions).flatMap(([group, paths]) => activity[group as MuscleGroup] > 0 ? paths : []);
 
   return <div className="rounded-xl border border-[#b7c8bb] bg-white px-2 pb-4 pt-4 text-center">
     <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
@@ -55,19 +58,32 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
           <feMorphology in="SourceAlpha" operator="erode" radius="2" result="clean-alpha" />
           <feComposite in="SourceGraphic" in2="clean-alpha" operator="in" />
         </filter>
+        <filter id={outlineFilterId} x="-2%" y="-2%" width="104%" height="104%">
+          <feMorphology in="SourceAlpha" operator="erode" radius="2" result="clean-alpha" />
+          <feMorphology in="clean-alpha" operator="dilate" radius="6" result="outer-edge" />
+          <feMorphology in="clean-alpha" operator="erode" radius="2" result="inner-edge" />
+          <feComposite in="outer-edge" in2="inner-edge" operator="out" result="outline" />
+          <feFlood floodColor="#b1c2b6" floodOpacity="0.8" result="outline-color" />
+          <feComposite in="outline-color" in2="outline" operator="in" />
+        </filter>
         <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "alpha" }}>
           <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} />
+        </mask>
+        <mask id={visibilityMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "luminance" }}>
+          <rect width="1280" height="1280" fill="black" />
+          {visibleRegions.map((d, index) => <path key={index} d={d} fill="white" />)}
         </mask>
         <clipPath id={clipId}>
           <rect x={view === "front" ? 0 : 640} y="0" width="640" height="1280" />
         </clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>
-        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} />
+        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
+        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
         <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
           {Object.entries(regions).flatMap(([group, paths]) => {
             const days = activity[group as MuscleGroup];
-            if (!days) return [];
+            if (!days || days >= 3) return [];
             const level = Math.min(days, 3);
             return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={activityColors[level]} opacity={overlayOpacity[level]} />);
           })}
