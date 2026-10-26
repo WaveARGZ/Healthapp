@@ -45,34 +45,40 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
       <g fill={`url(#${view}-body-volume)`} stroke="#637e6b" strokeLinejoin="round" strokeWidth="2.2" filter={`url(#${view}-figure-shadow)`}>
         <circle cx="80" cy="25" r="17" />
         <path d="M73 40h14l2 15H71z" />
-        <path fill={fill(view === "front" ? "腹筋・体幹" : "背中")} d="M58 53Q69 48 80 53q11-5 22 0 10 9 10 28l-6 46q-4 15-2 28l8 20H48l8-20q2-13-2-28l-6-46q0-19 10-28Z" />
-        <path fill={fill("腕")} d="M54 57Q43 59 38 72l-9 44-12 46q-4 17 2 22 7 5 11-11l15-44 12-45Z" />
-        <path fill={fill("腕")} d="M54 57Q43 59 38 72l-9 44-12 46q-4 17 2 22 7 5 11-11l15-44 12-45Z" transform="translate(160 0) scale(-1 1)" />
-        <path fill={fill("脚")} d="M49 171h30l-1 67-9 48-6 39q-1 10-9 10-7-1-6-11l-3-38-4-51Z" />
-        <path fill={fill("脚")} d="M49 171h30l-1 67-9 48-6 39q-1 10-9 10-7-1-6-11l-3-38-4-51Z" transform="translate(160 0) scale(-1 1)" />
+        <path fill={fill(view === "front" ? "腹筋・体幹" : "背中")} d="M59 53Q69 49 80 53q11-4 21 0 15 1 19 23l-6 38q-5 13-10 20l-1 29 8 15q-32 8-64 0l8-15-1-29q-5-7-10-20l-6-38q4-22 21-23Z" />
+        <path fill={fill("腕")} d="M53 55Q39 56 33 69L24 102Q22 111 24 122L13 161Q10 175 16 183Q23 187 29 174L43 132Q48 125 48 114L61 82Z" />
+        <path fill={fill("腕")} d="M53 55Q39 56 33 69L24 102Q22 111 24 122L13 161Q10 175 16 183Q23 187 29 174L43 132Q48 125 48 114L61 82Z" transform="translate(160 0) scale(-1 1)" />
+        <path fill={fill("脚")} d="M49 174Q63 172 80 174L79 232Q77 246 70 260L68 291L65 327Q63 337 55 335Q48 334 47 323L45 291Q40 277 45 260L42 225Q39 197 49 174Z" />
+        <path fill={fill("脚")} d="M49 174Q63 172 80 174L79 232Q77 246 70 260L68 291L65 327Q63 337 55 335Q48 334 47 323L45 291Q40 277 45 260L42 225Q39 197 49 174Z" transform="translate(160 0) scale(-1 1)" />
       </g>
-      {view === "front" && <path fill={fill("胸")} d="M58 53Q69 48 80 53q11-5 22 0 10 9 10 28l-3 24H51l-3-24q0-19 10-28Z" />}
+      {view === "front" && <path fill={fill("胸")} d="M59 53Q69 49 80 53q11-4 21 0 15 1 19 23l-5 32q-35-7-70 0l-5-32q4-22 19-23Z" />}
       <g stroke="#4f705b" strokeOpacity="0.45" strokeLinejoin="round" strokeWidth="0.8">
         <g fill={fill("肩")}>
-          <path d="M57 57q-11 2-16 15l-2 12 12 5 13-19Z" />
-          <path d="M57 57q-11 2-16 15l-2 12 12 5 13-19Z" transform="translate(160 0) scale(-1 1)" />
+          <path d="M58 56Q42 53 35 69L31 88Q37 94 49 95L64 71Z" />
+          <path d="M58 56Q42 53 35 69L31 88Q37 94 49 95L64 71Z" transform="translate(160 0) scale(-1 1)" />
         </g>
       </g>
-      {view === "front" && <g fill="none" stroke="#416b4d" strokeOpacity="0.25" strokeWidth="1.2">
-        <path d="M53 105h54M59 126h42M57 147h46" />
-      </g>}
-      <g fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="2" opacity="0.65">
-        <path d="M44 76q3-11 12-14M39 96q-7 24-13 47M53 186q-2 27-1 51M53 273l-1 32" />
-        <path d="M44 76q3-11 12-14M39 96q-7 24-13 47M53 186q-2 27-1 51M53 273l-1 32" transform="translate(160 0) scale(-1 1)" />
+      <g fill="none" stroke="#416b4d" strokeLinecap="round" strokeOpacity="0.35" strokeWidth="1.4">
         {view === "front" ? <>
-          <path d="M60 80q8-10 17-8M61 111q7-3 15-2M60 131q8-3 16-2" />
-          <path d="M60 80q8-10 17-8M61 111q7-3 15-2M60 131q8-3 16-2" transform="translate(160 0) scale(-1 1)" />
+          <path d="M48 83Q59 75 77 80Q79 91 73 101Q58 103 46 94M112 83Q101 75 83 80Q81 91 87 101Q102 103 114 94" />
+          <path d="M62 112Q59 133 62 153M98 112Q101 133 98 153M65 120Q80 125 95 120M67 137Q80 142 93 137M70 153Q80 157 90 153M80 109V159" />
         </> : <>
-          <path d="M59 83q6-9 18-9M60 101q7-5 17-4M59 128q8-5 18-5" />
-          <path d="M59 83q6-9 18-9M60 101q7-5 17-4M59 128q8-5 18-5" transform="translate(160 0) scale(-1 1)" />
+          <path d="M56 64Q67 78 80 81Q93 78 104 64M48 91Q54 116 68 134L80 151M112 91Q106 116 92 134L80 151M80 82V158" />
+        </>}
+        <path d="M31 91Q28 104 31 116M31 134Q26 149 23 163M51 189Q55 215 56 239M51 268Q48 284 51 301" />
+        <path d="M31 91Q28 104 31 116M31 134Q26 149 23 163M51 189Q55 215 56 239M51 268Q48 284 51 301" transform="translate(160 0) scale(-1 1)" />
+      </g>
+      <g fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="2" opacity="0.65">
+        <path d="M39 75q4-10 13-12M28 99q-3 16-1 29M50 187q-4 25-1 49M49 270q-3 18 1 40" />
+        <path d="M39 75q4-10 13-12M28 99q-3 16-1 29M50 187q-4 25-1 49M49 270q-3 18 1 40" transform="translate(160 0) scale(-1 1)" />
+        {view === "front" ? <>
+          <path d="M53 82q9-8 22-5M63 116q5-4 12-3M65 134q5-3 10-2" />
+          <path d="M53 82q9-8 22-5M63 116q5-4 12-3M65 134q5-3 10-2" transform="translate(160 0) scale(-1 1)" />
+        </> : <>
+          <path d="M54 83q7-9 22-8M56 104q7-5 19-4M61 126q7-5 14-5" />
+          <path d="M54 83q7-9 22-8M56 104q7-5 19-4M61 126q7-5 14-5" transform="translate(160 0) scale(-1 1)" />
         </>}
       </g>
-      <path d="M80 54v111" stroke="#708b78" strokeWidth="1.2" strokeDasharray="3 5" />
     </svg>
   </div>;
 }
