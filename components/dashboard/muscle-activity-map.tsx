@@ -3,9 +3,9 @@ import { Icon } from "@/components/ui/icon";
 import { muscleGroups, summarizeMuscleActivity, type MuscleActivity, type MuscleGroup } from "@/lib/workouts/muscle-activity";
 import type { WorkoutEntry } from "@/types/workout";
 
-const activityColors = ["#d4e0d6", "#a3d6aa", "#58a96e", "#246b43"];
+const activityColors = ["#c4d5c8", "#a3d6aa", "#58a96e", "#246b43"];
 const activityShades = [
-  { light: "#f2f6f0", dark: "#a8bfad" },
+  { light: "#e7efe8", dark: "#8da992" },
   { light: "#e1f2e1", dark: "#6fac7c" },
   { light: "#b9dfba", dark: "#2f8150" },
   { light: "#72ae7f", dark: "#16462e" },
@@ -42,7 +42,7 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
           <feDropShadow dx="2" dy="3" stdDeviation="2" floodColor="#304d38" floodOpacity="0.22" />
         </filter>
       </defs>
-      <g fill={`url(#${view}-body-volume)`} stroke="#637e6b" strokeLinejoin="round" strokeWidth="2.2" filter={`url(#${view}-figure-shadow)`}>
+      <g fill={`url(#${view}-body-volume)`} stroke="#31553b" strokeLinejoin="round" strokeWidth="2.5" filter={`url(#${view}-figure-shadow)`}>
         <circle cx="80" cy="25" r="17" />
         <path d="M73 40h14l2 15H71z" />
         <path fill={fill(view === "front" ? "腹筋・体幹" : "背中")} d="M59 53Q69 49 80 53q11-4 21 0 15 1 19 23l-6 38q-5 13-10 20l-1 29 8 15q-32 8-64 0l8-15-1-29q-5-7-10-20l-6-38q4-22 21-23Z" />
@@ -52,23 +52,23 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
         <path fill={fill("脚")} d="M49 174Q63 172 80 174L79 232Q77 246 70 260L68 291L65 327Q63 337 55 335Q48 334 47 323L45 291Q40 277 45 260L42 225Q39 197 49 174Z" transform="translate(160 0) scale(-1 1)" />
       </g>
       {view === "front" && <path fill={fill("胸")} d="M59 53Q69 49 80 53q11-4 21 0 15 1 19 23l-5 32q-35-7-70 0l-5-32q4-22 19-23Z" />}
-      <g stroke="#4f705b" strokeOpacity="0.45" strokeLinejoin="round" strokeWidth="0.8">
+      <g stroke="#31583e" strokeOpacity="0.8" strokeLinejoin="round" strokeWidth="1.3">
         <g fill={fill("肩")}>
           <path d="M58 56Q42 53 35 69L31 88Q37 94 49 95L64 71Z" />
           <path d="M58 56Q42 53 35 69L31 88Q37 94 49 95L64 71Z" transform="translate(160 0) scale(-1 1)" />
         </g>
       </g>
-      <g fill="none" stroke="#416b4d" strokeLinecap="round" strokeOpacity="0.35" strokeWidth="1.4">
+      <g fill="none" stroke="#28543a" strokeLinecap="round" strokeOpacity="0.8" strokeWidth="1.7">
         {view === "front" ? <>
-          <path d="M48 83Q59 75 77 80Q79 91 73 101Q58 103 46 94M112 83Q101 75 83 80Q81 91 87 101Q102 103 114 94" />
+          <path d="M48 83Q59 75 77 80Q79 91 73 101Q58 103 46 94M112 83Q101 75 83 80Q81 91 87 101Q102 103 114 94M45 108Q80 101 115 108" />
           <path d="M62 112Q59 133 62 153M98 112Q101 133 98 153M65 120Q80 125 95 120M67 137Q80 142 93 137M70 153Q80 157 90 153M80 109V159" />
         </> : <>
           <path d="M56 64Q67 78 80 81Q93 78 104 64M48 91Q54 116 68 134L80 151M112 91Q106 116 92 134L80 151M80 82V158" />
         </>}
-        <path d="M31 91Q28 104 31 116M31 134Q26 149 23 163M51 189Q55 215 56 239M51 268Q48 284 51 301" />
+        <path d="M31 91Q28 104 31 116M31 134Q26 149 23 163M51 189Q55 215 56 239M51 268Q48 284 51 301M55 163Q80 169 105 163" />
         <path d="M31 91Q28 104 31 116M31 134Q26 149 23 163M51 189Q55 215 56 239M51 268Q48 284 51 301" transform="translate(160 0) scale(-1 1)" />
       </g>
-      <g fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="2" opacity="0.65">
+      <g fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.6" opacity="0.35">
         <path d="M39 75q4-10 13-12M28 99q-3 16-1 29M50 187q-4 25-1 49M49 270q-3 18 1 40" />
         <path d="M39 75q4-10 13-12M28 99q-3 16-1 29M50 187q-4 25-1 49M49 270q-3 18 1 40" transform="translate(160 0) scale(-1 1)" />
         {view === "front" ? <>
