@@ -56,11 +56,13 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
         <path fill={fill("脚")} d="M49 174Q63 172 80 174L79 232Q77 246 70 260L68 291L65 327Q63 337 55 335Q48 334 47 323L45 291Q40 277 45 260L42 225Q39 197 49 174Z" transform="translate(160 0) scale(-1 1)" />
       </g>
       {view === "front" && <path fill={fill("胸")} d="M59 53Q69 49 80 53q11-4 21 0 15 1 19 23l-5 32q-35-7-70 0l-5-32q4-22 19-23Z" />}
-      <g stroke="#31583e" strokeOpacity="0.8" strokeLinejoin="round" strokeWidth="1.3">
-        <g fill={fill("肩")}>
-          <path d="M58 56Q42 53 35 69L31 88Q37 94 49 95L64 71Z" />
-          <path d="M58 56Q42 53 35 69L31 88Q37 94 49 95L64 71Z" transform="translate(160 0) scale(-1 1)" />
-        </g>
+      <g fill={fill("肩")}>
+        <path d="M58 58C47 55 38 62 35 73C33 79 34 85 37 88C41 91 46 90 50 86C53 80 57 73 62 67C61 63 60 60 58 58Z" />
+        <path d="M58 58C47 55 38 62 35 73C33 79 34 85 37 88C41 91 46 90 50 86C53 80 57 73 62 67C61 63 60 60 58 58Z" transform="translate(160 0) scale(-1 1)" />
+      </g>
+      <g fill="none" stroke="#28543a" strokeLinecap="round" strokeOpacity="0.7" strokeWidth="1.4">
+        <path d="M61 68Q54 76 50 86Q44 91 37 88" />
+        <path d="M61 68Q54 76 50 86Q44 91 37 88" transform="translate(160 0) scale(-1 1)" />
       </g>
       <g fill="none" stroke="#28543a" strokeLinecap="round" strokeOpacity="0.8" strokeWidth="1.7">
         {view === "front" ? <>
