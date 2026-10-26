@@ -4,6 +4,7 @@ import {
   signOut, type User,
 } from "firebase/auth";
 import { firebaseAuth } from "@/lib/firebase/app";
+import { isSharedTestEnvironment } from "@/lib/cloud/config";
 
 let redirectResultPromise: Promise<User | null> | undefined;
 
@@ -29,6 +30,7 @@ export async function currentFirebaseUser(): Promise<User> {
 export async function signInWithGoogle(remember: boolean): Promise<User | null> {
   const auth = firebaseAuth();
   const provider = new GoogleAuthProvider();
+  if (isSharedTestEnvironment) provider.setCustomParameters({ prompt: "select_account" });
   const isTouchBrowser = (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches)
     || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   if (isTouchBrowser && window.location.hostname === auth.app.options.authDomain) {

@@ -10,6 +10,7 @@ import { hasCloudSession } from "@/lib/auth/cognito-session";
 import { isCloudConfigured } from "@/lib/cloud/config";
 import { isFirebaseConfigured, isFirebaseSelected } from "@/lib/firebase/config";
 import { watchFirebaseUser } from "@/lib/auth/firebase-session";
+import { assertSharedTestAccess } from "@/lib/auth/shared-test-access";
 
 export function AppShell({ children, recording = false }: { children: ReactNode; recording?: boolean }) {
   const router = useRouter();
@@ -22,10 +23,19 @@ export function AppShell({ children, recording = false }: { children: ReactNode;
   useEffect(() => {
     if (!isFirebaseSelected) return;
     if (!isFirebaseConfigured) { router.replace("/login"); return; }
-    return watchFirebaseUser((user) => {
-      if (user) setFirebaseReady(true);
-      else { setFirebaseReady(false); router.replace("/login"); }
+    let active = true;
+    let generation = 0;
+    const unsubscribe = watchFirebaseUser((user) => {
+      const current = ++generation;
+      setFirebaseReady(false);
+      if (!user) { router.replace("/login"); return; }
+      void assertSharedTestAccess(user).then(() => {
+        if (active && generation === current) setFirebaseReady(true);
+      }).catch(() => {
+        if (active && generation === current) router.replace("/login");
+      });
     });
+    return () => { active = false; unsubscribe(); };
   }, [router]);
   if (!ready || (isFirebaseSelected && !firebaseReady)) return <main className="setup-page"><div className="setup-content"><Logo /><h1 className="setup-title mt-8">ログイン確認</h1><p className="mt-4 text-sm text-[var(--muted)]">ログイン状態を確認しています…</p></div></main>;
   return (

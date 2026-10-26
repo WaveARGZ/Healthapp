@@ -1,14 +1,15 @@
 import type { MetadataRoute } from "next";
+import { isTestEnvironment } from "@/lib/cloud/config";
+import { getDeploymentBasePath } from "@/lib/deployment-base-path.mjs";
 
 export const dynamic = "force-static";
 
 export function GET() {
-  const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "Healthapp";
-  const basePath = process.env.GITHUB_ACTIONS === "true" ? `/${repositoryName}` : "";
+  const basePath = getDeploymentBasePath();
   const manifest: MetadataRoute.Manifest = {
     id: `${basePath}/food-photo/`,
-    name: "BodyMake 食事写真",
-    short_name: "食事写真",
+    name: isTestEnvironment ? "BodyMake 食事写真 テスト" : "BodyMake 食事写真",
+    short_name: isTestEnvironment ? "食事写真 テスト" : "食事写真",
     description: "食事写真から料理の候補を確認します。",
     start_url: `${basePath}/food-photo/`,
     // Keep the login callback in the installed app while always launching at food-photo.

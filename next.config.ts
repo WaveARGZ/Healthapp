@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+import { getDeploymentBasePath } from "./lib/deployment-base-path.mjs";
 
-const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "Healthapp";
-const isGitHubPagesBuild = process.env.GITHUB_ACTIONS === "true";
-const basePath = isGitHubPagesBuild ? `/${repositoryName}` : "";
+const basePath = getDeploymentBasePath();
 const isTestEnvironment = process.env.NEXT_PUBLIC_BODYMAKE_ENV === "test";
+if (process.env.NEXT_PUBLIC_BODYMAKE_SHARED_TEST === "true" && !isTestEnvironment) {
+  throw new Error("共有テスト環境には NEXT_PUBLIC_BODYMAKE_ENV=test が必要です。");
+}
 
 const nextConfig: NextConfig = {
   // GitHub Pages is served under /<repository>/, whereas local development uses /.

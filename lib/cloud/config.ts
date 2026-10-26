@@ -1,4 +1,11 @@
 export const isTestEnvironment = process.env.NEXT_PUBLIC_BODYMAKE_ENV === "test";
+export const isSharedTestEnvironment = process.env.NEXT_PUBLIC_BODYMAKE_SHARED_TEST === "true";
+if (isSharedTestEnvironment && !isTestEnvironment) {
+  throw new Error("共有テスト環境には NEXT_PUBLIC_BODYMAKE_ENV=test が必要です。");
+}
+// Shared application testing follows the deployed AI; owner-only local learning
+// keeps its independently evaluated experimental labels and calibration.
+export const useTestFoodModel = isTestEnvironment && !isSharedTestEnvironment;
 
 // A test build never falls back to production Cognito/API settings from .env.local.
 export const cloudConfig = isTestEnvironment ? {

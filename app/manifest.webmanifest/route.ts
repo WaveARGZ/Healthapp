@@ -1,15 +1,16 @@
 import type { MetadataRoute } from "next";
 import { isFirebaseSelected } from "@/lib/firebase/config";
+import { isTestEnvironment } from "@/lib/cloud/config";
+import { getDeploymentBasePath } from "@/lib/deployment-base-path.mjs";
 
 export const dynamic = "force-static";
 
 export function GET() {
-  const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "Healthapp";
-  const basePath = process.env.GITHUB_ACTIONS === "true" ? `/${repositoryName}` : "";
+  const basePath = getDeploymentBasePath();
   const startPage = isFirebaseSelected ? "dashboard" : "bodymake";
   const manifest: MetadataRoute.Manifest = {
-    name: "BodyMake",
-    short_name: "BodyMake",
+    name: isTestEnvironment ? "BodyMake テスト" : "BodyMake",
+    short_name: isTestEnvironment ? "BodyMake テスト" : "BodyMake",
     description: "理想の身体を、見える目標に。",
     start_url: `${basePath}/${startPage}`,
     scope: `${basePath}/`,

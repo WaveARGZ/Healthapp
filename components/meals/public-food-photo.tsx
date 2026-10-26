@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { analyzeFoodPhotoDetailed, type FoodPhotoCandidate } from "@/lib/food-ai/food-photo-analyzer";
@@ -11,6 +11,7 @@ import { applyPhotoNutritionUplift } from "@/lib/food-ai/photo-nutrition-estimat
 import { isSupportedFoodPhoto, requestGoogleAccountToken, sanitizeTrainingPhoto, submitFoodCorrectionToSharedDrive } from "@/lib/drive/google-drive-client";
 import { useGoogleDriveClientId, useTrainingConnection, useTrainingDataEndpoint } from "@/hooks/use-google-drive-client-id";
 import { createId } from "@/lib/utils/id";
+import { isSharedTestEnvironment } from "@/lib/cloud/config";
 
 type Nutrition = { calories: number; proteinG: number; fatG: number; carbsG: number };
 type Phase = "idle" | "analyzing" | "ready" | "error" | "sending" | "sent";
@@ -48,6 +49,7 @@ export function PublicFoodPhoto() {
   const clientId = useGoogleDriveClientId();
   const endpoint = useTrainingDataEndpoint();
   const connection = useTrainingConnection(clientId, endpoint);
+  const handoffUrl = useSyncExternalStore(() => () => {}, () => `${window.location.origin}${window.location.pathname}`, () => "");
 
   useEffect(() => () => { if (previewUrl.current) URL.revokeObjectURL(previewUrl.current); }, []);
 
@@ -132,6 +134,7 @@ export function PublicFoodPhoto() {
   }
 
   async function sendCorrection() {
+    if (isSharedTestEnvironment) return;
     const name = correctName.trim();
     if (!file || phase !== "ready" || !name || !labelChecked || !consent || !connection.ready) return;
     if (Object.values(nutrition).some((value) => !Number.isFinite(value) || value < 0 || value > 10000)) {
@@ -171,17 +174,17 @@ export function PublicFoodPhoto() {
     <main className="mx-auto max-w-3xl safe-gutters safe-bottom pb-16 pt-8 sm:pt-12">
       <p className="text-xs font-bold tracking-widest text-[var(--sage-deep)]">無料・アカウント不要で解析</p>
       <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">食事写真AIを試す</h1>
-      <p className="mt-4 text-sm leading-7 text-[var(--muted)]">写真を選ぶと、端末上のAIが料理候補を表示します。初回は約200MBの無料モデルをダウンロードします。判定が違えば正しい料理名を教えてください。学習用の共有は任意で、Google認証と同意をした時だけ送信します。</p>
-      <section className="mt-7 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4 text-xs leading-6 sm:p-5" aria-label="写真とデータの取り扱い"><p className="font-bold">写真の取り扱い</p><p className="mt-1">解析だけなら食事写真は送信されません。共有する場合は写真の位置情報などを除去し、料理名・AI候補・入力した栄養値と一緒に非公開のfoodDBへ保存します。人物や個人情報が写った写真は選ばないでください。</p></section>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-6 text-[var(--muted)]" aria-label="共有先の接続状態">
+      <p className="mt-4 text-sm leading-7 text-[var(--muted)]">写真を選ぶと、端末上のAIが料理候補を表示します。初回は約200MBの無料モデルをダウンロードします。{isSharedTestEnvironment ? "本番と同じ認識モデルで、料理候補と修正画面を確認できます。" : "判定が違えば正しい料理名を教えてください。学習用の共有は任意で、Google認証と同意をした時だけ送信します。"}</p>
+      <section className="mt-7 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4 text-xs leading-6 sm:p-5" aria-label="写真とデータの取り扱い"><p className="font-bold">写真の取り扱い</p><p className="mt-1">{isSharedTestEnvironment ? "このテスト環境では学習データの共有を行いません。食事写真は端末内で解析し、共有Driveには送信しません。" : "解析だけなら食事写真は送信されません。共有する場合は写真の位置情報などを除去し、料理名・AI候補・入力した栄養値と一緒に非公開のfoodDBへ保存します。人物や個人情報が写った写真は選ばないでください。"}</p></section>
+      {!isSharedTestEnvironment && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-6 text-[var(--muted)]" aria-label="共有先の接続状態">
         <p role="status">{connection.ready ? "共有先に接続済み" : connection.checking ? "共有先を確認中… 通信が遅い場合は自動で再接続します。写真の選択は先に進められます。" : connection.error}</p>
         {!connection.ready && !connection.checking && <Button type="button" variant="secondary" disabled={busy} onClick={connection.retry}>再接続</Button>}
-      </div>
+      </div>}
       <details className="mt-3 rounded-md border border-[var(--line)] p-3 text-xs leading-6 text-[var(--muted)]">
         <summary className="min-h-11 cursor-pointer content-center font-semibold">Discord・LINEなどから開いた方／接続できない方へ</summary>
         <p>アプリ内の画面では認証や通信が制限される場合があります。右下のコンパス、共有メニュー、または「…」から「Safariで開く」「ブラウザで開く」を選んでください。AndroidはChromeで開いてください。</p>
         <p className="mt-2">切り替え先には写真・入力内容を引き継げません。切り替えてから写真を選び直してください。この画面の「再接続」なら写真・入力内容はそのままです。</p>
-        <label className="mt-2 block">ブラウザに貼り付けるURL（長押しでコピー）<input aria-label="食事写真ページのURL" className="form-input mt-1 w-full" readOnly value="https://healthapp-14a3f.web.app/food-photo/" onFocus={(event) => event.currentTarget.select()} /></label>
+        <label className="mt-2 block">ブラウザに貼り付けるURL（長押しでコピー）<input aria-label="食事写真ページのURL" className="form-input mt-1 w-full" readOnly value={handoffUrl} onFocus={(event) => event.currentTarget.select()} /></label>
         <p className="mt-2">Safari／Chromeでも接続できない場合はWi-Fiとモバイル通信を切り替えて「再接続」をお試しください。接続確認だけでは写真は送信されません。</p>
       </details>
       <section className="mt-8" aria-label="食事写真の解析">
@@ -200,7 +203,7 @@ export function PublicFoodPhoto() {
           </div>
         </div>
         {file && phase !== "sent" && <Button type="button" className="mt-4 w-full" disabled={busy} onClick={() => void analyze()}>{phase === "analyzing" ? "解析中…" : "写真をAIで解析"}</Button>}
-        {file && (phase === "idle" || phase === "error" || phase === "analyzing") && <Button type="button" variant="secondary" className="mt-3 w-full" onClick={enterManually}>{phase === "analyzing" ? "解析を待たずに料理名を入力" : "料理名を入力して共有する"}</Button>}
+        {file && (phase === "idle" || phase === "error" || phase === "analyzing") && <Button type="button" variant="secondary" className="mt-3 w-full" onClick={enterManually}>{phase === "analyzing" ? "解析を待たずに料理名を入力" : isSharedTestEnvironment ? "料理名を入力して確認する" : "料理名を入力して共有する"}</Button>}
       </section>
       {(phase === "ready" || phase === "sending" || phase === "sent") && <section className="mt-10 border-t border-[var(--line)] pt-8" aria-label="AI候補と正解">
         <h2 className="text-lg font-bold">2. AIの候補と正解を確認</h2>
@@ -209,10 +212,10 @@ export function PublicFoodPhoto() {
         <label className="mt-5 block text-sm font-bold">正しい料理名<input className="form-input mt-2 w-full" value={correctName} disabled={busy || phase === "sent"} maxLength={100} placeholder="例：卵焼き" onChange={(event) => { setCorrectName(event.target.value); setSelectedId(""); setLabelChecked(false); }} /></label>
         <label className="mt-3 flex items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={labelChecked} disabled={busy || phase === "sent" || !correctName.trim()} onChange={(event) => setLabelChecked(event.target.checked)} /><span>写真を見て、上の料理名が主料理として正しいことを確認しました。AI候補を見ただけではチェックしないでください。</span></label>
         <fieldset className="mt-5"><legend className="text-sm font-bold">栄養値の目安（わかる範囲で修正）</legend><p className="mt-1 text-xs leading-6 text-[var(--muted)]">栄養値は利用者による目安として保存し、栄養の正解データとしては扱いません。</p><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="text-xs font-medium">{label}（{unit}）<input className="form-input mt-2 w-full" type="number" min="0" max="10000" step="0.1" inputMode="decimal" value={nutrition[key]} disabled={busy || phase === "sent"} onChange={(event) => setNutrition((value) => ({ ...value, [key]: event.target.value === "" ? 0 : Number(event.target.value) }))} /></label>)}</div></fieldset>
-        <div className="mt-8 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4"><label className="flex cursor-pointer items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={consent} disabled={busy || phase === "sent"} onChange={(event) => setConsent(event.target.checked)} /><span>学習用データの共有に同意します。写真（EXIF除去後）、AI候補、正しい料理名、入力した栄養値を非公開foodDBへ送ります。氏名・メール・認証トークンは学習データに保存しません。送信データは確認待ちとなり、すぐにAIへ反映されるわけではありません。</span></label><Button type="button" className="mt-4 w-full" disabled={busy || phase === "sent" || !labelChecked || !consent || !correctName.trim() || !connection.ready} onClick={() => void sendCorrection()}>{phase === "sending" ? "送信中…" : phase === "sent" ? "共有済み" : connection.checking ? "共有先を確認中…" : "Googleで認証して正解を共有"}</Button>{connection.error && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">共有先に接続できていません。ページ上部の「再接続」を押してください。</p>}</div>
+        {isSharedTestEnvironment ? <p className="mt-8 rounded-md bg-[var(--sand)] p-4 text-sm leading-6">テスト環境では学習データの共有を行いません。ここで確認した写真・正解は送信されません。</p> : <div className="mt-8 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4"><label className="flex cursor-pointer items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={consent} disabled={busy || phase === "sent"} onChange={(event) => setConsent(event.target.checked)} /><span>学習用データの共有に同意します。写真（EXIF除去後）、AI候補、正しい料理名、入力した栄養値を非公開foodDBへ送ります。氏名・メール・認証トークンは学習データに保存しません。送信データは確認待ちとなり、すぐにAIへ反映されるわけではありません。</span></label><Button type="button" className="mt-4 w-full" disabled={busy || phase === "sent" || !labelChecked || !consent || !correctName.trim() || !connection.ready} onClick={() => void sendCorrection()}>{phase === "sending" ? "送信中…" : phase === "sent" ? "共有済み" : connection.checking ? "共有先を確認中…" : "Googleで認証して正解を共有"}</Button>{connection.error && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">共有先に接続できていません。ページ上部の「再接続」を押してください。</p>}</div>}
       </section>}
       {message && <p role="status" className={`mt-5 break-words rounded-md p-3 text-sm leading-6 ${phase === "error" ? "bg-[var(--coral-soft)] text-[var(--coral)]" : "bg-[var(--sage-soft)]"}`}>{message}{receiptId && <span className="mt-1 block text-xs">削除依頼・問い合わせ用の受付番号: {receiptId}</span>}</p>}
-      <p className="mt-5 text-xs leading-6 text-[var(--muted)]">写真・正解データは解析や送信のためにこの画面で扱い、個人の食事記録には保存しません。共有後に削除を希望する場合は受付番号をお知らせください。</p>
+      <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{isSharedTestEnvironment ? "この画面の写真・正解データはメモリ内だけで扱います。テスト用の食事記録は「記録アプリへ」から保存できます。" : "写真・正解データは解析や送信のためにこの画面で扱い、個人の食事記録には保存しません。共有後に削除を希望する場合は受付番号をお知らせください。"}</p>
     </main>
   </div>;
 }

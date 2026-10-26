@@ -33,7 +33,19 @@ npm run dev:test
 
 ブランチ名は作業ごとに新しくします。変更はそのブランチへpushし、`main` 宛てのPull Requestを作成します。自動チェックと別のメンバーのレビューを確認してからマージします。全員が同じブランチを直接書き換えず、他の人のマージ後は次の作業前にもう一度最新版を取得してください。`pull --ff-only` が失敗したら強制上書きせず、分岐や作業中の変更を確認します。
 
-**コードの共有と本番公開は別です。** `main` へのpush・マージではサイトを公開しません。旧GitHub Pagesは手動実行のみ、Firebase Hosting・Apps Script・本番モデルの変更は所有者の明示承認後に別途実施します。GitHubの参加権限はGoogle/Drive/Firebaseの権限ではありません。
+**コードの共有と本番公開は別です。** `main` へのpush・マージでは本番サイトを更新しません。旧GitHub Pagesは手動実行のみ、本番Firebase Hosting・Apps Script・本番モデルの変更は所有者の明示承認後に別途実施します。GitHubの参加権限はGoogle/Drive/Firebaseの管理権限ではありません。
+
+### 3人用の共有テスト環境
+
+[共有テストを開く](https://bodymake-test-14a3f.web.app/bodymake/) ／ [食事写真だけを開く](https://bodymake-test-14a3f.web.app/food-photo/)。所有者が登録した3人のGoogleアカウントでログインし、各自のプロフィール・筋トレ・食事・体重のテスト記録を別端末でも確認できます。他のメンバーの個人記録は見えません。身体写真は本番同様に端末内保存で、端末間同期しません。
+
+公開画面と同じコード・27分類の写真認識を基準にし、画面とホーム画面アイコンには「テスト」と表示します。記録先・ログインは本番と別の無料Firebaseプロジェクトです。本番記録や写真・非公開学習台帳はコピーしません。学習用Drive送信はテストでは無効です。ページ自体は公開URLですが、記録の読み書きは登録済みの本人だけです。
+
+開発時は上記の共通手順で最新版を取得し、作業ブランチからPull Requestを作ります。`codex/**` または `main` にpushすると、`Deploy shared test (never production)` がチェック後に**共有テストURLだけ**を更新します。3人共通の1つのURLなので、別の作業ブランチの反映で表示が変わることがあります。更新前にチームで声を掛け、GitHub Actionsで反映したブランチとコミットを確認してください。失敗した更新は公開されず、前の正常版が残ります。本番には自動反映しません。`main` へのマージは引き続き別メンバーのレビュー後です。
+
+ローカルでも共有テストのGoogleログインと記録を使う場合は `npm run dev:shared-test` を使います（3001番、同時に `dev:test` を起動しないこと）。通常の `npm run dev:test` はログイン不要の端末内デモのままです。共有テストをビルドする場合は開発サーバー停止後に `npm run build:shared-test`、続いて `npm run test:shared-test-build` を使います。秘密鍵や `.env.local` の受け渡しは不要です。
+
+無料枠超過時には利用制限・停止があり得ます。Sparkを維持し、請求先・有料プラン・Cloud Storage・Functions・有料AIは追加しません。GitHub Actionsは公開リポジトリの標準ランナーを使用します。デプロイ用の短期認証はテスト用Hostingの権限だけで、本番権限やFirestoreの記録・参加者一覧を変更する権限はありません。参加者管理は [テスト専用アクセス制御](./FIREBASE-TEST-ACCESS.md) を参照してください。
 
 ### 共有前の安全なテスト
 
@@ -71,6 +83,7 @@ Firebase版は [BodyMakeを開く](https://healthapp-14a3f.web.app/) から利�
 | 環境 | 起動・公開先 | 保存先 | 本番への反映 |
 | --- | --- | --- | --- |
 | ローカルテスト | `npm run dev:test` → `http://localhost:3001/bodymake` | 初期状態はこのブラウザ・ポート専用の端末内保存 | なし |
+| 3人用共有テスト | `https://bodymake-test-14a3f.web.app/` | テスト専用Firestore・登録済みGoogleアカウント本人の記録。身体写真は端末内 | テストのみ自動更新。本番は変更しない |
 | Firebase公開版 | `https://healthapp-14a3f.web.app/` → `/bodymake/` | Googleログイン・ユーザー別Firestore。身体写真は端末内 | ローカルでビルド後、Firebase CLIで明示デプロイ |
 | 旧GitHub Pages版 | GitHub Pagesの公開URL | 旧AWS接続先は削除済み（AWS未登録のビルドはデモ保存） | 承認後にワークフローを手動実行 |
 
@@ -78,9 +91,9 @@ Firebase版は [BodyMakeを開く](https://healthapp-14a3f.web.app/) から利�
 
 旧AWS結合テスト用の設定項目はコードに残っていますが、現在のチーム開発では使いません。`NEXT_PUBLIC_BODYMAKE_TEST_AUTH_DOMAIN`、`NEXT_PUBLIC_BODYMAKE_TEST_CLIENT_ID`、`NEXT_PUBLIC_BODYMAKE_TEST_API_URL` などは空欄のままとし、この手順のためにAWSスタックを作成しないでください。
 
-`npm run build:test` はテスト設定の静的ビルドをローカルで検証します。テストの成果物は `.next-test/`、本番ビルドの静的書き出しは `out/` に分かれます。ただし、テスト開発サーバーとテストビルドは同じ `.next-test/` を使うため同時実行しないでください。現在、テスト環境の公開URLはありません。GitHub Pagesは1リポジトリにつき1つのサイトであり、公開テストサイトには別の公開先が必要です。本番URLと本番AWSにはこの設定だけで変更を加えません。
+`npm run build:test` はデモ保存のテスト設定、`npm run build:shared-test` は3人用共有テスト設定の静的ビルドを検証します。テストの成果物は `.next-test/`、本番ビルドの静的書き出しは `out/` に分かれます。ただし、各テスト開発サーバーとテストビルドは同じ `.next-test/` を使うため同時実行しないでください。共有テストは別FirebaseプロジェクトのHostingへ公開し、本番URLや旧AWSは変更しません。
 
-コードの確認は `main` 宛てのPull Requestと `main` 更新時に `verify-test.yml` が行います。lint・写真送信と学習処理のモックテスト・テストビルド・本番認証の分離・画面幅と筋トレ分割を検証します。これは実スマホ撮影や本番Drive保存の実動作確認ではありません。合格後のマージはコードの共有だけで、公開ワークフローは実行されません。
+コードの確認は `main` 宛てのPull Requestと `main` 更新時に `verify-test.yml` が行います。lint・写真送信と学習処理のモックテスト・テストビルド・本番認証の分離・画面幅と筋トレ分割を検証します。これは実スマホ撮影や本番Drive保存の実動作確認ではありません。別の `deploy-shared-test.yml` は共有テストだけを更新し、本番公開ワークフローは実行しません。
 
 ## 実装済みの機能
 
