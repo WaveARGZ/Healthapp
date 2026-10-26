@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
@@ -44,6 +44,17 @@ export function WorkoutRecorder() {
   const [history, setHistory] = useState<WorkoutEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [activeTab, setActiveTab] = useState<"record" | "plan" | null>(null);
+
+  const handlePlanLoad = useCallback((hasPlan: boolean) => {
+    setActiveTab((current) => current ?? (hasPlan ? "record" : "plan"));
+  }, []);
+
+  function handlePlanSave() {
+    setNotice("週間メニューを保存しました。種目のおすすめに反映されます。");
+    setActiveTab("record");
+    document.getElementById("workout-record-tab")?.focus();
+  }
 
   useEffect(() => {
     void loadHistory();
@@ -81,7 +92,31 @@ export function WorkoutRecorder() {
 
   return <>
     <PageHeader title="筋トレ" description="種目を選んで、セットごとに記録。" />
-    <WorkoutPlanSetup date={performedAt} />
+    <div role="tablist" aria-label="筋トレの表示切り替え" className="mb-6 flex border-b border-[var(--line)]">
+      {([{ id: "record", label: "筋トレ記録" }, { id: "plan", label: "週間メニュー" }] as const).map((tab) => <button
+        key={tab.id}
+        id={`workout-${tab.id}-tab`}
+        type="button"
+        role="tab"
+        aria-selected={activeTab === tab.id}
+        aria-controls={`workout-${tab.id}-panel`}
+        tabIndex={activeTab === tab.id || (activeTab === null && tab.id === "record") ? 0 : -1}
+        onClick={() => setActiveTab(tab.id)}
+        onKeyDown={(event) => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === "Home" ? "record" : event.key === "End" ? "plan" : tab.id === "record" ? "plan" : "record";
+          setActiveTab(next);
+          document.getElementById(`workout-${next}-tab`)?.focus();
+        }}
+        className={`min-h-12 flex-1 border-b-2 px-3 py-3 text-sm font-semibold ${activeTab === tab.id ? "border-[var(--sage-deep)] text-[var(--sage-deep)]" : "border-transparent text-[var(--muted)]"}`}
+      >{tab.label}</button>)}
+    </div>
+    {activeTab === null && <p role="status" className="mb-6 text-sm text-[var(--muted)]">週間メニューを確認中…</p>}
+    <div id="workout-plan-panel" role="tabpanel" aria-labelledby="workout-plan-tab" hidden={activeTab !== "plan"}>
+      <WorkoutPlanSetup date={performedAt} onLoad={handlePlanLoad} onSave={handlePlanSave} />
+    </div>
+    <div id="workout-record-panel" role="tabpanel" aria-labelledby="workout-record-tab" hidden={activeTab !== "record"}>
     <form onSubmit={handleSubmit}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div className="grid w-full min-w-0 grid-cols-2 gap-3 sm:max-w-sm">
@@ -127,5 +162,6 @@ export function WorkoutRecorder() {
         <div className="mt-3 space-y-3">{entry.exercises.map((exercise) => <div key={exercise.id} className="text-xs leading-6 text-[var(--muted)]"><p className="break-words font-medium">{exercise.name}</p><div className="mt-1 flex flex-wrap gap-2">{setsFor(exercise).map((set, setIndex) => <span key={set.id} className="metric rounded bg-[var(--sand)] px-2 py-1"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{set.weightKg ?? "—"}kg × {set.reps ?? "—"}回</span>)}</div></div>)}</div>
       </article>)}</div>}
     </section>
+    </div>
   </>;
 }

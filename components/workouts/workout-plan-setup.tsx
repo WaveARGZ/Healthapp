@@ -25,7 +25,7 @@ const suggestedDays: Record<number, number[]> = {
   5: [1, 2, 3, 4, 5], 6: [1, 2, 3, 4, 5, 6], 7: [0, 1, 2, 3, 4, 5, 6],
 };
 
-export function WorkoutPlanSetup({ date }: { date: string }) {
+export function WorkoutPlanSetup({ date, onLoad, onSave }: { date: string; onLoad: (hasPlan: boolean) => void; onSave: () => void }) {
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
   const [preferences, setPreferences] = useState<WorkoutPreferences>({ facilityEquipment: [], customEquipment: [], favoriteExercises: [] });
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
@@ -46,13 +46,17 @@ export function WorkoutPlanSetup({ date }: { date: string }) {
         setDraft(loadedPreferences.splitPlan);
         setFrequency(loadedPreferences.splitPlan.trainingDays.length);
       }
+      onLoad(Boolean(loadedPreferences.splitPlan));
     }).catch(() => {
-      if (active) setNotice("週間メニューを読み込めませんでした。ページを再読み込みしてください。");
+      if (active) {
+        setNotice("週間メニューを読み込めませんでした。ページを再読み込みしてください。");
+        onLoad(false);
+      }
     }).finally(() => {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, []);
+  }, [onLoad]);
 
   function changeFrequency(count: number) {
     setFrequency(count);
@@ -106,6 +110,7 @@ export function WorkoutPlanSetup({ date }: { date: string }) {
       await storeWorkoutPreferences(updated);
       setPreferences(updated);
       setNotice("週間メニューを保存しました。種目のおすすめに反映されます。");
+      onSave();
     } catch {
       setNotice("週間メニューを保存できませんでした。もう一度お試しください。");
     } finally {
