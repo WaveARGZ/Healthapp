@@ -63,6 +63,9 @@ jobs:
       - name: Verify workout plans
         run: npm run test:workout-split
 
+      - name: Verify exercise picker grouping
+        run: npm run test:exercise-selection
+
       - name: Build without production AWS settings
         env:
           NEXT_PUBLIC_BODYMAKE_AUTH_DOMAIN: https://production-should-not-be-used.invalid
