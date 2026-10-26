@@ -5,6 +5,127 @@ import vm from "node:vm";
 import ts from "typescript";
 import * as jsxRuntime from "react/jsx-runtime";
 
+// No browser storage, network, real photos, or generated files: a memory-only
+// component harness with real event dispatch and controlled Google callbacks.
+function publicPhotoHarness(sharedTest = false) {
+  const source = ts.transpileModule(readFileSync(new URL("../../components/meals/public-food-photo.tsx", import.meta.url), "utf8"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText;
+  const states = [], refs = [], effects = [], jobs = [], authorizations = [], posts = [], timers = new Map();
+  let stateIndex = 0, refIndex = 0, effectIndex = 0, now = 100_000, sequence = 0;
+  let rejection = "";
+  const window = new EventTarget(), document = new EventTarget();
+  const photo = { name: "synthetic.jpg", size: 10, lastModified: 1 };
+  const react = {
+    useState(initial) { const i = stateIndex++; if (i >= states.length) states[i] = initial; return [states[i], (value) => { states[i] = typeof value === "function" ? value(states[i]) : value; }]; },
+    useRef(initial) { return refs[refIndex++] ??= { current: initial }; },
+    useEffect(callback, deps) { const i = effectIndex++, old = effects[i]; if (!old || deps.some((v, j) => !Object.is(v, old.deps[j]))) jobs.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: callback() }; }); },
+    useSyncExternalStore(_s, _g, server) { return server(); },
+  };
+  const modules = {
+    react, "react/jsx-runtime": jsxRuntime, "next/image": { default: "img" }, "next/link": { default: "a" },
+    "@/components/ui/button": { Button: "button" }, "@/components/ui/logo": { Logo: "div" },
+    "@/lib/food-ai/food-photo-analyzer": {}, "@/lib/food-ai/food-catalog": { foodCatalog: [] },
+    "@/lib/food-ai/photo-nutrition-estimate": {}, "@/lib/cloud/config": { isSharedTestEnvironment: sharedTest },
+    "@/hooks/use-google-drive-client-id": { useGoogleDriveClientId: () => "mock-client", useTrainingDataEndpoint: () => "https://example.invalid", useTrainingConnection: () => ({ ready: true }) },
+    "@/lib/utils/id": { createId: () => `mock-${++sequence}` },
+    "@/lib/drive/google-drive-client": {
+      isSupportedFoodPhoto: () => true,
+      requestGoogleAccountSession: (_id, { signal }) => new Promise((resolve, reject) => authorizations.push({ signal, resolve, reject })),
+      submitFoodCorrectionToSharedDrive: async (input) => { posts.push(input); if (rejection) throw new Error(rejection); return { id: input.id }; },
+    },
+  };
+  const exports = {};
+  vm.runInNewContext(source, {
+    exports, require: (id) => { assert.ok(modules[id], id); return modules[id]; }, window, document, AbortController, Error,
+    URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} },
+    Date: class extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } },
+    setTimeout: (callback) => { const id = ++sequence; timers.set(id, callback); return id; }, clearTimeout: (id) => timers.delete(id),
+  });
+  function nodes(node) { if (!node || typeof node !== "object") return []; if (Array.isArray(node)) return node.flatMap(nodes); return [node, ...nodes(node.props?.children)]; }
+  function render() { stateIndex = refIndex = effectIndex = 0; const tree = exports.PublicFoodPhoto(); while (jobs.length) jobs.shift()(); return nodes(tree); }
+  function find(predicate) { const node = render().find(predicate); assert.ok(node); return node; }
+  function button(label) { return find((n) => n.type === "button" && n.props.children === label); }
+  function click(label) { const node = button(label); assert.notEqual(node.props.disabled, true, label); node.props.onClick(); }
+  function choose() { const node = find((n) => n.type === "input" && n.props.type === "file"); assert.notEqual(node.props.disabled, true); node.props.onChange({ target: { files: [photo], value: "" } }); }
+  async function flush() { for (let i = 0; i < 5; i++) await Promise.resolve(); render(); }
+  async function authorize() { click("Googleで認証してから入力する"); authorizations.at(-1).resolve({ accessToken: "synthetic-token", expiresAt: now + 3600_000 }); await flush(); }
+  function draft() {
+    choose(); click(sharedTest ? "料理名を入力して確認する" : "料理名を入力して共有する");
+    find((n) => n.type === "input" && n.props.placeholder === "例：卵焼き").props.onChange({ target: { value: "手入力の料理" } });
+    const checks = render().filter((n) => n.type === "input" && n.props.type === "checkbox");
+    for (const check of checks) check.props.onChange({ target: { checked: true } });
+    render();
+  }
+  return { render, find, button, click, choose, flush, authorize, draft, authorizations, posts, photo, window, document,
+    expire() { now += 4000_000; document.dispatchEvent(new Event("visibilitychange")); render(); },
+    rejectPost(message) { rejection = message; },
+  };
+}
+
+test("sharing authenticates before photo entry; returning from 2FA never auto-submits", async () => {
+  const h = publicPhotoHarness();
+  assert.equal(h.find((n) => n.props.type === "file").props.disabled, true);
+  h.click("Googleで認証してから入力する");
+  h.window.dispatchEvent(new Event("pageshow"));
+  assert.equal(h.find((n) => n.props.type === "file").props.disabled, true);
+  h.authorizations[0].resolve({ accessToken: "synthetic-token", expiresAt: 3700_000 }); await h.flush();
+  assert.equal(h.posts.length, 0);
+  h.draft();
+  h.window.dispatchEvent(new Event("pageshow")); h.document.dispatchEvent(new Event("visibilitychange"));
+  assert.equal(h.find((n) => n.props.placeholder === "例：卵焼き").props.value, "手入力の料理");
+  const send = h.button("確認した正解を共有");
+  send.props.onClick(); send.props.onClick(); await h.flush();
+  assert.equal(h.posts.length, 1, "double taps cannot duplicate sending");
+  assert.equal(h.authorizations.length, 1, "submit does NOT reopen Google auth");
+  assert.equal(h.posts[0].image, h.photo);
+  assert.equal(h.posts[0].confirmedFoodName, "手入力の料理");
+  assert.equal(h.posts[0].consent, true);
+  assert.equal(h.button("共有済み").props.disabled, true);
+});
+
+test("cancel/retry cannot be overwritten by the previous late auth callback", async () => {
+  const h = publicPhotoHarness();
+  h.click("Googleで認証してから入力する");
+  h.click("認証待ちを解除してやり直す");
+  assert.equal(h.authorizations[0].signal.aborted, true);
+  h.click("Googleで認証してから入力する");
+  h.authorizations[0].resolve({ accessToken: "stale", expiresAt: 3700_000 }); await h.flush();
+  assert.equal(h.button("Google認証中…").props.disabled, true);
+  h.authorizations[1].reject(new Error("cancelled")); await h.flush();
+  assert.equal(h.button("Googleで認証してから入力する").props.disabled, false);
+  await h.authorize(); h.draft();
+  assert.equal(h.posts.length, 0);
+});
+
+test("expiry and revoked auth preserve draft and receipt ID; renewal never sends automatically", async () => {
+  const h = publicPhotoHarness(); await h.authorize(); h.draft();
+  h.rejectPost("保存は未確認です（診断: invalid_google_token/auth）。");
+  h.click("確認した正解を共有"); await h.flush();
+  const id = h.posts[0].id;
+  assert.equal(h.button("確認した正解を共有").props.disabled, true);
+  await h.authorize();
+  assert.equal(h.posts.length, 1);
+  h.expire();
+  assert.equal(h.button("確認した正解を共有").props.disabled, true);
+  assert.equal(h.find((n) => n.props.placeholder === "例：卵焼き").props.value, "手入力の料理");
+  await h.authorize(); h.rejectPost("");
+  h.click("確認した正解を共有"); await h.flush();
+  assert.equal(h.posts[1].id, id);
+  assert.equal(h.posts[1].image, h.photo);
+});
+
+test("anonymous analysis and shared-test remain available without Google or upload", () => {
+  const h = publicPhotoHarness(); h.click("認証せず解析だけ試す"); h.draft();
+  assert.equal(h.authorizations.length, 0);
+  assert.equal(h.button("確認した正解を共有").props.disabled, true);
+  const staging = publicPhotoHarness(true); staging.draft();
+  assert.equal(staging.authorizations.length, 0); assert.equal(staging.posts.length, 0);
+  assert.equal(staging.render().some((n) => n.props.children === "Googleで認証してから入力する"), false);
+  const reload = publicPhotoHarness();
+  assert.equal(reload.find((n) => n.props.type === "file").props.disabled, true, "reload starts safely at auth; no persisted draft or credential");
+});
+
 test("connection hook recovers on network return and cancels stale checks without reloading", async () => {
   const source = ts.transpileModule(readFileSync(new URL("../../hooks/use-google-drive-client-id.ts", import.meta.url), "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },

@@ -80,6 +80,39 @@ test("an OAuth flow without any callback times out", async () => {
   await assert.rejects(pending, /時間切れ/);
 });
 
+test("pre-input authorization allows 2FA time and exposes only a bounded memory session", async () => {
+  let callback, delay;
+  const b = browser({
+    window: { google: { accounts: { oauth2: { initTokenClient: (options) => { callback = options.callback; return { requestAccessToken() {} }; } } } } },
+    setTimeout: (_callback, ms) => { delay = ms; return 1; }, clearTimeout() {},
+  });
+  const before = Date.now();
+  const pending = b.api.requestGoogleAccountSession(clientId);
+  assert.equal(delay, 600_000);
+  callback({ access_token: "synthetic-session", expires_in: "3600" });
+  const session = await pending;
+  assert.equal(session.accessToken, "synthetic-session");
+  assert.ok(session.expiresAt >= before + 3540_000 && session.expiresAt <= Date.now() + 3540_000);
+  const missingExpiry = b.api.requestGoogleAccountSession(clientId);
+  callback({ access_token: "synthetic-session" });
+  assert.ok((await missingExpiry).expiresAt <= Date.now(), "missing expiry is not considered reusable");
+});
+
+test("cancelling authorization releases the wait and ignores late Google callbacks", async () => {
+  let callback, cleared = false;
+  const b = browser({
+    window: { google: { accounts: { oauth2: { initTokenClient: (options) => { callback = options.callback; return { requestAccessToken() {} }; } } } } },
+    setTimeout: () => 1, clearTimeout: () => { cleared = true; },
+  });
+  const controller = new AbortController();
+  const pending = b.api.requestGoogleAccountSession(clientId, { signal: controller.signal });
+  controller.abort();
+  await assert.rejects(pending, /中断/);
+  assert.equal(cleared, true);
+  callback({ access_token: "late-token", expires_in: 3600 });
+  await assert.rejects(pending, /中断/);
+});
+
 test("a late OAuth callback after timeout cannot resume the expired submission or resolve a retry", async () => {
   const clients = [];
   const deadlines = [];

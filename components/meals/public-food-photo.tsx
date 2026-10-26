@@ -8,7 +8,7 @@ import { Logo } from "@/components/ui/logo";
 import { analyzeFoodPhotoDetailed, type FoodPhotoCandidate } from "@/lib/food-ai/food-photo-analyzer";
 import { foodCatalog } from "@/lib/food-ai/food-catalog";
 import { applyPhotoNutritionUplift } from "@/lib/food-ai/photo-nutrition-estimate";
-import { isSupportedFoodPhoto, requestGoogleAccountToken, sanitizeTrainingPhoto, submitFoodCorrectionToSharedDrive } from "@/lib/drive/google-drive-client";
+import { isSupportedFoodPhoto, requestGoogleAccountSession, sanitizeTrainingPhoto, submitFoodCorrectionToSharedDrive, type GoogleAccountSession } from "@/lib/drive/google-drive-client";
 import { useGoogleDriveClientId, useTrainingConnection, useTrainingDataEndpoint } from "@/hooks/use-google-drive-client-id";
 import { createId } from "@/lib/utils/id";
 import { isSharedTestEnvironment } from "@/lib/cloud/config";
@@ -43,6 +43,12 @@ export function PublicFoodPhoto() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
   const [receiptId, setReceiptId] = useState("");
+  const [mode, setMode] = useState<"analyze" | "share" | null>(isSharedTestEnvironment ? "analyze" : null);
+  const [account, setAccount] = useState<GoogleAccountSession | null>(null);
+  const [authPending, setAuthPending] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
+  const authRequest = useRef<AbortController | null>(null);
+  const sending = useRef(false);
   const analysisGeneration = useRef(0);
   const previewUrl = useRef<string | null>(null);
   const submission = useRef<{ key: string; id: string; createdAt: string } | null>(null);
@@ -52,8 +58,51 @@ export function PublicFoodPhoto() {
   const handoffUrl = useSyncExternalStore(() => () => {}, () => `${window.location.origin}${window.location.pathname}`, () => "");
 
   useEffect(() => () => { if (previewUrl.current) URL.revokeObjectURL(previewUrl.current); }, []);
+  useEffect(() => () => { authRequest.current?.abort(); }, []);
+
+  useEffect(() => {
+    if (!account) return;
+    const expire = () => {
+      if (Date.now() < account.expiresAt) return;
+      setAccount(null);
+      setAuthMessage("Google認証の期限が切れました。入力はこの画面に残っています。共有する場合は再認証してください。");
+    };
+    const timer = setTimeout(expire, Math.max(0, account.expiresAt - Date.now()));
+    window.addEventListener("pageshow", expire);
+    document.addEventListener("visibilitychange", expire);
+    return () => { clearTimeout(timer); window.removeEventListener("pageshow", expire); document.removeEventListener("visibilitychange", expire); };
+  }, [account]);
+
+  async function authenticate() {
+    if (isSharedTestEnvironment || authRequest.current || sending.current || !connection.ready) return;
+    const controller = new AbortController();
+    authRequest.current = controller;
+    setAuthPending(true);
+    setAuthMessage("Google認証中です。2段階認証を終えたら、この元の画面へ戻ってください。");
+    try {
+      // Invoked directly by a tap; never open a popup after awaiting other work.
+      const session = await requestGoogleAccountSession(clientId, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      if (session.expiresAt <= Date.now()) throw new Error("認証の有効期限を確認できませんでした。もう一度お試しください。");
+      setAccount(session);
+      setMode("share");
+      setAuthMessage("Google認証済みです。写真と料理名を確認してから共有してください。まだ写真は送信していません。");
+    } catch (error) {
+      if (!controller.signal.aborted) setAuthMessage(error instanceof Error ? error.message : "認証できませんでした。再試行してください。");
+    } finally {
+      if (authRequest.current === controller) { authRequest.current = null; setAuthPending(false); }
+    }
+  }
+
+  function cancelAuthentication() {
+    authRequest.current?.abort();
+    authRequest.current = null;
+    setAuthPending(false);
+    setAuthMessage("認証待ちを解除しました。Googleの認証画面を閉じてから、もう一度お試しください。入力済みの内容はこの画面に残っています。");
+  }
 
   function chooseFile(event: ChangeEvent<HTMLInputElement>) {
+    if (authPending || !mode || (mode === "share" && (!account || account.expiresAt <= Date.now()))) return;
     const next = event.target.files?.[0];
     event.target.value = "";
     if (!next) return;
@@ -136,7 +185,12 @@ export function PublicFoodPhoto() {
   async function sendCorrection() {
     if (isSharedTestEnvironment) return;
     const name = correctName.trim();
-    if (!file || phase !== "ready" || !name || !labelChecked || !consent || !connection.ready) return;
+    if (sending.current || authPending || !file || phase !== "ready" || !name || !labelChecked || !consent || !connection.ready) return;
+    if (!account || account.expiresAt <= Date.now()) {
+      setAccount(null);
+      setAuthMessage("共有前にGoogle認証が必要です。上の認証ボタンから進んでください。入力はこの画面に残っています。");
+      return;
+    }
     if (Object.values(nutrition).some((value) => !Number.isFinite(value) || value < 0 || value > 10000)) {
       setMessage("栄養値は0以上の数値で入力してください。");
       return;
@@ -148,13 +202,12 @@ export function PublicFoodPhoto() {
       submission.current = { key, id: createId("food-photo"), createdAt: new Date().toISOString() };
     }
     const current = submission.current;
+    sending.current = true;
     setPhase("sending");
-    setMessage("Google認証を確認しています…");
+    setMessage("EXIFを除いた写真と正解をfoodDBへ送信しています…");
     try {
-      const accessToken = await requestGoogleAccountToken(clientId);
-      setMessage("EXIFを除いた写真と正解をfoodDBへ送信しています…");
       const receipt = await submitFoodCorrectionToSharedDrive({
-        endpoint, accessToken, id: current.id, image: file,
+        endpoint, accessToken: account.accessToken, id: current.id, image: file,
         predictedFoodIds: candidates.map((item) => item.id), confirmedFoodId,
         confirmedFoodName: name, nutrition, createdAt: current.createdAt, consent: true,
         onProgress: setMessage,
@@ -163,12 +216,17 @@ export function PublicFoodPhoto() {
       setPhase("sent");
       setMessage("foodDBへの保存を確認しました。確認後、独立評価に合格したデータだけを学習に利用します。");
     } catch (error) {
+      if (error instanceof Error && error.message.includes("invalid_google_token/")) {
+        setAccount(null);
+        setAuthMessage("Google認証を更新してください。写真と入力内容はこの画面に残っています。");
+      }
       setPhase("ready");
       setMessage(`送信を確認できませんでした。同じ内容なら再試行できます。${error instanceof Error ? error.message : "時間をおいて再試行してください。"}`);
-    }
+    } finally { sending.current = false; }
   }
 
-  const busy = phase === "analyzing" || phase === "sending";
+  const busy = authPending || phase === "analyzing" || phase === "sending";
+  const canChoosePhoto = !!mode && (mode === "analyze" || !!account);
   return <div className="min-h-dvh bg-white text-[var(--ink)]">
     <header className="safe-top border-b border-[var(--line)]"><div className="mx-auto flex min-h-20 max-w-3xl items-center justify-between gap-3 safe-gutters"><Logo /><Link href="/login" className="text-link text-sm">記録アプリへ</Link></div></header>
     <main className="mx-auto max-w-3xl safe-gutters safe-bottom pb-16 pt-8 sm:pt-12">
@@ -187,6 +245,18 @@ export function PublicFoodPhoto() {
         <label className="mt-2 block">ブラウザに貼り付けるURL（長押しでコピー）<input aria-label="食事写真ページのURL" className="form-input mt-1 w-full" readOnly value={handoffUrl} onFocus={(event) => event.currentTarget.select()} /></label>
         <p className="mt-2">Safari／Chromeでも接続できない場合はWi-Fiとモバイル通信を切り替えて「再接続」をお試しください。接続確認だけでは写真は送信されません。</p>
       </details>
+      {!isSharedTestEnvironment && <section className="mt-6 rounded-md border border-[var(--line)] p-4" aria-label="共有前のGoogle認証">
+        <h2 className="font-bold">共有する方は、写真を選ぶ前にGoogle認証</h2>
+        <p className="mt-2 text-xs leading-6 text-[var(--muted)]">2段階認証を先に済ませてから入力します。認証だけでは写真は送信されません。解析だけなら認証は不要です。</p>
+        <p className="mt-2 text-xs leading-6 text-[var(--muted)]">写真・入力・認証情報はこの画面のメモリ内だけで扱います。ページの再読み込みやブラウザの切り替えでは復元できません。認証後にこの画面が最初から表示された場合は、先にもう一度認証してから入力してください。</p>
+        {file && !account && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">入力後の再認証中にスマホがページを再読み込みすると、写真と入力を選び直す必要があります。</p>}
+        <div className="mt-3 flex flex-wrap gap-3">
+          {!account && <Button type="button" disabled={busy || !connection.ready} onClick={() => void authenticate()}>{authPending ? "Google認証中…" : "Googleで認証してから入力する"}</Button>}
+          {authPending && <Button type="button" variant="secondary" onClick={cancelAuthentication}>認証待ちを解除してやり直す</Button>}
+          {!mode && !authPending && <Button type="button" variant="secondary" onClick={() => setMode("analyze")}>認証せず解析だけ試す</Button>}
+        </div>
+        {authMessage && <p role="status" className="mt-3 text-sm leading-6">{authMessage}</p>}
+      </section>}
       <section className="mt-8" aria-label="食事写真の解析">
         <h2 className="text-lg font-bold">1. 食事写真を選ぶ</h2>
         <div className="mt-4 flex items-start gap-4">
@@ -194,11 +264,11 @@ export function PublicFoodPhoto() {
           <div className="grid min-w-0 flex-1 gap-3">
             <label className="relative flex min-h-14 cursor-pointer items-center justify-center rounded-md border border-[var(--sage-deep)] bg-[var(--sage-soft)] px-3 text-center text-sm font-semibold text-[var(--sage-deep)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--sage-deep)]">
               {file ? "別の写真をアルバムから選ぶ" : "写真をアルバムから選ぶ"}
-              <input type="file" accept="image/*" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="写真をアルバムから選ぶ" disabled={busy} onChange={chooseFile} />
+              <input type="file" accept="image/*" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="写真をアルバムから選ぶ" disabled={busy || !canChoosePhoto} onChange={chooseFile} />
             </label>
             <label className="relative flex min-h-14 cursor-pointer items-center justify-center rounded-md border border-[var(--line)] px-3 text-center text-sm font-semibold text-[var(--ink)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--sage-deep)]">
               カメラで撮影
-              <input type="file" accept="image/*" capture="environment" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="カメラで撮影" disabled={busy} onChange={chooseFile} />
+              <input type="file" accept="image/*" capture="environment" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="カメラで撮影" disabled={busy || !canChoosePhoto} onChange={chooseFile} />
             </label>
           </div>
         </div>
@@ -212,7 +282,12 @@ export function PublicFoodPhoto() {
         <label className="mt-5 block text-sm font-bold">正しい料理名<input className="form-input mt-2 w-full" value={correctName} disabled={busy || phase === "sent"} maxLength={100} placeholder="例：卵焼き" onChange={(event) => { setCorrectName(event.target.value); setSelectedId(""); setLabelChecked(false); }} /></label>
         <label className="mt-3 flex items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={labelChecked} disabled={busy || phase === "sent" || !correctName.trim()} onChange={(event) => setLabelChecked(event.target.checked)} /><span>写真を見て、上の料理名が主料理として正しいことを確認しました。AI候補を見ただけではチェックしないでください。</span></label>
         <fieldset className="mt-5"><legend className="text-sm font-bold">栄養値の目安（わかる範囲で修正）</legend><p className="mt-1 text-xs leading-6 text-[var(--muted)]">栄養値は利用者による目安として保存し、栄養の正解データとしては扱いません。</p><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="text-xs font-medium">{label}（{unit}）<input className="form-input mt-2 w-full" type="number" min="0" max="10000" step="0.1" inputMode="decimal" value={nutrition[key]} disabled={busy || phase === "sent"} onChange={(event) => setNutrition((value) => ({ ...value, [key]: event.target.value === "" ? 0 : Number(event.target.value) }))} /></label>)}</div></fieldset>
-        {isSharedTestEnvironment ? <p className="mt-8 rounded-md bg-[var(--sand)] p-4 text-sm leading-6">テスト環境では学習データの共有を行いません。ここで確認した写真・正解は送信されません。</p> : <div className="mt-8 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4"><label className="flex cursor-pointer items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={consent} disabled={busy || phase === "sent"} onChange={(event) => setConsent(event.target.checked)} /><span>学習用データの共有に同意します。写真（EXIF除去後）、AI候補、正しい料理名、入力した栄養値を非公開foodDBへ送ります。氏名・メール・認証トークンは学習データに保存しません。送信データは確認待ちとなり、すぐにAIへ反映されるわけではありません。</span></label><Button type="button" className="mt-4 w-full" disabled={busy || phase === "sent" || !labelChecked || !consent || !correctName.trim() || !connection.ready} onClick={() => void sendCorrection()}>{phase === "sending" ? "送信中…" : phase === "sent" ? "共有済み" : connection.checking ? "共有先を確認中…" : "Googleで認証して正解を共有"}</Button>{connection.error && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">共有先に接続できていません。ページ上部の「再接続」を押してください。</p>}</div>}
+        {isSharedTestEnvironment ? <p className="mt-8 rounded-md bg-[var(--sand)] p-4 text-sm leading-6">テスト環境では学習データの共有を行いません。ここで確認した写真・正解は送信されません。</p> : <div className="mt-8 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4">
+          <label className="flex cursor-pointer items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={consent} disabled={busy || phase === "sent"} onChange={(event) => setConsent(event.target.checked)} /><span>学習用データの共有に同意します。写真（EXIF除去後）、AI候補、正しい料理名、入力した栄養値を非公開foodDBへ送ります。氏名・メール・認証トークンは学習データに保存しません。送信データは確認待ちとなり、すぐにAIへ反映されるわけではありません。</span></label>
+          {!account && phase !== "sent" && <p className="mt-3 text-sm leading-6">共有には、ページ上部の「Googleで認証してから入力する」ボタンで認証してください。認証だけでは送信しません。</p>}
+          <Button type="button" className="mt-4 w-full" disabled={busy || phase === "sent" || !account || !labelChecked || !consent || !correctName.trim() || !connection.ready} onClick={() => void sendCorrection()}>{phase === "sending" ? "送信中…" : phase === "sent" ? "共有済み" : connection.checking ? "共有先を確認中…" : "確認した正解を共有"}</Button>
+          {connection.error && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">共有先に接続できていません。ページ上部の「再接続」を押してください。</p>}
+        </div>}
       </section>}
       {message && <p role="status" className={`mt-5 break-words rounded-md p-3 text-sm leading-6 ${phase === "error" ? "bg-[var(--coral-soft)] text-[var(--coral)]" : "bg-[var(--sage-soft)]"}`}>{message}{receiptId && <span className="mt-1 block text-xs">削除依頼・問い合わせ用の受付番号: {receiptId}</span>}</p>}
       <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{isSharedTestEnvironment ? "この画面の写真・正解データはメモリ内だけで扱います。テスト用の食事記録は「記録アプリへ」から保存できます。" : "写真・正解データは解析や送信のためにこの画面で扱い、個人の食事記録には保存しません。共有後に削除を希望する場合は受付番号をお知らせください。"}</p>
