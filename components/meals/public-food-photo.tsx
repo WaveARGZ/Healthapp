@@ -8,7 +8,7 @@ import { Logo } from "@/components/ui/logo";
 import { analyzeFoodPhotoDetailed, type FoodPhotoCandidate } from "@/lib/food-ai/food-photo-analyzer";
 import { foodCatalog } from "@/lib/food-ai/food-catalog";
 import { applyPhotoNutritionUplift } from "@/lib/food-ai/photo-nutrition-estimate";
-import { isSupportedFoodPhoto, requestGoogleAccountSession, sanitizeTrainingPhoto, submitFoodCorrectionToSharedDrive, type GoogleAccountSession } from "@/lib/drive/google-drive-client";
+import { isSupportedFoodPhoto, preloadGoogleIdentity, requestGoogleAccountSession, sanitizeTrainingPhoto, submitFoodCorrectionToSharedDrive, type GoogleAccountSession } from "@/lib/drive/google-drive-client";
 import { useGoogleDriveClientId, useTrainingConnection, useTrainingDataEndpoint } from "@/hooks/use-google-drive-client-id";
 import { createId } from "@/lib/utils/id";
 import { isSharedTestEnvironment } from "@/lib/cloud/config";
@@ -31,6 +31,19 @@ function normalizedName(name: string): string {
   return name.trim().normalize("NFKC").replace(/[\s　]+/g, "").toLocaleLowerCase();
 }
 
+function isStandaloneWindow(): boolean {
+  return window.matchMedia("(display-mode: standalone)").matches
+    || window.matchMedia("(display-mode: fullscreen)").matches
+    || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+function subscribeDisplayMode(callback: () => void): () => void {
+  const modes = [window.matchMedia("(display-mode: standalone)"), window.matchMedia("(display-mode: fullscreen)")];
+  modes.forEach((mode) => mode.addEventListener("change", callback));
+  window.addEventListener("pageshow", callback);
+  return () => { modes.forEach((mode) => mode.removeEventListener("change", callback)); window.removeEventListener("pageshow", callback); };
+}
+
 export function PublicFoodPhoto() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -47,6 +60,7 @@ export function PublicFoodPhoto() {
   const [account, setAccount] = useState<GoogleAccountSession | null>(null);
   const [authPending, setAuthPending] = useState(false);
   const [authMessage, setAuthMessage] = useState("");
+  const [copyMessage, setCopyMessage] = useState("");
   const authRequest = useRef<AbortController | null>(null);
   const sending = useRef(false);
   const analysisGeneration = useRef(0);
@@ -55,10 +69,28 @@ export function PublicFoodPhoto() {
   const clientId = useGoogleDriveClientId();
   const endpoint = useTrainingDataEndpoint();
   const connection = useTrainingConnection(clientId, endpoint);
+  // A plain HTML recovery link must remain usable even when a stale/missing
+  // JavaScript chunk prevents React from attaching any button handlers.
+  const interactive = useSyncExternalStore(() => () => {}, () => true, () => false);
   const handoffUrl = useSyncExternalStore(() => () => {}, () => `${window.location.origin}${window.location.pathname}`, () => "");
+  const standalone = useSyncExternalStore(subscribeDisplayMode, isStandaloneWindow, () => false);
 
   useEffect(() => () => { if (previewUrl.current) URL.revokeObjectURL(previewUrl.current); }, []);
   useEffect(() => () => { authRequest.current?.abort(); }, []);
+  useEffect(() => {
+    // Signing in does not depend on the upload receiver responding. Actual
+    // sharing still requires its readiness check, consent, and a valid receipt.
+    if (clientId && !isSharedTestEnvironment) void preloadGoogleIdentity().catch(() => undefined);
+  }, [clientId]);
+
+  async function copyBrowserUrl() {
+    try {
+      await navigator.clipboard.writeText(handoffUrl);
+      setCopyMessage("URLをコピーしました。Safari／Chromeを開き、アドレス欄に貼り付けてください。認証から共有まで、そのブラウザ内で続けてください。");
+    } catch {
+      setCopyMessage("自動でコピーできませんでした。下のURLを長押ししてコピーし、Safari／Chromeのアドレス欄に貼り付けてください。");
+    }
+  }
 
   useEffect(() => {
     if (!account) return;
@@ -74,7 +106,7 @@ export function PublicFoodPhoto() {
   }, [account]);
 
   async function authenticate() {
-    if (isSharedTestEnvironment || authRequest.current || sending.current || !connection.ready) return;
+    if (isSharedTestEnvironment || authRequest.current || sending.current || !clientId) return;
     const controller = new AbortController();
     authRequest.current = controller;
     setAuthPending(true);
@@ -230,13 +262,19 @@ export function PublicFoodPhoto() {
   return <div className="min-h-dvh bg-white text-[var(--ink)]">
     <header className="safe-top border-b border-[var(--line)]"><div className="mx-auto flex min-h-20 max-w-3xl items-center justify-between gap-3 safe-gutters"><Logo /><Link href="/login" className="text-link text-sm">記録アプリへ</Link></div></header>
     <main className="mx-auto max-w-3xl safe-gutters safe-bottom pb-16 pt-8 sm:pt-12">
+      {!interactive && <section data-food-photo-startup="pending" className="mb-6 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4" aria-label="画面の読み込み状態">
+        <p className="text-sm font-bold">操作できる画面を読み込んでいます…</p>
+        <p className="mt-2 text-xs leading-6">この表示が残り、再接続や認証ボタンが反応しない場合は、下のリンクで画面を読み直してください。Google認証の問題とは限りません。</p>
+        <a href="./?reload=food-photo-startup-v1" className="text-link mt-3 flex min-h-12 items-center text-sm font-bold">操作できないときは、ページを読み直す</a>
+        <p className="mt-2 text-xs leading-6">読み直すと入力中の内容は消えます。改善しない場合はSafari／ChromeにこのページのURLを貼り付けて開いてください。JavaScriptが無効の場合は有効にする必要があります。</p>
+      </section>}
       <p className="text-xs font-bold tracking-widest text-[var(--sage-deep)]">無料・アカウント不要で解析</p>
       <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">食事写真AIを試す</h1>
       <p className="mt-4 text-sm leading-7 text-[var(--muted)]">写真を選ぶと、端末上のAIが料理候補を表示します。初回は約200MBの無料モデルをダウンロードします。{isSharedTestEnvironment ? "本番と同じ認識モデルで、料理候補と修正画面を確認できます。" : "判定が違えば正しい料理名を教えてください。学習用の共有は任意で、Google認証と同意をした時だけ送信します。"}</p>
       <section className="mt-7 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4 text-xs leading-6 sm:p-5" aria-label="写真とデータの取り扱い"><p className="font-bold">写真の取り扱い</p><p className="mt-1">{isSharedTestEnvironment ? "このテスト環境では学習データの共有を行いません。食事写真は端末内で解析し、共有Driveには送信しません。" : "解析だけなら食事写真は送信されません。共有する場合は写真の位置情報などを除去し、料理名・AI候補・入力した栄養値と一緒に非公開のfoodDBへ保存します。人物や個人情報が写った写真は選ばないでください。"}</p></section>
       {!isSharedTestEnvironment && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-6 text-[var(--muted)]" aria-label="共有先の接続状態">
-        <p role="status">{connection.ready ? "共有先に接続済み" : connection.checking ? "共有先を確認中… 通信が遅い場合は自動で再接続します。写真の選択は先に進められます。" : connection.error}</p>
-        {!connection.ready && !connection.checking && <Button type="button" variant="secondary" disabled={busy} onClick={connection.retry}>再接続</Button>}
+        <p role="status">{connection.ready ? "共有先に接続済み" : connection.checking ? "共有先を確認中… 通信が遅い場合は自動で再接続します。Google認証または「解析だけ試す」は先に進められます。" : connection.error}</p>
+        {!connection.ready && !connection.checking && <a href="./?reload=food-photo-connection-v1" aria-disabled={busy} className={`inline-flex min-h-12 items-center rounded-md border border-[var(--line)] bg-white px-5 text-sm font-semibold ${busy ? "pointer-events-none opacity-45" : ""}`} onClick={(event) => { event.preventDefault(); if (!busy) connection.retry(); }}>再接続</a>}
       </div>}
       <details className="mt-3 rounded-md border border-[var(--line)] p-3 text-xs leading-6 text-[var(--muted)]">
         <summary className="min-h-11 cursor-pointer content-center font-semibold">Discord・LINEなどから開いた方／接続できない方へ</summary>
@@ -250,8 +288,19 @@ export function PublicFoodPhoto() {
         <p className="mt-2 text-xs leading-6 text-[var(--muted)]">2段階認証を先に済ませてから入力します。認証だけでは写真は送信されません。解析だけなら認証は不要です。</p>
         <p className="mt-2 text-xs leading-6 text-[var(--muted)]">写真・入力・認証情報はこの画面のメモリ内だけで扱います。ページの再読み込みやブラウザの切り替えでは復元できません。認証後にこの画面が最初から表示された場合は、先にもう一度認証してから入力してください。</p>
         {file && !account && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">入力後の再認証中にスマホがページを再読み込みすると、写真と入力を選び直す必要があります。</p>}
+        {(standalone || authPending) && <div className="mt-3 rounded-md bg-[var(--sand)] p-3" aria-label="ブラウザで認証を続ける">
+          <p className="text-sm font-bold">{standalone ? "ホーム画面のアイコンから開いています" : "Googleから戻っても認証済みにならない場合"}</p>
+          <p className="mt-2 text-xs leading-6">Googleの画面で操作が終わっても、この画面に認証結果が戻らない場合があります。その場合はSafari／Chromeでこのページを開き、認証・写真選択・共有まで同じブラウザ内で行ってください。ホーム画面のアイコンには戻らないでください。</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Button type="button" variant="secondary" onClick={() => void copyBrowserUrl()} disabled={!handoffUrl}>Safari／Chrome用のURLをコピー</Button>
+            {handoffUrl && <a href={handoffUrl} target="_blank" rel="noopener noreferrer" className="text-link flex min-h-11 items-center text-sm">別の画面でページを開く</a>}
+          </div>
+          <p className="mt-2 text-xs leading-6">別の画面もアプリ内で開く場合は、URLをコピーしてSafari／Chromeへ貼り付けてください。写真・入力・認証状態は切り替え先へ引き継がれません。</p>
+          <label className="mt-2 block text-xs">通常ブラウザで開くURL<input aria-label="通常ブラウザで開くURL" className="form-input mt-1 w-full" readOnly value={handoffUrl} onFocus={(event) => event.currentTarget.select()} /></label>
+          {copyMessage && <p role="status" className="mt-2 text-sm leading-6">{copyMessage}</p>}
+        </div>}
         <div className="mt-3 flex flex-wrap gap-3">
-          {!account && <Button type="button" disabled={busy || !connection.ready} onClick={() => void authenticate()}>{authPending ? "Google認証中…" : "Googleで認証してから入力する"}</Button>}
+          {!account && <Button type="button" disabled={busy || !clientId} onClick={() => void authenticate()}>{authPending ? "Google認証中…" : "Googleで認証してから入力する"}</Button>}
           {authPending && <Button type="button" variant="secondary" onClick={cancelAuthentication}>認証待ちを解除してやり直す</Button>}
           {!mode && !authPending && <Button type="button" variant="secondary" onClick={() => setMode("analyze")}>認証せず解析だけ試す</Button>}
         </div>
@@ -259,7 +308,8 @@ export function PublicFoodPhoto() {
       </section>}
       <section className="mt-8" aria-label="食事写真の解析">
         <h2 className="text-lg font-bold">1. 食事写真を選ぶ</h2>
-        <div className="mt-4 flex items-start gap-4">
+        {(authPending || !canChoosePhoto) && <p role="status" className="mt-2 text-sm leading-6">{authPending ? "Google認証の結果を待っています。上に「認証済み」と表示されたら写真を選べます。戻っても変わらない場合は「認証待ちを解除してやり直す」、またはSafari／Chromeへの切り替えをご利用ください。" : mode === "share" ? "上のGoogle認証を更新すると、写真を選べます。" : "上のGoogle認証を完了するか、「認証せず解析だけ試す」を選ぶと、写真を選べます。"}</p>}
+        <div className={`mt-4 flex items-start gap-4 ${busy || !canChoosePhoto ? "opacity-50" : ""}`}>
           {preview && <div className="relative size-28 shrink-0 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--sand)]"><Image src={preview} alt="選んだ食事写真" fill unoptimized className="object-cover" /></div>}
           <div className="grid min-w-0 flex-1 gap-3">
             <label className="relative flex min-h-14 cursor-pointer items-center justify-center rounded-md border border-[var(--sage-deep)] bg-[var(--sage-soft)] px-3 text-center text-sm font-semibold text-[var(--sage-deep)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--sage-deep)]">

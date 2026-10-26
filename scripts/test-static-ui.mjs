@@ -25,6 +25,11 @@ for (const page of pages) {
     assert.match(html, /カメラで撮影/, "food-photo: mobile camera picker");
     assert.match(html, /<input[^>]*type="file"[^>]*accept="image\/\*"(?![^>]*capture=)[^>]*>/, "food-photo: library picker does not force camera capture");
     assert.doesNotMatch(html, /ログイン状態を確認しています/, "food-photo: no app account gate");
+    assert.match(html, /data-food-photo-startup="pending"/, "food-photo: SSR must explain that controls are not interactive yet");
+    assert.match(html, /<a[^>]*href="\.\/\?reload=food-photo-startup-v1"[^>]*>操作できないときは、ページを読み直す<\/a>/, "food-photo: boot recovery must be a native link, not a JS-only button");
+    if (!html.includes("このテスト環境では学習データの共有を行いません")) {
+      assert.match(html, /<a[^>]*href="\.\/\?reload=food-photo-connection-v1"[^>]*>再接続<\/a>/, "food-photo: reconnect can navigate even before hydration");
+    }
   }
   const cloudGate = appPages.has(page) && html.includes("ログイン状態を確認しています");
   assert.match(html, /<html[^>]*lang="ja"/, `${page}: Japanese document`);
