@@ -82,6 +82,20 @@ export function DashboardContent() {
     weightKg: summary.currentWeight,
     goal: data.profile.goal,
   }) : null, [data.profile, summary.currentWeight]);
+  const calorieGoal = calorieGuide?.status === "ready" ? calorieGuide.maxKcal : null;
+  const recordedCalories = loading || mealLoadFailed || (dailyCalories.mealCount > 0 && dailyCalories.countedMeals === 0)
+    ? null : Math.round(dailyCalories.calories);
+  const calorieProgress = calorieGoal !== null && recordedCalories !== null
+    ? Math.min(100, (recordedCalories / calorieGoal) * 100) : 0;
+  const calorieExcess = calorieGoal !== null && recordedCalories !== null && recordedCalories > calorieGoal
+    ? recordedCalories - calorieGoal : 0;
+  const mealStatus = loading ? "食事記録を読み込み中…"
+    : mealLoadFailed ? "合計を表示できません"
+    : dailyCalories.mealCount === 0 ? "まだ食事の記録はありません"
+    : dailyCalories.countedMeals === 0 ? "食事は記録済みですが、カロリーは未入力です"
+    : dailyCalories.missingMeals > 0 || dailyCalories.partiallyCountedMeals > 0
+      ? `${dailyCalories.mealCount}件のうち、カロリー入力済み分の合計です。未入力の料理・食事は含みません。`
+      : null;
   const recordedDays = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(); date.setDate(date.getDate() - (6 - index));
     const iso = toDateInputValue(date);
@@ -94,22 +108,26 @@ export function DashboardContent() {
       <Link href="/onboarding" className="text-link max-w-[45%]"><span className="truncate">{data.profile?.name ? `${data.profile.name}さん` : "プロフィール設定"}</span><Icon name="user" className="size-4 shrink-0" /></Link>
     </header>
     {error && <p role="alert" className="mt-4 text-xs text-[var(--coral)]">{error}</p>}
-    <section aria-label="今日の摂取カロリー" aria-busy={loading} className="mt-6 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3"><h2 className="section-title">今日の摂取カロリー</h2><Link href="/meals" className="text-link shrink-0">食事を記録<Icon name="arrow-right" className="size-3.5" /></Link></div>
-      <p className="metric mt-3 flex flex-wrap items-baseline gap-x-2 text-[36px] font-semibold leading-none sm:text-[44px]"><span>{loading || mealLoadFailed ? "—" : dailyCalories.mealCount > 0 && dailyCalories.countedMeals === 0 ? "—" : Math.round(dailyCalories.calories).toLocaleString("ja-JP")}</span><span className="text-sm font-normal tracking-normal text-[var(--muted)]">kcal</span></p>
-      <p className="mt-3 text-xs leading-5 text-[var(--muted)]">{loading ? "食事記録を読み込み中…" : mealLoadFailed ? "合計を表示できません" : dailyCalories.mealCount === 0 ? "まだ食事の記録はありません" : dailyCalories.countedMeals === 0 ? "食事は記録済みですが、カロリーは未入力です" : dailyCalories.missingMeals > 0 || dailyCalories.partiallyCountedMeals > 0 ? `${dailyCalories.mealCount}件のうち、カロリー入力済み分の合計です。未入力の料理・食事は含みません。` : `${dailyCalories.mealCount}件の食事を合計`}</p>
-      <div className="mt-5 border-t border-[var(--line)] pt-4" aria-label="一日の摂取カロリーの目安">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><h3 className="text-sm font-bold text-[var(--ink)]">一日の摂取目安</h3>{data.profile && <span className="text-xs text-[var(--sage-deep)]">{fitnessGoalLabels[data.profile.goal]}</span>}</div>
-        {loading ? <p className="mt-2 text-sm text-[var(--muted)]">計算中…</p>
-          : profileLoadFailed ? <p className="mt-2 text-sm text-[var(--muted)]">プロフィールを読み込めないため表示できません。</p>
-          : calorieGuide?.status === "ready" ? <>
-            <p className="metric mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[24px] font-semibold leading-tight sm:text-[30px]"><span>約 {calorieGuide.minKcal.toLocaleString("ja-JP")}〜{calorieGuide.maxKcal.toLocaleString("ja-JP")}</span><span className="text-sm font-normal tracking-normal text-[var(--muted)]">kcal / 日</span></p>
-            <p className="mt-2 text-xs leading-5 text-[var(--muted)]">身長{data.profile?.heightCm}cm・体重{summary.currentWeight}kg・年齢と目標から計算。活動量は低め〜標準を仮定{calorieGuide.broadRange ? "し、性別を計算に用いない設定のため幅を広げています" : "しています"}。今日の記録との差はノルマではありません。</p>
-          </> : <p className="mt-2 text-xs leading-6 text-[var(--muted)]">{calorieGuide?.status === "outside-adult-range" ? "この計算式は20〜78歳向けです。個別の目安は専門家に相談してください。" : calorieGuide?.status === "underweight" ? "現在の身長・体重からは減量用の目安を表示しません。体型については専門家に相談してください。" : calorieGuide?.status === "low-estimate" ? "計算結果が低すぎるため、数値を表示しません。専門家に相談してください。" : "年齢・身長・体重を設定すると目安を表示できます。"}</p>}
-        {!loading && !profileLoadFailed && calorieGuide?.status !== "ready" && <Link href="/onboarding" className="text-link mt-2">プロフィールを確認<Icon name="arrow-right" className="size-3.5" /></Link>}
-        <details className="mt-3 text-xs leading-5 text-[var(--muted)]"><summary className="min-h-11 cursor-pointer content-center">計算方法と注意点</summary><p className="pb-2">成人のMifflin-St Jeor式を使用し、活動量を1.4〜1.6倍で概算しています。目標による補正（筋肉を増やす +5%、体脂肪を減らす -10%）はアプリ独自の控えめな仮定です。妊娠・授乳中や持病のある方には適用せず、必要に応じて医療・栄養の専門家に相談してください。<a className="underline underline-offset-2" href="https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner" target="_blank" rel="noopener noreferrer">参考：米国NIH</a></p></details>
+    <section aria-label="一日の摂取カロリーの目安" aria-busy={loading} className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><h2 className="section-title">一日の摂取カロリーの目安</h2>{data.profile && <span className="text-xs text-[var(--muted)]">{fitnessGoalLabels[data.profile.goal]}</span>}</div>
+      {loading ? <p className="mt-5 text-sm text-[var(--muted)]">計算中…</p>
+        : profileLoadFailed ? <p className="mt-5 text-sm text-[var(--muted)]">プロフィールを読み込めないため目安を表示できません。</p>
+        : calorieGuide?.status === "ready" ? <p className="metric mt-5 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[24px] font-semibold leading-tight sm:text-[28px]"><span>約 {calorieGuide.minKcal.toLocaleString("ja-JP")}〜{calorieGuide.maxKcal.toLocaleString("ja-JP")}</span><span className="text-base font-normal tracking-normal text-[var(--ink-soft)]">kcal / 日</span></p>
+        : <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{calorieGuide?.status === "outside-adult-range" ? "この計算式は20〜78歳向けです。個別の目安は専門家に相談してください。" : calorieGuide?.status === "underweight" ? "現在の身長・体重からは減量用の目安を表示しません。体型については専門家に相談してください。" : calorieGuide?.status === "low-estimate" ? "計算結果が低すぎるため、数値を表示しません。専門家に相談してください。" : "年齢・身長・体重を設定すると目安を表示できます。"}</p>}
+      {!loading && !profileLoadFailed && calorieGuide?.status !== "ready" && <Link href="/onboarding" className="text-link mt-2">プロフィールを確認<Icon name="arrow-right" className="size-3.5" /></Link>}
+      <div className="mt-5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm font-bold">
+        <h3>今日の摂取量</h3>
+        <p className="metric">{recordedCalories === null ? "—" : recordedCalories.toLocaleString("ja-JP")}{calorieGoal !== null && ` / ${calorieGoal.toLocaleString("ja-JP")}`} kcal</p>
       </div>
+      <div role={calorieGoal !== null && recordedCalories !== null ? "progressbar" : undefined} aria-label={calorieGoal !== null && recordedCalories !== null ? "今日の摂取カロリー" : undefined} aria-valuemin={calorieGoal !== null && recordedCalories !== null ? 0 : undefined} aria-valuemax={calorieGoal ?? undefined} aria-valuenow={calorieGoal !== null && recordedCalories !== null ? Math.min(recordedCalories, calorieGoal) : undefined} aria-valuetext={calorieGoal !== null && recordedCalories !== null ? `${recordedCalories.toLocaleString("ja-JP")} / ${calorieGoal.toLocaleString("ja-JP")} kcal` : undefined} className="mt-4 h-5 overflow-hidden rounded-full bg-[var(--sage-soft)]">
+        <div className="h-full rounded-full bg-[var(--sage-deep)] transition-[width]" style={{ width: `${calorieProgress}%` }} />
+      </div>
+      <div className="metric mt-3 flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm text-[var(--muted)]"><span>0 kcal</span><span>目安上限 {calorieGoal === null ? "—" : calorieGoal.toLocaleString("ja-JP")} kcal</span></div>
+      {calorieExcess > 0 && <p className="mt-2 text-xs font-semibold text-[var(--coral)]">目安上限を {calorieExcess.toLocaleString("ja-JP")} kcal 超えています。</p>}
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">濃い緑色＝登録した食事の摂取カロリー</p>
+      {mealStatus && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{mealStatus}</p>}
     </section>
+    <details className="mt-1 text-xs leading-5 text-[var(--muted)]"><summary className="min-h-11 cursor-pointer content-center">計算方法と注意点</summary><p className="pb-2">{calorieGuide?.status === "ready" && `身長${data.profile?.heightCm}cm・体重${summary.currentWeight}kg・年齢と目標から計算。活動量は低め〜標準を仮定${calorieGuide.broadRange ? "し、性別を計算に用いない設定のため幅を広げています" : "しています"}。今日の記録との差はノルマではありません。`}成人のMifflin-St Jeor式を使用し、活動量を1.4〜1.6倍で概算しています。目標による補正（筋肉を増やす +5%、体脂肪を減らす -10%）はアプリ独自の控えめな仮定です。妊娠・授乳中や持病のある方には適用せず、必要に応じて医療・栄養の専門家に相談してください。<a className="underline underline-offset-2" href="https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner" target="_blank" rel="noopener noreferrer">参考：米国NIH</a></p></details>
     <WeightTrendChart entries={data.weights.filter((entry) => entry.measuredOn <= today)} loading={loading} />
     <section aria-label="現在の身体と目標" className="mt-7 grid grid-cols-2 border-y border-[var(--ink)] py-6 sm:py-7">
       <Link href="/weight" className="min-w-0 pr-4"><p className="text-xs text-[var(--muted)]">現在の体重</p><p className="metric mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[34px] font-medium leading-none sm:text-[56px]"><span>{loading ? "—" : summary.currentWeight ?? "—"}</span><span className="text-sm font-normal tracking-normal text-[var(--muted)]">kg</span></p><p className="mt-3 text-xs text-[var(--sage-deep)]">体重を記録する ↗</p></Link>
