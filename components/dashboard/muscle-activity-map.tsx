@@ -4,6 +4,15 @@ import { muscleGroups, summarizeMuscleActivity, type MuscleActivity, type Muscle
 import type { WorkoutEntry } from "@/types/workout";
 
 const activityColors = ["#d4e0d6", "#a3d6aa", "#58a96e", "#246b43"];
+const activityShades = [
+  { light: "#f2f6f0", dark: "#a8bfad" },
+  { light: "#e1f2e1", dark: "#6fac7c" },
+  { light: "#b9dfba", dark: "#2f8150" },
+  { light: "#72ae7f", dark: "#16462e" },
+];
+const muscleIds: Record<MuscleGroup, string> = {
+  "胸": "chest", "背中": "back", "腕": "arms", "肩": "shoulders", "腹筋・体幹": "core", "脚": "legs",
+};
 const muscleLabels: Record<MuscleGroup, string> = {
   "胸": "胸", "背中": "背中", "腕": "腕", "肩": "肩", "腹筋・体幹": "腹筋", "脚": "脚",
 };
@@ -11,11 +20,29 @@ const muscleLabels: Record<MuscleGroup, string> = {
 function colorFor(days: number): string { return activityColors[Math.min(days, 3)]; }
 
 function BodyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
-  const color = (group: MuscleGroup) => colorFor(activity[group]);
+  const fill = (group: MuscleGroup) => `url(#${view}-${muscleIds[group]}-volume)`;
   return <div className="rounded-xl border border-[#b7c8bb] bg-[#f9fbf7] px-2 pb-4 pt-4 text-center">
     <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
     <svg viewBox="0 0 160 345" aria-hidden="true" className="mx-auto mt-2 h-[340px] w-full max-w-[220px] sm:h-[350px]">
-      <g fill="#f3eee4" stroke="#637e6b" strokeLinejoin="round" strokeWidth="2.2">
+      <defs>
+        <linearGradient id={`${view}-body-volume`} x1="0%" y1="0%" x2="100%" y2="20%">
+          <stop offset="0%" stopColor="#fffdf5" />
+          <stop offset="50%" stopColor="#eeeadd" />
+          <stop offset="100%" stopColor="#b5c6b6" />
+        </linearGradient>
+        {muscleGroups.map((group) => {
+          const level = Math.min(activity[group], 3);
+          return <linearGradient key={group} id={`${view}-${muscleIds[group]}-volume`} x1="0%" y1="0%" x2="100%" y2="25%">
+            <stop offset="0%" stopColor={activityShades[level].light} />
+            <stop offset="42%" stopColor={activityColors[level]} />
+            <stop offset="100%" stopColor={activityShades[level].dark} />
+          </linearGradient>;
+        })}
+        <filter id={`${view}-figure-shadow`} x="-20%" y="-10%" width="140%" height="125%">
+          <feDropShadow dx="2" dy="3" stdDeviation="2" floodColor="#304d38" floodOpacity="0.22" />
+        </filter>
+      </defs>
+      <g fill={`url(#${view}-body-volume)`} stroke="#637e6b" strokeLinejoin="round" strokeWidth="2.2" filter={`url(#${view}-figure-shadow)`}>
         <circle cx="80" cy="25" r="17" />
         <path d="M73 40h14l2 15H71z" />
         <path d="M58 53Q69 48 80 53q11-5 22 0 10 9 10 28l-6 46q-4 15-2 28l8 20H48l8-20q2-13-2-28l-6-46q0-19 10-28Z" />
@@ -24,35 +51,46 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
         <path d="M49 171h30l-1 67-9 48-6 39q-1 10-9 10-7-1-6-11l-3-38-4-51Z" />
         <path d="M49 171h30l-1 67-9 48-6 39q-1 10-9 10-7-1-6-11l-3-38-4-51Z" transform="translate(160 0) scale(-1 1)" />
       </g>
-      <g stroke="#f9fbf7" strokeLinejoin="round" strokeWidth="2">
-        <g fill={color("肩")}>
+      <g stroke="#f9fbf7" strokeLinejoin="round" strokeWidth="1.7">
+        <g fill={fill("肩")}>
           <path d="M57 57q-11 2-16 15l-2 12 12 5 13-19Z" />
           <path d="M57 57q-11 2-16 15l-2 12 12 5 13-19Z" transform="translate(160 0) scale(-1 1)" />
         </g>
-        <g fill={color("腕")}>
+        <g fill={fill("腕")}>
           <path d="M40 86l12 5-8 31-11 31-8 23-8-3 5-25 11-36Z" />
           <path d="M40 86l12 5-8 31-11 31-8 23-8-3 5-25 11-36Z" transform="translate(160 0) scale(-1 1)" />
         </g>
-        <g fill={color("脚")}>
+        <g fill={fill("脚")}>
           <path d="M49 175h29l-2 61-8 26-16-5-5-31Z" />
           <path d="M49 175h29l-2 61-8 26-16-5-5-31Z" transform="translate(160 0) scale(-1 1)" />
           <path d="M52 262l16 5-6 53-12 1-3-37Z" />
           <path d="M52 262l16 5-6 53-12 1-3-37Z" transform="translate(160 0) scale(-1 1)" />
         </g>
         {view === "front" ? <>
-          <g fill={color("胸")}>
+          <g fill={fill("胸")}>
             <path d="M62 71q8-8 17-6v38q-12 4-22-7l-1-17Z" />
             <path d="M62 71q8-8 17-6v38q-12 4-22-7l-1-17Z" transform="translate(160 0) scale(-1 1)" />
           </g>
-          <g fill={color("腹筋・体幹")}>
+          <g fill={fill("腹筋・体幹")}>
             <path d="M62 107h17v18H61z" /><path d="M81 107h17l1 18H81z" />
             <path d="M61 127h18v17H59z" /><path d="M81 127h18l2 17H81z" />
             <path d="M59 146h20v21H55z" /><path d="M81 146h20l4 21H81z" />
           </g>
-        </> : <g fill={color("背中")}>
+        </> : <g fill={fill("背中")}>
           <path d="M62 69q9-4 17 0v84l-22 12 2-34-5-42Z" />
           <path d="M62 69q9-4 17 0v84l-22 12 2-34-5-42Z" transform="translate(160 0) scale(-1 1)" />
         </g>}
+      </g>
+      <g fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="2" opacity="0.65">
+        <path d="M44 76q3-11 12-14M39 96q-7 24-13 47M53 186q-2 27-1 51M53 273l-1 32" />
+        <path d="M44 76q3-11 12-14M39 96q-7 24-13 47M53 186q-2 27-1 51M53 273l-1 32" transform="translate(160 0) scale(-1 1)" />
+        {view === "front" ? <>
+          <path d="M60 80q8-10 17-8M61 111q7-3 15-2M60 131q8-3 16-2" />
+          <path d="M60 80q8-10 17-8M61 111q7-3 15-2M60 131q8-3 16-2" transform="translate(160 0) scale(-1 1)" />
+        </> : <>
+          <path d="M59 83q6-9 18-9M60 101q7-5 17-4M59 128q8-5 18-5" />
+          <path d="M59 83q6-9 18-9M60 101q7-5 17-4M59 128q8-5 18-5" transform="translate(160 0) scale(-1 1)" />
+        </>}
       </g>
       <path d="M80 54v111" stroke="#708b78" strokeWidth="1.2" strokeDasharray="3 5" />
     </svg>
