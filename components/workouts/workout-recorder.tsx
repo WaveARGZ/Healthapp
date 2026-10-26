@@ -42,7 +42,7 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
   month: string;
   selectedDate: string | null;
   onMonthChange: (month: string) => void;
-  onDateSelect: (date: string) => void;
+  onDateSelect: (date: string | null) => void;
   onDelete: (id: string) => void;
   children: ReactNode;
 }) {
@@ -66,7 +66,8 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
     onMonthChange(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
   }
 
-  return <section aria-labelledby="workout-history-title">
+  return <section aria-labelledby={selectedDate ? "workout-selected-date-title" : "workout-history-title"}>
+    <div hidden={selectedDate !== null}>
     <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><h2 id="workout-history-title" className="section-title">筋トレカレンダー</h2><span className="text-xs text-[var(--muted)]">全{history.length}件</span></div>
     <div className="rounded-md border border-[var(--line)] bg-white p-3 sm:p-5">
       <div className="mb-5 flex items-center justify-between gap-2">
@@ -90,12 +91,12 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
             const date = `${month}-${String(day).padStart(2, "0")}`;
             const count = recordedByDate.get(date)?.length ?? 0;
             return <div key={date} className="flex justify-center"><button
+              id={`workout-day-${date}`}
               type="button"
               aria-label={`${year}年${monthNumber}月${day}日${count ? `、筋トレ記録${count}件` : "、記録なし"}`}
-              aria-pressed={selectedDate === date}
               onClick={() => {
                 onDateSelect(date);
-                requestAnimationFrame(() => document.getElementById("workout-selected-date")?.scrollIntoView({ block: "nearest" }));
+                requestAnimationFrame(() => document.getElementById("workout-calendar-back")?.focus());
               }}
               className={`relative grid size-11 place-items-center rounded-full text-sm font-semibold ${selectedDate === date ? "bg-[var(--sage-deep)] text-white" : count ? "bg-[var(--sage-soft)] text-[var(--sage-deep)] hover:bg-[var(--sage-deep)] hover:text-white" : "text-[var(--muted)] hover:bg-[var(--sand)]"}`}
             >{day}{count > 1 && <span className="absolute bottom-0.5 size-1 rounded-full bg-current" />}</button></div>;
@@ -104,9 +105,14 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
       </div>
       <p className="mt-4 text-xs text-[var(--muted)]">日付を選ぶと種目を登録できます。緑色は記録がある日です。</p>
     </div>
-    {selectedDate && <div id="workout-selected-date" className="mt-7">
+    </div>
+    {selectedDate && <div id="workout-selected-date">
+      <button id="workout-calendar-back" type="button" onClick={() => {
+        onDateSelect(null);
+        requestAnimationFrame(() => document.getElementById(`workout-day-${selectedDate}`)?.focus());
+      }} className="mb-5 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← カレンダーへ戻る</button>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold">{formatDate(selectedDate, { year: "numeric" })}の種目登録</h3>
+        <h2 id="workout-selected-date-title" className="section-title">{formatDate(selectedDate, { year: "numeric" })}の種目登録</h2>
         {selectedEntries.length > 0 && <a href="#workout-selected-records" className="text-xs font-semibold text-[var(--sage-deep)] underline underline-offset-2">この日の記録 {selectedEntries.length}件を見る</a>}
       </div>
       {children}
@@ -206,7 +212,7 @@ export function WorkoutRecorder() {
       <WorkoutPlanSetup date={performedAt} onLoad={handlePlanLoad} onSave={handlePlanSave} />
     </div>
     <div id="workout-record-panel" role="tabpanel" aria-labelledby="workout-record-tab" hidden={activeTab !== "record"}>
-    <WorkoutHistoryCalendar history={history} month={calendarMonth} selectedDate={selectedDate} onMonthChange={(month) => { setCalendarMonth(month); setSelectedDate(null); }} onDateSelect={(date) => { setSelectedDate(date); setPerformedAt(date); setNotice(""); }} onDelete={(id) => { void deleteEntry(id); }}>
+    <WorkoutHistoryCalendar history={history} month={calendarMonth} selectedDate={selectedDate} onMonthChange={(month) => { setCalendarMonth(month); setSelectedDate(null); }} onDateSelect={(date) => { setSelectedDate(date); if (date) setPerformedAt(date); setNotice(""); }} onDelete={(id) => { void deleteEntry(id); }}>
     <form onSubmit={handleSubmit}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div className="w-full min-w-0 sm:max-w-[180px]"><FieldLabel htmlFor="workout-time">時刻</FieldLabel><TextInput id="workout-time" type="time" step="60" value={performedTime} onChange={(event) => setPerformedTime(event.target.value)} required /></div>
