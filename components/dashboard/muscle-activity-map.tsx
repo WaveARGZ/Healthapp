@@ -21,6 +21,7 @@ function colorFor(days: number): string { return activityColors[Math.min(days, 3
 
 function BodyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
   const fill = (group: MuscleGroup) => `url(#${view}-${muscleIds[group]}-volume)`;
+  const bodyScaleX = 0.88;
   return <div className="rounded-xl border border-[#b7c8bb] bg-[#f9fbf7] px-2 pb-4 pt-4 text-center">
     <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
     <svg viewBox="0 0 160 345" aria-hidden="true" className="mx-auto mt-2 h-[340px] w-full max-w-[220px] sm:h-[350px]">
@@ -45,6 +46,9 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
       <g fill={`url(#${view}-body-volume)`} stroke="#31553b" strokeLinejoin="round" strokeWidth="2.5" filter={`url(#${view}-figure-shadow)`}>
         <circle cx="80" cy="25" r="17" />
         <path d="M73 40h14l2 15H71z" />
+      </g>
+      <g transform={`translate(${80 * (1 - bodyScaleX)} 0) scale(${bodyScaleX} 1)`}>
+      <g fill={`url(#${view}-body-volume)`} stroke="#31553b" strokeLinejoin="round" strokeWidth="2.5" filter={`url(#${view}-figure-shadow)`}>
         <path fill={fill(view === "front" ? "腹筋・体幹" : "背中")} d="M59 53Q69 49 80 53q11-4 21 0 15 1 19 23l-6 38q-5 13-10 20l-1 29 8 15q-32 8-64 0l8-15-1-29q-5-7-10-20l-6-38q4-22 21-23Z" />
         <path fill={fill("腕")} d="M53 55Q39 56 33 69L24 102Q22 111 24 122L13 161Q10 175 16 183Q23 187 29 174L43 132Q48 125 48 114L61 82Z" />
         <path fill={fill("腕")} d="M53 55Q39 56 33 69L24 102Q22 111 24 122L13 161Q10 175 16 183Q23 187 29 174L43 132Q48 125 48 114L61 82Z" transform="translate(160 0) scale(-1 1)" />
@@ -78,6 +82,7 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
           <path d="M54 83q7-9 22-8M56 104q7-5 19-4M61 126q7-5 14-5" />
           <path d="M54 83q7-9 22-8M56 104q7-5 19-4M61 126q7-5 14-5" transform="translate(160 0) scale(-1 1)" />
         </>}
+      </g>
       </g>
     </svg>
   </div>;
