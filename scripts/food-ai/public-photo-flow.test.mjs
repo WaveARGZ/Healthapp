@@ -7,37 +7,43 @@ import * as jsxRuntime from "react/jsx-runtime";
 
 // No browser storage, network, real photos, or generated files: a memory-only
 // component harness with real event dispatch and controlled Google callbacks.
-function publicPhotoHarness(sharedTest = false) {
+function publicPhotoHarness(sharedTest = false, displayMode = "browser") {
   const source = ts.transpileModule(readFileSync(new URL("../../components/meals/public-food-photo.tsx", import.meta.url), "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const states = [], refs = [], effects = [], jobs = [], authorizations = [], posts = [], timers = new Map();
   let stateIndex = 0, refIndex = 0, effectIndex = 0, now = 100_000, sequence = 0;
   let rejection = "";
+  let connectionReady = true, clipboardDenied = false;
+  const copied = [];
   const window = new EventTarget(), document = new EventTarget();
+  window.location = { origin: "https://example.invalid", pathname: "/food-photo/", search: "?private=never-copy", hash: "#never-copy" };
+  window.matchMedia = (query) => ({ matches: query === `(display-mode: ${displayMode})`, addEventListener() {}, removeEventListener() {} });
+  const navigator = { standalone: displayMode === "ios", clipboard: { async writeText(text) { if (clipboardDenied) throw new Error("denied"); copied.push(text); } } };
   const photo = { name: "synthetic.jpg", size: 10, lastModified: 1 };
   const react = {
     useState(initial) { const i = stateIndex++; if (i >= states.length) states[i] = initial; return [states[i], (value) => { states[i] = typeof value === "function" ? value(states[i]) : value; }]; },
     useRef(initial) { return refs[refIndex++] ??= { current: initial }; },
     useEffect(callback, deps) { const i = effectIndex++, old = effects[i]; if (!old || deps.some((v, j) => !Object.is(v, old.deps[j]))) jobs.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: callback() }; }); },
-    useSyncExternalStore(_s, _g, server) { return server(); },
+    useSyncExternalStore(_s, getSnapshot) { return getSnapshot(); },
   };
   const modules = {
     react, "react/jsx-runtime": jsxRuntime, "next/image": { default: "img" }, "next/link": { default: "a" },
     "@/components/ui/button": { Button: "button" }, "@/components/ui/logo": { Logo: "div" },
     "@/lib/food-ai/food-photo-analyzer": {}, "@/lib/food-ai/food-catalog": { foodCatalog: [] },
     "@/lib/food-ai/photo-nutrition-estimate": {}, "@/lib/cloud/config": { isSharedTestEnvironment: sharedTest },
-    "@/hooks/use-google-drive-client-id": { useGoogleDriveClientId: () => "mock-client", useTrainingDataEndpoint: () => "https://example.invalid", useTrainingConnection: () => ({ ready: true }) },
+    "@/hooks/use-google-drive-client-id": { useGoogleDriveClientId: () => "mock-client", useTrainingDataEndpoint: () => "https://example.invalid", useTrainingConnection: () => ({ ready: connectionReady }) },
     "@/lib/utils/id": { createId: () => `mock-${++sequence}` },
     "@/lib/drive/google-drive-client": {
       isSupportedFoodPhoto: () => true,
+      preloadGoogleIdentity: async () => {},
       requestGoogleAccountSession: (_id, { signal }) => new Promise((resolve, reject) => authorizations.push({ signal, resolve, reject })),
       submitFoodCorrectionToSharedDrive: async (input) => { posts.push(input); if (rejection) throw new Error(rejection); return { id: input.id }; },
     },
   };
   const exports = {};
   vm.runInNewContext(source, {
-    exports, require: (id) => { assert.ok(modules[id], id); return modules[id]; }, window, document, AbortController, Error,
+    exports, require: (id) => { assert.ok(modules[id], id); return modules[id]; }, window, document, navigator, AbortController, Error,
     URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} },
     Date: class extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } },
     setTimeout: (callback) => { const id = ++sequence; timers.set(id, callback); return id; }, clearTimeout: (id) => timers.delete(id),
@@ -60,8 +66,52 @@ function publicPhotoHarness(sharedTest = false) {
   return { render, find, button, click, choose, flush, authorize, draft, authorizations, posts, photo, window, document,
     expire() { now += 4000_000; document.dispatchEvent(new Event("visibilitychange")); render(); },
     rejectPost(message) { rejection = message; },
+    connection(ready) { connectionReady = ready; },
+    copied, denyClipboard() { clipboardDenied = true; },
   };
 }
+
+test("slow or failed receiver readiness cannot block Google auth or photo selection, but still blocks upload", async () => {
+  const h = publicPhotoHarness(); h.connection(false);
+  assert.equal(h.button("Googleで認証してから入力する").props.disabled, false);
+  await h.authorize(); h.draft();
+  assert.equal(h.authorizations.length, 1);
+  assert.equal(h.button("確認した正解を共有").props.disabled, true);
+  h.button("確認した正解を共有").props.onClick(); await h.flush();
+  assert.equal(h.posts.length, 0, "authentication does not bypass receiver verification");
+  h.connection(true); h.click("確認した正解を共有"); await h.flush();
+  assert.equal(h.posts.length, 1);
+});
+
+test("home-screen modes provide a credential-free browser handoff before entry without claiming authentication", async () => {
+  for (const display of ["ios", "standalone", "fullscreen"]) {
+    const h = publicPhotoHarness(false, display);
+    h.find((n) => n.props.children === "ホーム画面・全画面からの認証について");
+    assert.equal(h.authorizations.length, 0);
+    const link = h.find((n) => n.type === "a" && n.props.target === "_blank");
+    assert.equal(link.props.href, "https://example.invalid/food-photo/");
+    assert.equal(link.props.rel, "noopener noreferrer");
+    h.click("Safari／Chrome用のURLをコピー"); await h.flush();
+    assert.deepEqual(h.copied, ["https://example.invalid/food-photo/"]);
+    assert.equal(h.posts.length, 0);
+    assert.equal(h.find((n) => n.props.type === "file").props.disabled, true);
+    h.denyClipboard(); h.click("Safari／Chrome用のURLをコピー"); await h.flush();
+    h.find((n) => typeof n.props.children === "string" && n.props.children.startsWith("自動でコピーできませんでした"));
+    assert.equal(h.find((n) => n.props["aria-label"] === "通常ブラウザで開くURL").props.value, "https://example.invalid/food-photo/");
+  }
+});
+
+test("pending auth explains the disabled picker and offers browser fallback without erasing an existing draft", async () => {
+  const h = publicPhotoHarness(); h.click("Googleで認証してから入力する");
+  h.find((n) => typeof n.props.children === "string" && n.props.children.startsWith("Google認証の結果を待っています"));
+  h.find((n) => n.props["aria-label"] === "ブラウザで認証を続ける");
+  h.click("認証待ちを解除してやり直す");
+  await h.authorize(); h.draft(); h.expire();
+  h.click("Googleで認証してから入力する");
+  h.click("認証待ちを解除してやり直す"); await h.flush();
+  assert.equal(h.find((n) => n.props.placeholder === "例：卵焼き").props.value, "手入力の料理");
+  assert.equal(h.posts.length, 0);
+});
 
 test("sharing authenticates before photo entry; returning from 2FA never auto-submits", async () => {
   const h = publicPhotoHarness();
