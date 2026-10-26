@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FieldLabel, TextInput } from "@/components/ui/form-fields";
+import { TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { exerciseCatalog, exerciseCount, groupExercisesByEquipment } from "@/lib/data/exercise-catalog";
 import { detectMuscleFocus, recommendExercises, usesRegisteredEquipment } from "@/lib/workouts/workout-recommender";
@@ -224,14 +224,16 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
           <button type="button" onClick={() => { setIsEditingSets(false); requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus()); }} className="mb-4 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目一覧へ戻る</button>
           <h2 className="text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
           <p className="mt-2 text-xs leading-5 text-[var(--muted)]">入力内容は筋トレ記録に反映されます。保存は記録画面で行います。</p>
-          <div className="mt-5 space-y-3">{sets.map((set, index) => <div key={set.id} className="rounded-md border border-[var(--line)] bg-white p-3">
-            <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-bold">セット {index + 1}</h3><button type="button" disabled={sets.length === 1} onClick={() => onRemoveSet(set.id)} aria-label={`セット${index + 1}を削除`} className="grid size-11 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-4" /></button></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><FieldLabel htmlFor={`picker-weight-${set.id}`}>重量 kg</FieldLabel><TextInput id={`picker-weight-${set.id}`} data-set-weight="true" type="number" min="0" step="0.5" inputMode="decimal" value={set.weightKg ?? ""} onChange={(event) => onUpdateSet(set.id, { weightKg: event.target.value ? Number(event.target.value) : undefined })} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} placeholder="0" /></div>
-              <div><FieldLabel htmlFor={`picker-reps-${set.id}`}>レップ数</FieldLabel><TextInput id={`picker-reps-${set.id}`} type="number" min="0" step="1" inputMode="numeric" value={set.reps ?? ""} onChange={(event) => onUpdateSet(set.id, { reps: event.target.value ? Number(event.target.value) : undefined })} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} placeholder="0" /></div>
-            </div>
-          </div>)}</div>
-          <Button type="button" variant="secondary" className="mt-4 w-full text-[var(--sage-deep)]" onClick={() => { onAddSet(); requestAnimationFrame(() => { const inputs = dialogRef.current?.querySelectorAll<HTMLInputElement>('[data-set-weight="true"]'); inputs?.[inputs.length - 1]?.focus(); }); }}><Icon name="plus" className="size-4" />セットを1つ追加</Button>
+          <div className="mt-5 overflow-hidden rounded-md border border-[var(--line)] bg-white">
+            <div className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-2 border-b border-[var(--line)] bg-[var(--sand)] px-3 py-3 text-center text-xs font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>レップ数</span><span className="sr-only">削除</span></div>
+            <div className="divide-y divide-[var(--line)]">{sets.map((set, index) => <div key={set.id} className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-2 px-3 py-2">
+              <span className="metric text-center text-xs font-semibold text-[var(--muted)]">{index + 1}</span>
+              <TextInput data-set-weight="true" type="number" min="0" step="0.5" inputMode="decimal" aria-label={`セット${index + 1}の重量 kg`} value={set.weightKg ?? ""} onChange={(event) => onUpdateSet(set.id, { weightKg: event.target.value ? Number(event.target.value) : undefined })} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} placeholder="0" className="metric h-12 px-1 text-center" />
+              <TextInput type="number" min="0" step="1" inputMode="numeric" aria-label={`セット${index + 1}のレップ数`} value={set.reps ?? ""} onChange={(event) => onUpdateSet(set.id, { reps: event.target.value ? Number(event.target.value) : undefined })} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} placeholder="0" className="metric h-12 px-1 text-center" />
+              <button type="button" disabled={sets.length === 1} onClick={() => onRemoveSet(set.id)} aria-label={`セット${index + 1}を削除`} className="grid size-10 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-4" /></button>
+            </div>)}</div>
+            <div className="border-t border-[var(--line)] p-3"><Button type="button" variant="secondary" className="w-full text-[var(--sage-deep)]" onClick={() => { onAddSet(); requestAnimationFrame(() => { const inputs = dialogRef.current?.querySelectorAll<HTMLInputElement>('[data-set-weight="true"]'); inputs?.[inputs.length - 1]?.focus(); }); }}><Icon name="plus" className="size-4" />セットを1つ追加</Button></div>
+          </div>
           <Button type="button" className="mt-5 w-full" onClick={closePicker}>記録画面へ戻る</Button>
         </section> : activeCategory === null ? <section aria-label="鍛える部位を選択" className="px-4 py-6 sm:px-5">
           <h2 className="text-base font-bold text-[var(--ink)]">まず鍛える部位を選択</h2>
