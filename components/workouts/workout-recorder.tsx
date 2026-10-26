@@ -2,7 +2,6 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { RecordActions } from "@/components/ui/record-actions";
@@ -36,6 +35,85 @@ function volumeFor(exercise: WorkoutExercise): number {
   return setsFor(exercise).reduce((total, set) => total + (set.weightKg ?? 0) * (set.reps ?? 0), 0);
 }
 
+const calendarWeekdays = ["月", "火", "水", "木", "金", "土", "日"];
+
+function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, onDateSelect, onDelete }: {
+  history: WorkoutEntry[];
+  month: string;
+  selectedDate: string | null;
+  onMonthChange: (month: string) => void;
+  onDateSelect: (date: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const firstWeekday = (new Date(year, monthNumber - 1, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year, monthNumber, 0).getDate();
+  const recordedByDate = new Map<string, WorkoutEntry[]>();
+  for (const entry of history) {
+    const entries = recordedByDate.get(entry.performedAt) ?? [];
+    entries.push(entry);
+    recordedByDate.set(entry.performedAt, entries);
+  }
+  const selectedEntries = selectedDate ? recordedByDate.get(selectedDate) ?? [] : [];
+  const currentYear = new Date().getFullYear();
+  const recordedYears = history.map((entry) => entry.performedAt).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).map((date) => Number(date.slice(0, 4)));
+  const firstYear = Math.min(currentYear - 5, year, ...recordedYears);
+  const lastYear = Math.max(currentYear + 1, year, ...recordedYears);
+
+  function changeMonth(offset: number) {
+    const next = new Date(year, monthNumber - 1 + offset, 1);
+    onMonthChange(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
+  }
+
+  return <section className="mt-12" aria-labelledby="workout-history-title">
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><h2 id="workout-history-title" className="section-title">筋トレカレンダー</h2><span className="text-xs text-[var(--muted)]">全{history.length}件</span></div>
+    <div className="rounded-md border border-[var(--line)] bg-white p-3 sm:p-5">
+      <div className="mb-5 flex items-center justify-between gap-2">
+        <button type="button" aria-label="前の月" onClick={() => changeMonth(-1)} className="grid size-11 shrink-0 place-items-center rounded border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--sand)]">‹</button>
+        <div className="flex min-w-0 items-center justify-center gap-1.5">
+          <select aria-label="表示する年" value={year} onChange={(event) => onMonthChange(`${event.target.value}-${String(monthNumber).padStart(2, "0")}`)} className="min-h-11 rounded border border-[var(--line)] bg-white px-2 text-sm font-semibold">
+            {Array.from({ length: lastYear - firstYear + 1 }, (_, index) => firstYear + index).map((option) => <option key={option} value={option}>{option}年</option>)}
+          </select>
+          <select aria-label="表示する月" value={monthNumber} onChange={(event) => onMonthChange(`${year}-${String(event.target.value).padStart(2, "0")}`)} className="min-h-11 rounded border border-[var(--line)] bg-white px-2 text-sm font-semibold">
+            {Array.from({ length: 12 }, (_, index) => index + 1).map((option) => <option key={option} value={option}>{option}月</option>)}
+          </select>
+        </div>
+        <button type="button" aria-label="次の月" onClick={() => changeMonth(1)} className="grid size-11 shrink-0 place-items-center rounded border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--sand)]">›</button>
+      </div>
+      <div className="overflow-x-auto">
+        <div className="min-w-[308px]">
+          <div className="grid grid-cols-7 text-center text-xs font-semibold text-[var(--muted)]">{calendarWeekdays.map((day) => <span key={day} className="py-2">{day}</span>)}</div>
+          <div className="grid grid-cols-7 gap-y-1">{Array.from({ length: firstWeekday + daysInMonth }, (_, index) => {
+            const day = index - firstWeekday + 1;
+            if (day < 1) return <span key={`empty-${index}`} aria-hidden="true" />;
+            const date = `${month}-${String(day).padStart(2, "0")}`;
+            const count = recordedByDate.get(date)?.length ?? 0;
+            return <div key={date} className="flex justify-center"><button
+              type="button"
+              disabled={count === 0}
+              aria-label={`${year}年${monthNumber}月${day}日${count ? `、筋トレ記録${count}件` : "、記録なし"}`}
+              aria-pressed={count ? selectedDate === date : undefined}
+              onClick={() => {
+                onDateSelect(date);
+                requestAnimationFrame(() => document.getElementById("workout-selected-records")?.scrollIntoView({ block: "nearest" }));
+              }}
+              className={`relative grid size-11 place-items-center rounded-full text-sm font-semibold ${selectedDate === date ? "bg-[var(--sage-deep)] text-white" : count ? "bg-[var(--sage-soft)] text-[var(--sage-deep)] hover:bg-[var(--sage-deep)] hover:text-white" : "text-[var(--muted)]"}`}
+            >{day}{count > 1 && <span className="absolute bottom-0.5 size-1 rounded-full bg-current" />}</button></div>;
+          })}</div>
+        </div>
+      </div>
+      <p className="mt-4 text-xs text-[var(--muted)]">緑色の日を選ぶと、その日の筋トレ記録を表示します。</p>
+    </div>
+    {selectedDate ? <div id="workout-selected-records" className="mt-7" aria-live="polite">
+      <h3 className="text-sm font-bold">{formatDate(selectedDate, { year: "numeric" })}の記録 <span className="ml-1 font-normal text-[var(--muted)]">{selectedEntries.length}件</span></h3>
+      {selectedEntries.length ? <div className="mt-3 border-t border-[var(--line)]">{selectedEntries.map((entry) => <article key={entry.id} className="border-b border-[var(--line)] py-5">
+        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">{entry.performedTime ? <span className="metric">{entry.performedTime}</span> : "時刻未記録"}</p><p className="mt-2 break-words text-sm font-semibold leading-6">{entry.exercises.map((exercise) => exercise.name).join("・")}</p></div><button type="button" aria-label={`${formatDate(entry.performedAt)}の筋トレ記録を削除`} onClick={() => onDelete(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button></div>
+        <div className="mt-3 space-y-3">{entry.exercises.map((exercise) => <div key={exercise.id} className="text-xs leading-6 text-[var(--muted)]"><p className="break-words font-medium">{exercise.name}</p><div className="mt-1 flex flex-wrap gap-2">{setsFor(exercise).map((set, setIndex) => <span key={set.id} className="metric rounded bg-[var(--sand)] px-2 py-1"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{set.weightKg ?? "—"}kg × {set.reps ?? "—"}回</span>)}</div></div>)}</div>
+      </article>)}</div> : <p className="mt-3 text-sm text-[var(--muted)]">この日の記録はありません。</p>}
+    </div> : <p className="mt-5 text-sm text-[var(--muted)]">{history.length ? "記録のある日を選んでください。" : "保存したトレーニングはカレンダーに表示されます。"}</p>}
+  </section>;
+}
+
 export function WorkoutRecorder() {
   const [performedAt, setPerformedAt] = useState(toDateInputValue());
   const [performedTime, setPerformedTime] = useState("");
@@ -45,6 +123,8 @@ export function WorkoutRecorder() {
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [activeTab, setActiveTab] = useState<"record" | "plan" | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(toDateInputValue().slice(0, 7));
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const handlePlanLoad = useCallback((hasPlan: boolean) => {
     setActiveTab((current) => current ?? (hasPlan ? "record" : "plan"));
@@ -82,6 +162,8 @@ export function WorkoutRecorder() {
       setExercises([newExercise()]);
       setPerformedTime(toTimeInputValue());
       await loadHistory();
+      setCalendarMonth(performedAt.slice(0, 7));
+      setSelectedDate(performedAt);
       setNotice("筋トレを保存しました。");
     } catch {
       setNotice("保存できませんでした。入力内容を確認して再度お試しください。");
@@ -155,13 +237,7 @@ export function WorkoutRecorder() {
       <Button type="button" variant="secondary" className="mt-4 w-full" onClick={() => setExercises((current) => [...current, newExercise()])}><Icon name="plus" className="size-4" />種目を追加</Button>
       <RecordActions label={isSaving ? "保存中…" : "筋トレを保存"} summary={`${exercises.filter((exercise) => exercise.name.trim()).length} 種目`} disabled={isSaving || !exercises.some((exercise) => exercise.name.trim())} notice={notice} />
     </form>
-    <section className="mt-12">
-      <div className="mb-4 flex items-center justify-between"><h2 className="section-title">これまでの記録</h2><span className="text-xs text-[var(--muted)]">{history.length}件</span></div>
-      {history.length === 0 ? <EmptyState description="保存したトレーニングはここに表示されます。" /> : <div className="border-t border-[var(--line)]">{history.map((entry) => <article key={entry.id} className="border-b border-[var(--line)] py-5">
-        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">{formatDate(entry.performedAt)}{entry.performedTime && <> <span className="metric">{entry.performedTime}</span></>}</p><p className="mt-2 break-words text-sm font-semibold leading-6">{entry.exercises.map((exercise) => exercise.name).join("・")}</p></div><button type="button" aria-label="この筋トレ記録を削除" onClick={() => void deleteEntry(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button></div>
-        <div className="mt-3 space-y-3">{entry.exercises.map((exercise) => <div key={exercise.id} className="text-xs leading-6 text-[var(--muted)]"><p className="break-words font-medium">{exercise.name}</p><div className="mt-1 flex flex-wrap gap-2">{setsFor(exercise).map((set, setIndex) => <span key={set.id} className="metric rounded bg-[var(--sand)] px-2 py-1"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{set.weightKg ?? "—"}kg × {set.reps ?? "—"}回</span>)}</div></div>)}</div>
-      </article>)}</div>}
-    </section>
+    <WorkoutHistoryCalendar history={history} month={calendarMonth} selectedDate={selectedDate} onMonthChange={(month) => { setCalendarMonth(month); setSelectedDate(null); }} onDateSelect={setSelectedDate} onDelete={(id) => { void deleteEntry(id); }} />
     </div>
   </>;
 }
