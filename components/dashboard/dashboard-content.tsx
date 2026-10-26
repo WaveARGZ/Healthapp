@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
+import { MuscleActivityMap } from "@/components/dashboard/muscle-activity-map";
 import { bodyMakeClient } from "@/lib/api/client";
 import { loadWorkoutPreferences } from "@/lib/api/workout-preferences-client";
 import { formatToday, toDateInputValue } from "@/lib/utils/date";
@@ -40,7 +41,22 @@ export function DashboardContent() {
   const [mealLoadFailed, setMealLoadFailed] = useState(false);
   const [workoutLoadFailed, setWorkoutLoadFailed] = useState(false);
   const [hasFacilityEquipment, setHasFacilityEquipment] = useState<boolean | null>(null);
-  const today = toDateInputValue();
+  const [today, setToday] = useState(toDateInputValue);
+  useEffect(() => {
+    let midnightTimer: ReturnType<typeof setTimeout>;
+    function refreshToday() {
+      setToday(toDateInputValue());
+      const now = new Date();
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      midnightTimer = setTimeout(refreshToday, Math.max(1000, nextMidnight.getTime() - now.getTime() + 1000));
+    }
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") { clearTimeout(midnightTimer); refreshToday(); }
+    }
+    refreshToday();
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => { clearTimeout(midnightTimer); document.removeEventListener("visibilitychange", refreshWhenVisible); };
+  }, []);
   useEffect(() => {
     void Promise.allSettled([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), loadWorkoutPreferences()])
       .then(([profile, workouts, meals, weights, preferences]) => {
@@ -128,6 +144,7 @@ export function DashboardContent() {
       {mealStatus && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{mealStatus}</p>}
     </section>
     <details className="mt-1 text-xs leading-5 text-[var(--muted)]"><summary className="min-h-11 cursor-pointer content-center">計算方法と注意点</summary><p className="pb-2">{calorieGuide?.status === "ready" && `身長${data.profile?.heightCm}cm・体重${summary.currentWeight}kg・年齢と目標から計算。活動量は低め〜標準を仮定${calorieGuide.broadRange ? "し、性別を計算に用いない設定のため幅を広げています" : "しています"}。今日の記録との差はノルマではありません。`}成人のMifflin-St Jeor式を使用し、活動量を1.4〜1.6倍で概算しています。目標による補正（筋肉を増やす +5%、体脂肪を減らす -10%）はアプリ独自の控えめな仮定です。妊娠・授乳中や持病のある方には適用せず、必要に応じて医療・栄養の専門家に相談してください。<a className="underline underline-offset-2" href="https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner" target="_blank" rel="noopener noreferrer">参考：米国NIH</a></p></details>
+    <MuscleActivityMap workouts={data.workouts} today={today} loading={loading} unavailable={workoutLoadFailed} />
     <WeightTrendChart entries={data.weights.filter((entry) => entry.measuredOn <= today)} loading={loading} />
     <section aria-label="現在の身体と目標" className="mt-7 grid grid-cols-2 border-y border-[var(--ink)] py-6 sm:py-7">
       <Link href="/weight" className="min-w-0 pr-4"><p className="text-xs text-[var(--muted)]">現在の体重</p><p className="metric mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[34px] font-medium leading-none sm:text-[56px]"><span>{loading ? "—" : summary.currentWeight ?? "—"}</span><span className="text-sm font-normal tracking-normal text-[var(--muted)]">kg</span></p><p className="mt-3 text-xs text-[var(--sage-deep)]">体重を記録する ↗</p></Link>
