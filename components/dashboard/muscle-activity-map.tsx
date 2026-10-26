@@ -3,7 +3,7 @@ import { Icon } from "@/components/ui/icon";
 import { muscleGroups, summarizeMuscleActivity, type MuscleActivity, type MuscleGroup } from "@/lib/workouts/muscle-activity";
 import type { WorkoutEntry } from "@/types/workout";
 
-const activityColors = ["#e8eee8", "#b8d8bf", "#76ad82", "#365940"];
+const activityColors = ["#d4e0d6", "#a3d6aa", "#58a96e", "#246b43"];
 const muscleLabels: Record<MuscleGroup, string> = {
   "胸": "胸", "背中": "背中", "腕": "腕", "肩": "肩", "腹筋・体幹": "腹筋", "脚": "脚",
 };
@@ -12,11 +12,11 @@ function colorFor(days: number): string { return activityColors[Math.min(days, 3
 
 function BodyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
   const color = (group: MuscleGroup) => colorFor(activity[group]);
-  return <div className="rounded-xl border border-[var(--line)] bg-white px-2 pb-3 pt-4 text-center">
-    <p className="text-xs font-bold tracking-[0.18em] text-[var(--ink-soft)]">{view === "front" ? "正面" : "背面"}</p>
-    <svg viewBox="0 0 160 345" aria-hidden="true" className="mx-auto mt-2 h-[245px] w-full max-w-[170px] sm:h-[285px]">
-      <circle cx="80" cy="166" r="77" fill="#f5f7f2" />
-      <g fill="#f5f2eb" stroke="#bdcbbf" strokeLinejoin="round" strokeWidth="1.6">
+  return <div className="rounded-xl border border-[#b7c8bb] bg-[#f9fbf7] px-2 pb-4 pt-4 text-center">
+    <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
+    <svg viewBox="0 0 160 345" aria-hidden="true" className="mx-auto mt-2 h-[340px] w-full max-w-[220px] sm:h-[350px]">
+      <circle cx="80" cy="166" r="77" fill="#edf3ed" />
+      <g fill="#f3eee4" stroke="#637e6b" strokeLinejoin="round" strokeWidth="2.2">
         <circle cx="80" cy="25" r="17" />
         <path d="M73 40h14l2 15H71z" />
         <path d="M58 53Q69 48 80 53q11-5 22 0 10 9 10 28l-6 46q-4 15-2 28l8 20H48l8-20q2-13-2-28l-6-46q0-19 10-28Z" />
@@ -25,7 +25,7 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
         <path d="M49 171h30l-1 67-9 48-6 39q-1 10-9 10-7-1-6-11l-3-38-4-51Z" />
         <path d="M49 171h30l-1 67-9 48-6 39q-1 10-9 10-7-1-6-11l-3-38-4-51Z" transform="translate(160 0) scale(-1 1)" />
       </g>
-      <g stroke="#fff" strokeLinejoin="round" strokeWidth="1.4">
+      <g stroke="#f9fbf7" strokeLinejoin="round" strokeWidth="2">
         <g fill={color("肩")}>
           <path d="M57 57q-11 2-16 15l-2 12 12 5 13-19Z" />
           <path d="M57 57q-11 2-16 15l-2 12 12 5 13-19Z" transform="translate(160 0) scale(-1 1)" />
@@ -55,7 +55,7 @@ function BodyFigure({ view, activity }: { view: "front" | "back"; activity: Musc
           <path d="M62 69q9-4 17 0v84l-22 12 2-34-5-42Z" transform="translate(160 0) scale(-1 1)" />
         </g>}
       </g>
-      <path d="M80 54v111" stroke="#c9d5cb" strokeWidth="1" strokeDasharray="3 5" />
+      <path d="M80 54v111" stroke="#708b78" strokeWidth="1.2" strokeDasharray="3 5" />
     </svg>
   </div>;
 }
@@ -65,8 +65,8 @@ export function MuscleActivityMap({ workouts, today, loading, unavailable }: { w
   return <section aria-labelledby="muscle-activity-title" aria-busy={loading} className="mt-8 rounded-2xl border border-[var(--line)] bg-[var(--sand)] p-4 sm:p-6">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold tracking-widest text-[var(--sage-deep)]">TRAINING MAP</p><h2 id="muscle-activity-title" className="section-title mt-1">筋トレ部位マップ</h2><p className="mt-2 text-xs leading-5 text-[var(--muted)]">今日を含む直近14日間の記録日数</p></div><Link href="/workouts" className="text-link">筋トレを記録<Icon name="arrow-right" className="size-3.5" /></Link></div>
     {loading || unavailable ? <p className="mt-5 text-sm text-[var(--muted)]">{loading ? "筋トレ記録を読み込み中…" : "筋トレ記録を読み込めませんでした。再読み込みしてお試しください。"}</p> : <>
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,0.85fr)] lg:items-start">
-        <div className="grid grid-cols-2 gap-3"><BodyFigure view="front" activity={activity} /><BodyFigure view="back" activity={activity} /></div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(230px,0.8fr)] lg:items-start">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><BodyFigure view="front" activity={activity} /><BodyFigure view="back" activity={activity} /></div>
         <div className="rounded-xl border border-[var(--line)] bg-white p-4 sm:p-5">
           <h3 className="text-sm font-bold">部位ごとの記録日数</h3>
           <div className="mt-3 grid grid-cols-2 gap-x-4">{muscleGroups.map((group) => <div key={group} className="flex items-center justify-between gap-2 border-b border-[var(--line)] py-3 text-sm"><span className="flex min-w-0 items-center gap-2"><span className="size-3 shrink-0 rounded-full border border-[#ced9cf]" style={{ backgroundColor: colorFor(activity[group]) }} /><span className="truncate">{muscleLabels[group]}</span></span><strong className="metric shrink-0 text-xs">{activity[group]}日</strong></div>)}</div>
