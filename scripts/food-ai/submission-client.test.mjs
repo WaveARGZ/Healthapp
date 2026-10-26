@@ -181,6 +181,69 @@ test("connection failures expose fixed messages without browser response details
   assert.doesNotMatch(b.api.trainingConnectionError(new Error("remote response fragment")), /remote response/);
 });
 
+test("readiness retries a transient mobile failure once without sending credentials or photos", async () => {
+  for (const name of ["AbortError", "TypeError", "SyntaxError"]) {
+    let requests = 0;
+    const b = browser({ fetch: async (url, options) => {
+      requests++;
+      assert.equal(url, endpoint);
+      assert.equal(options.credentials, "omit");
+      assert.equal(options.body, undefined);
+      assert.equal(options.headers, undefined);
+      if (requests === 1) throw Object.assign(new Error("temporary"), { name });
+      return { ok: true, json: async () => ({ ok: true, service: "bodymake-training-ingest", schemaVersion: 2, clientId }) };
+    } });
+    await b.api.checkTrainingConnection(endpoint, clientId);
+    assert.equal(requests, 2);
+  }
+});
+
+test("readiness retries are bounded and never bypass an OAuth configuration mismatch", async () => {
+  let requests = 0;
+  const b = browser({ fetch: async () => { requests++; throw Object.assign(new Error("offline"), { name: "TypeError" }); } });
+  await assert.rejects(b.api.checkTrainingConnection(endpoint, clientId));
+  assert.equal(requests, 2);
+  requests = 0;
+  b.context.fetch = async () => { requests++; return { ok: true, json: async () => ({ ok: true, service: "bodymake-training-ingest", schemaVersion: 2, clientId: "wrong-client" }) }; };
+  await assert.rejects(b.api.checkTrainingConnection(endpoint, clientId), /準備が完了していません/);
+  assert.equal(requests, 1);
+});
+
+test("slow readiness requests get two bounded 45-second attempts, and cancellation stops retries", async () => {
+  const timers = new Map();
+  let sequence = 0;
+  let requests = 0;
+  const b = browser({
+    setTimeout(callback, delay) { assert.equal(delay, 45_000); const id = ++sequence; timers.set(id, callback); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    fetch: async (_, options) => { requests++; return new Promise((_, reject) => options.signal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })))); },
+  });
+  const controller = new AbortController();
+  const checking = b.api.checkTrainingConnection(endpoint, clientId, controller.signal);
+  [...timers.values()][0]();
+  for (let i = 0; i < 6; i++) await Promise.resolve();
+  assert.equal(requests, 2);
+  controller.abort();
+  await assert.rejects(checking, { name: "AbortError" });
+  assert.equal(requests, 2);
+  assert.equal(timers.size, 0);
+  await assert.rejects(b.api.checkTrainingConnection(endpoint, clientId, controller.signal), { name: "AbortError" });
+  assert.equal(requests, 2);
+});
+
+test("temporary HTTP readiness failures recover but permanent HTTP errors do not retry", async () => {
+  for (const status of [408, 429, 503, 403]) {
+    let requests = 0;
+    const b = browser({ fetch: async () => {
+      requests++;
+      return requests === 1 ? { ok: false, status, json: async () => ({}) }
+        : { ok: true, json: async () => ({ ok: true, service: "bodymake-training-ingest", schemaVersion: 2, clientId }) };
+    } });
+    if (status === 403) { await assert.rejects(b.api.checkTrainingConnection(endpoint, clientId)); assert.equal(requests, 1); }
+    else { await b.api.checkTrainingConnection(endpoint, clientId); assert.equal(requests, 2); }
+  }
+});
+
 const input = {
   endpoint, accessToken: "synthetic-token", id: "synthetic-submission-123", image: new Blob(["synthetic"]),
   predictedFoodIds: [], confirmedFoodId: "rice", confirmedFoodName: "ご飯",

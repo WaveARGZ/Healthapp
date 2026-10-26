@@ -9,8 +9,12 @@
   "scripts": {
     "dev": "next dev",
     "dev:test": "node scripts/run-test-environment.mjs dev",
+    "dev:shared-test": "node scripts/shared-test-environment.mjs dev",
     "build": "next build --webpack",
     "build:test": "node scripts/run-test-environment.mjs build",
+    "build:shared-test": "node scripts/shared-test-environment.mjs build",
+    "test:shared-test": "node --test scripts/test-shared-test-runtime.mjs scripts/test-shared-test-build-config.mjs",
+    "test:shared-test-build": "node scripts/test-environment-build.mjs --shared",
     "start": "next start",
     "lint": "eslint",
     "generate:food-data": "python3 scripts/generate-mext-food-library.py",

@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Deploy only to the separate shared test project. The private allowlist
+    // is populated by an administrator, never by browser code or a public file.
+    function hasVerifiedGoogleEmail() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    function isApprovedDeveloper() {
+      return hasVerifiedGoogleEmail()
+        && exists(/databases/$(database)/documents/developerAccess/$(request.auth.token.email))
+        && get(/databases/$(database)/documents/developerAccess/$(request.auth.token.email)).data.enabled == true;
+    }
+
+    match /developerAccess/{email} {
+      // Allows the signed-in UI to explain a missing or disabled invitation.
+      allow get: if hasVerifiedGoogleEmail() && request.auth.token.email == email;
+      allow list, create, update, delete: if false;
+    }
+
+    match /users/{userId}/{document=**} {
+      allow read, write: if isApprovedDeveloper() && request.auth.uid == userId;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

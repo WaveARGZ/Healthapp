@@ -48,6 +48,9 @@ jobs:
       - name: Verify shared test launcher
         run: npm run test:team-runtime
 
+      - name: Verify shared Firebase test isolation
+        run: npm run test:shared-test
+
       - name: Verify consent, photo upload, metadata removal and receipts in memory
         run: npm run test:photo-submission
 

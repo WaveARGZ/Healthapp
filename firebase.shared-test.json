@@ -1,0 +1,12 @@
+{
+  "hosting": {
+    "site": "bodymake-test-14a3f",
+    "public": ".next-test",
+    "ignore": ["**/.*", "**/node_modules/**"],
+    "cleanUrls": true,
+    "trailingSlash": true,
+    "headers": [{"source":"**", "headers":[{"key":"X-Robots-Tag", "value":"noindex, nofollow"}, {"key":"Cache-Control", "value":"no-cache"}]}],
+    "redirects": [{"source":"/", "destination":"/bodymake/", "type":302}]
+  },
+  "firestore": {"rules":"firestore.test.rules"}
+}

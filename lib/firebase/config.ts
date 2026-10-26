@@ -28,7 +28,8 @@ export const isFirebaseSelected = (isTestEnvironment
 
 // Test builds must never silently read production credentials or write to that project.
 export const isFirebaseConfigured = isFirebaseSelected && Object.values(firebaseConfig).every(Boolean)
-  && (!isTestEnvironment || !production.projectId || test.projectId !== production.projectId);
+  && (!isTestEnvironment || (test.projectId !== "healthapp-14a3f"
+    && (!production.projectId || test.projectId !== production.projectId)));
 
 export function assertFirebaseConfigured(): void {
   if (!isFirebaseConfigured) throw new Error(`${prefix} 用のFirebase設定が未完了です。別プロジェクトの設定を確認してください。`);

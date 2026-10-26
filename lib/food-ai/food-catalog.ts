@@ -1,7 +1,7 @@
 import libraryJson from "@/lib/data/food-library.json";
 import photoLabelsJson from "@/lib/food-ai/photo-labels.json";
 import testPhotoLabelsJson from "@/lib/food-ai/test-photo-labels.json";
-import { isTestEnvironment } from "@/lib/cloud/config";
+import { useTestFoodModel } from "@/lib/cloud/config";
 import { foodToMealItem, type FoodLibraryDataset } from "@/types/food-database";
 import type { MealFoodItem } from "@/types/meal";
 
@@ -12,7 +12,7 @@ export interface FoodCatalogItem {
 }
 
 const library = libraryJson as FoodLibraryDataset;
-const photoLabels = (isTestEnvironment ? testPhotoLabelsJson : photoLabelsJson) as Array<[string, string]>;
+const photoLabels = (useTestFoodModel ? testPhotoLabelsJson : photoLabelsJson) as Array<[string, string]>;
 
 /** The same sourced nutrition values are used by search and photo suggestions. */
 export const foodCatalog: FoodCatalogItem[] = photoLabels.map(([id, clipLabel]) => {

@@ -35,7 +35,7 @@ test("the browser catalog selects test labels only for the isolated test environ
       "@/lib/data/food-library.json": library,
       "@/lib/food-ai/photo-labels.json": productionLabels,
       "@/lib/food-ai/test-photo-labels.json": testLabels,
-      "@/lib/cloud/config": { isTestEnvironment },
+      "@/lib/cloud/config": { useTestFoodModel: isTestEnvironment },
       "@/types/food-database": { foodToMealItem: (food) => ({ name: food.name }) },
     };
     runInNewContext(outputText, { exports, require: (id) => {

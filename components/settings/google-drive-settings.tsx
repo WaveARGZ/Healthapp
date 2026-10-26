@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getGoogleAccountEmail, preloadGoogleIdentity, requestGoogleAccountToken } from "@/lib/drive/google-drive-client";
 import { useGoogleDriveClientId, useTrainingDataEndpoint } from "@/hooks/use-google-drive-client-id";
+import { isSharedTestEnvironment } from "@/lib/cloud/config";
 
 export function GoogleDriveSettings() {
   const savedClientId = useGoogleDriveClientId();
@@ -11,7 +12,7 @@ export function GoogleDriveSettings() {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { void preloadGoogleIdentity().catch(() => undefined); }, []);
+  useEffect(() => { if (!isSharedTestEnvironment) void preloadGoogleIdentity().catch(() => undefined); }, []);
 
   async function connect() {
     if (!savedClientId) return;
@@ -27,6 +28,8 @@ export function GoogleDriveSettings() {
       setBusy(false);
     }
   }
+
+  if (isSharedTestEnvironment) return <section className="mt-10 border-y border-[var(--line)] py-6" aria-labelledby="drive-settings-title"><h2 id="drive-settings-title" className="text-base font-bold">学習データの共有</h2><p className="mt-3 text-sm leading-7 text-[var(--muted)]">テスト環境では学習データの共有を行いません。食事写真のAI解析と食事記録を確認できます。</p></section>;
 
   return <section className="mt-10 border-y border-[var(--line)] py-6" aria-labelledby="drive-settings-title">
     <h2 id="drive-settings-title" className="text-base font-bold">共有Driveへの学習データ保存</h2>

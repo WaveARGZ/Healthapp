@@ -2,7 +2,7 @@ import { foodCatalog, type FoodCatalogItem } from "@/lib/food-ai/food-catalog";
 import { applyFoodCalibration, FOOD_BASE_MODEL, FOOD_BASE_REVISION } from "@/lib/food-ai/food-calibration.mjs";
 import deployedCalibration from "@/lib/food-ai/deployed-calibration.json";
 import testCalibration from "@/lib/food-ai/test-calibration.json";
-import { isTestEnvironment } from "@/lib/cloud/config";
+import { useTestFoodModel } from "@/lib/cloud/config";
 import { applyEmbeddingCalibration, extractClipFeatures } from "@/lib/food-ai/clip-features.mjs";
 
 export interface FoodPhotoCandidate extends FoodCatalogItem {
@@ -26,7 +26,7 @@ type ImageClassifier = (image: Blob, candidateLabels: string[]) => Promise<Array
 let classifierPromise: Promise<ImageClassifier> | null = null;
 
 async function getStreamingTestModel(): Promise<unknown> {
-  if (!isTestEnvironment || typeof window === "undefined" || !["localhost", "127.0.0.1"].includes(window.location.hostname)) return null;
+  if (!useTestFoodModel || typeof window === "undefined" || !["localhost", "127.0.0.1"].includes(window.location.hostname)) return null;
   try {
     // The local launcher verifies Drive permissions, consent and a full model readback.
     // A 2-second deadline would silently discard valid models on real Drive latency.
@@ -71,7 +71,7 @@ export async function analyzeFoodPhotoDetailed(
   onProgress?: (progress: ModelProgress) => void,
 ): Promise<FoodPhotoAnalysis> {
   const classifier = await getClassifier(onProgress);
-  onProgress?.({ label: isTestEnvironment ? "テストモデルの保存先を確認しています" : "写真から料理候補を探しています" });
+  onProgress?.({ label: useTestFoodModel ? "テストモデルの保存先を確認しています" : "写真から料理候補を探しています" });
   const streamingModel = await getStreamingTestModel();
   onProgress?.({ label: "写真から料理候補を探しています" });
   if (streamingModel) {
@@ -91,7 +91,7 @@ export async function analyzeFoodPhotoDetailed(
   const probabilities = applyFoodCalibration(
     normalized,
     labelIds,
-    isTestEnvironment ? testCalibration : deployedCalibration,
+    useTestFoodModel ? testCalibration : deployedCalibration,
   );
 
   const candidates = foodCatalog
