@@ -15,7 +15,7 @@ import type { WorkoutPreferences, WorkoutSplitPlan } from "@/types/workout-prefe
 const muscleCategories = ["胸", "背中", "肩", "腕", "脚", "腹筋・体幹", "有酸素"];
 const splitOptions: Array<{ kind: WorkoutSplitPlan["kind"]; title: string; description: string }> = [
   { kind: "five", title: "5分割", description: "胸・背中・肩・腕・脚を順番に" },
-  { kind: "three", title: "3分割", description: "胸＋腕・背中・脚を順番に" },
+  { kind: "three", title: "3分割", description: "胸＋腕・背中＋肩・脚を順番に" },
   { kind: "full", title: "全身を少しずつ", description: "トレーニング日ごとに全身を少しずつ" },
   { kind: "custom", title: "自由に割り振る", description: "曜日ごとに鍛える部位を指定" },
 ];
