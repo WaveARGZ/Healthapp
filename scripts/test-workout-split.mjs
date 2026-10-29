@@ -50,4 +50,6 @@ test("旧設定や壊れた設定を安全に読み込む", () => {
   assert.equal(invalidLegacy.splitPlan, undefined);
   const valid = normalizeWorkoutPreferences({ splitPlan: { kind: "custom", trainingDays: [1], anchorDate: "2026-10-12", customByWeekday: { "1": ["胸", "脚", "不明"] } } });
   assert.deepEqual(valid.splitPlan?.customByWeekday["1"], ["胸", "脚"]);
+  assert.equal(normalizeWorkoutPreferences({ isGymMember: false }).isGymMember, false);
+  assert.equal(normalizeWorkoutPreferences({ isGymMember: "false" }).isGymMember, undefined);
 });
