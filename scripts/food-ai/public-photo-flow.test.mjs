@@ -83,6 +83,25 @@ test("slow or failed receiver readiness cannot block Google auth or photo select
   assert.equal(h.posts.length, 1);
 });
 
+test("nutrition inputs can clear a zero and replace it without a leading zero", async () => {
+  const h = publicPhotoHarness(); await h.authorize(); h.draft();
+  const fields = () => h.render().filter((node) => node.type === "input" && node.props.type === "number" && node.props.max === "10000");
+  assert.equal(fields().length, 4);
+  assert.ok(fields().every((node) => node.props.value === ""), "zero is a placeholder, not a forced value");
+  fields()[0].props.onChange({ target: { value: "1" } });
+  assert.equal(fields()[0].props.value, "1");
+  fields()[0].props.onChange({ target: { value: "" } });
+  assert.equal(fields()[0].props.value, "", "clearing must not restore 0 while editing");
+  fields()[0].props.onChange({ target: { value: "50" } });
+  assert.equal(fields()[0].props.value, "50");
+  fields()[1].props.onChange({ target: { value: "0.5" } });
+  assert.equal(fields()[1].props.value, "0.5");
+  h.click("確認した正解を共有"); await h.flush();
+  assert.equal(h.posts[0].nutrition.calories, 50);
+  assert.equal(h.posts[0].nutrition.proteinG, 0.5);
+  assert.equal(h.posts[0].nutrition.fatG, 0);
+});
+
 test("home-screen modes provide a credential-free browser handoff before entry without claiming authentication", async () => {
   for (const display of ["ios", "standalone", "fullscreen"]) {
     const h = publicPhotoHarness(false, display);

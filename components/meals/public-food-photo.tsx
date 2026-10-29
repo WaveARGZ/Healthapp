@@ -61,6 +61,7 @@ export function PublicFoodPhoto() {
   const [authPending, setAuthPending] = useState(false);
   const [authMessage, setAuthMessage] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
+  const [nutritionDrafts, setNutritionDrafts] = useState<Partial<Record<keyof Nutrition, string>>>({});
   const authRequest = useRef<AbortController | null>(null);
   const sending = useRef(false);
   const analysisGeneration = useRef(0);
@@ -163,6 +164,7 @@ export function PublicFoodPhoto() {
     setCorrectName("");
     setLabelChecked(false);
     setNutrition(emptyNutrition);
+    setNutritionDrafts({});
     setConsent(false);
     setReceiptId("");
     submission.current = null;
@@ -176,6 +178,7 @@ export function PublicFoodPhoto() {
     setLabelChecked(false);
     const estimate = applyPhotoNutritionUplift(candidate.food);
     setNutrition({ calories: estimate.calories ?? 0, proteinG: estimate.proteinG ?? 0, fatG: estimate.fatG ?? 0, carbsG: estimate.carbsG ?? 0 });
+    setNutritionDrafts({});
   }
 
   async function analyze() {
@@ -209,6 +212,7 @@ export function PublicFoodPhoto() {
     setCorrectName("");
     setLabelChecked(false);
     setNutrition(emptyNutrition);
+    setNutritionDrafts({});
     setConsent(false);
     setPhase("ready");
     setMessage("写真を確認して、正しい料理名を入力してください。");
@@ -331,7 +335,7 @@ export function PublicFoodPhoto() {
         <div className="mt-4 grid gap-2">{candidates.map((candidate) => <button type="button" key={candidate.id} disabled={busy || phase === "sent"} aria-pressed={selectedId === candidate.id} onClick={() => selectCandidate(candidate)} className={`min-h-14 rounded-md border px-4 py-3 text-left text-sm ${selectedId === candidate.id ? "border-[var(--sage-deep)] bg-[var(--sage-soft)]" : "border-[var(--line)]"}`}><span className="font-semibold">{plainName(candidate.food.name)}</span><span className="ml-2 text-xs text-[var(--muted)]">AI推測 {(candidate.modelScore * 100).toFixed(0)}%</span></button>)}</div>
         <label className="mt-5 block text-sm font-bold">正しい料理名<input className="form-input mt-2 w-full" value={correctName} disabled={busy || phase === "sent"} maxLength={100} placeholder="例：卵焼き" onChange={(event) => { setCorrectName(event.target.value); setSelectedId(""); setLabelChecked(false); }} /></label>
         <label className="mt-3 flex items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={labelChecked} disabled={busy || phase === "sent" || !correctName.trim()} onChange={(event) => setLabelChecked(event.target.checked)} /><span>写真を見て、上の料理名が主料理として正しいことを確認しました。AI候補を見ただけではチェックしないでください。</span></label>
-        <fieldset className="mt-5"><legend className="text-sm font-bold">栄養値の目安（わかる範囲で修正）</legend><p className="mt-1 text-xs leading-6 text-[var(--muted)]">栄養値は利用者による目安として保存し、栄養の正解データとしては扱いません。</p><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="text-xs font-medium">{label}（{unit}）<input className="form-input mt-2 w-full" type="number" min="0" max="10000" step="0.1" inputMode="decimal" value={nutrition[key]} disabled={busy || phase === "sent"} onChange={(event) => setNutrition((value) => ({ ...value, [key]: event.target.value === "" ? 0 : Number(event.target.value) }))} /></label>)}</div></fieldset>
+        <fieldset className="mt-5"><legend className="text-sm font-bold">栄養値の目安（わかる範囲で修正）</legend><p className="mt-1 text-xs leading-6 text-[var(--muted)]">栄養値は利用者による目安として保存し、栄養の正解データとしては扱いません。</p><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="text-xs font-medium">{label}（{unit}）<input className="form-input mt-2 w-full" type="number" min="0" max="10000" step="0.1" inputMode="decimal" placeholder="0" value={nutritionDrafts[key] ?? (nutrition[key] === 0 ? "" : nutrition[key])} disabled={busy || phase === "sent"} onChange={(event) => { const draft = event.target.value; setNutritionDrafts((current) => ({ ...current, [key]: draft })); setNutrition((current) => ({ ...current, [key]: draft === "" ? 0 : Number(draft) })); }} /></label>)}</div></fieldset>
         {isSharedTestEnvironment ? <p className="mt-8 rounded-md bg-[var(--sand)] p-4 text-sm leading-6">テスト環境では学習データの共有を行いません。ここで確認した写真・正解は送信されません。</p> : <div className="mt-8 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4">
           <label className="flex cursor-pointer items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={consent} disabled={busy || phase === "sent"} onChange={(event) => setConsent(event.target.checked)} /><span>学習用データの共有に同意します。写真（EXIF除去後）、AI候補、正しい料理名、入力した栄養値を非公開foodDBへ送ります。氏名・メール・認証トークンは学習データに保存しません。送信データは確認待ちとなり、すぐにAIへ反映されるわけではありません。</span></label>
           {!account && phase !== "sent" && <p className="mt-3 text-sm leading-6">共有には、ページ上部の「Googleで認証してから入力する」ボタンで認証してください。認証だけでは送信しません。</p>}
