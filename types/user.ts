@@ -16,6 +16,7 @@ export interface UserProfile {
   gender?: Gender;
   heightCm?: number;
   startingWeightKg?: number;
+  isGymMember?: boolean;
   goal: FitnessGoal;
   updatedAt: string;
 }
