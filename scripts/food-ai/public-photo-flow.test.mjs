@@ -15,7 +15,7 @@ function publicPhotoHarness(sharedTest = false, displayMode = "browser") {
   let stateIndex = 0, refIndex = 0, effectIndex = 0, now = 100_000, sequence = 0;
   let rejection = "";
   let connectionReady = true, clipboardDenied = false;
-  const copied = [];
+  const copied = [], revokedPreviews = [];
   const window = new EventTarget(), document = new EventTarget();
   window.location = { origin: "https://example.invalid", pathname: "/food-photo/", search: "?private=never-copy", hash: "#never-copy" };
   window.matchMedia = (query) => ({ matches: query === `(display-mode: ${displayMode})`, addEventListener() {}, removeEventListener() {} });
@@ -44,7 +44,7 @@ function publicPhotoHarness(sharedTest = false, displayMode = "browser") {
   const exports = {};
   vm.runInNewContext(source, {
     exports, require: (id) => { assert.ok(modules[id], id); return modules[id]; }, window, document, navigator, AbortController, Error,
-    URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} },
+    URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL(url) { revokedPreviews.push(url); } },
     Date: class extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } },
     setTimeout: (callback) => { const id = ++sequence; timers.set(id, callback); return id; }, clearTimeout: (id) => timers.delete(id),
   });
@@ -53,12 +53,12 @@ function publicPhotoHarness(sharedTest = false, displayMode = "browser") {
   function find(predicate) { const node = render().find(predicate); assert.ok(node); return node; }
   function button(label) { return find((n) => n.type === "button" && n.props.children === label); }
   function click(label) { const node = button(label); assert.notEqual(node.props.disabled, true, label); node.props.onClick(); }
-  function choose() { const node = find((n) => n.type === "input" && n.props.type === "file"); assert.notEqual(node.props.disabled, true); node.props.onChange({ target: { files: [photo], value: "" } }); }
+  function choose(next = photo) { const node = find((n) => n.type === "input" && n.props.type === "file"); assert.notEqual(node.props.disabled, true); node.props.onChange({ target: { files: [next], value: "" } }); }
   async function flush() { for (let i = 0; i < 5; i++) await Promise.resolve(); render(); }
   async function authorize() { click("Googleで認証してから入力する"); authorizations.at(-1).resolve({ accessToken: "synthetic-token", expiresAt: now + 3600_000 }); await flush(); }
-  function draft() {
-    choose(); click(sharedTest ? "料理名を入力して確認する" : "料理名を入力して共有する");
-    find((n) => n.type === "input" && n.props.placeholder === "例：卵焼き").props.onChange({ target: { value: "手入力の料理" } });
+  function draft(next = photo, name = "手入力の料理") {
+    choose(next); click(sharedTest ? "料理名を入力して確認する" : "料理名を入力して共有する");
+    find((n) => n.type === "input" && n.props.placeholder === "例：卵焼き").props.onChange({ target: { value: name } });
     const checks = render().filter((n) => n.type === "input" && n.props.type === "checkbox");
     for (const check of checks) check.props.onChange({ target: { checked: true } });
     render();
@@ -67,9 +67,82 @@ function publicPhotoHarness(sharedTest = false, displayMode = "browser") {
     expire() { now += 4000_000; document.dispatchEvent(new Event("visibilitychange")); render(); },
     rejectPost(message) { rejection = message; },
     connection(ready) { connectionReady = ready; },
-    copied, denyClipboard() { clipboardDenied = true; },
+    copied, revokedPreviews, denyClipboard() { clipboardDenied = true; },
   };
 }
+
+test("one Google login supports consecutive foods with separate consent, drafts, IDs and verified receipts", async () => {
+  const h = publicPhotoHarness(); await h.authorize(); h.draft();
+  h.find((n) => n.props.type === "number").props.onChange({ target: { value: "350" } });
+  h.click("確認した正解を共有"); await h.flush();
+  const firstId = h.posts[0].id;
+  const receipts = () => h.render().filter((n) => n.type === "li");
+  assert.equal(receipts().length, 1);
+  h.click("次の食べ物を登録");
+  assert.deepEqual(h.revokedPreviews, ["blob:synthetic"], "release the previous photo preview");
+  assert.equal(h.render().some((n) => n.type === "img" || n.props.placeholder === "例：卵焼き"), false);
+  assert.equal(receipts().length, 1, "previous receipt remains available after clearing the draft");
+  assert.equal(h.find((n) => n.props.type === "file").props.disabled, false);
+  const secondPhoto = { name: "second.jpg", size: 20, lastModified: 2 };
+  h.choose(secondPhoto); h.click("料理名を入力して共有する");
+  assert.equal(h.find((n) => n.props.placeholder === "例：卵焼き").props.value, "");
+  assert.ok(h.render().filter((n) => n.props.type === "number").every((n) => n.props.value === ""));
+  assert.ok(h.render().filter((n) => n.props.type === "checkbox").every((n) => !n.props.checked));
+  h.find((n) => n.props.placeholder === "例：卵焼き").props.onChange({ target: { value: "次の料理" } });
+  h.find((n) => n.props.type === "checkbox").props.onChange({ target: { checked: true } });
+  assert.equal(h.button("確認した正解を共有").props.disabled, true, "consent is not carried over");
+  h.button("確認した正解を共有").props.onClick(); await h.flush();
+  assert.equal(h.posts.length, 1, "no automatic or unconsented second upload");
+  h.render().filter((n) => n.props.type === "checkbox")[1].props.onChange({ target: { checked: true } });
+  h.click("確認した正解を共有"); await h.flush();
+  assert.equal(h.posts[1].image, secondPhoto);
+  assert.equal(h.posts[1].confirmedFoodName, "次の料理");
+  assert.equal(h.posts[1].nutrition.calories, 0, "previous nutrition is not reused");
+  assert.equal(h.posts[1].predictedFoodIds.length, 0);
+  assert.notEqual(h.posts[1].id, firstId);
+  assert.equal(receipts().length, 2);
+  assert.ok(h.render().some((n) => Array.isArray(n.props.children) && n.props.children.includes(firstId)));
+  // Choosing another photo directly also keeps the receipts and authentication.
+  h.draft({ name: "third.jpg", size: 30, lastModified: 3 }, "三品目");
+  h.click("確認した正解を共有"); await h.flush();
+  assert.equal(receipts().length, 3);
+  assert.equal(new Set(h.posts.map((post) => post.id)).size, 3);
+  assert.equal(h.authorizations.length, 1);
+  assert.ok(h.posts.every((post) => post.accessToken === "synthetic-token" && post.consent === true));
+});
+
+test("a failed next registration keeps earlier receipts and retry identity without claiming success", async () => {
+  const h = publicPhotoHarness(); await h.authorize(); h.draft();
+  h.click("確認した正解を共有"); await h.flush();
+  h.click("次の食べ物を登録"); h.draft({ name: "second.jpg", size: 20, lastModified: 2 });
+  h.rejectPost("unverified receipt"); h.click("確認した正解を共有");
+  assert.equal(h.render().some((n) => n.props.children === "次の食べ物を登録"), false, "cannot reset while sending");
+  await h.flush();
+  assert.equal(h.render().filter((n) => n.type === "li").length, 1);
+  assert.equal(h.render().some((n) => n.props.children === "次の食べ物を登録"), false, "failed draft stays available for retry");
+  h.rejectPost(""); h.click("確認した正解を共有"); await h.flush();
+  assert.equal(h.posts[2].id, h.posts[1].id);
+  assert.notEqual(h.posts[2].id, h.posts[0].id);
+  assert.equal(h.render().filter((n) => n.type === "li").length, 2);
+  assert.equal(h.authorizations.length, 1);
+});
+
+test("expired authentication between foods requires renewal without losing receipts or auto-submitting", async () => {
+  const h = publicPhotoHarness(); await h.authorize(); h.draft();
+  h.click("確認した正解を共有"); await h.flush(); h.expire();
+  h.click("次の食べ物を登録");
+  assert.equal(h.find((n) => n.props.type === "file").props.disabled, true);
+  assert.equal(h.render().filter((n) => n.type === "li").length, 1);
+  assert.equal(h.authorizations.length, 1, "next food never opens auth automatically");
+  await h.authorize();
+  assert.equal(h.posts.length, 1);
+  h.draft(); h.click("確認した正解を共有"); await h.flush();
+  assert.equal(h.posts.length, 2);
+  assert.equal(h.render().filter((n) => n.type === "li").length, 2);
+  const reload = publicPhotoHarness();
+  assert.equal(reload.render().filter((n) => n.type === "li").length, 0, "receipts are memory-only");
+  assert.equal(reload.find((n) => n.props.type === "file").props.disabled, true);
+});
 
 test("slow or failed receiver readiness cannot block Google auth or photo selection, but still blocks upload", async () => {
   const h = publicPhotoHarness(); h.connection(false);
