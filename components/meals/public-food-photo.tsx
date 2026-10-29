@@ -55,7 +55,7 @@ export function PublicFoodPhoto() {
   const [consent, setConsent] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
-  const [receiptId, setReceiptId] = useState("");
+  const [registrations, setRegistrations] = useState<Array<{ id: string; name: string }>>([]);
   const [mode, setMode] = useState<"analyze" | "share" | null>(isSharedTestEnvironment ? "analyze" : null);
   const [account, setAccount] = useState<GoogleAccountSession | null>(null);
   const [authPending, setAuthPending] = useState(false);
@@ -67,6 +67,8 @@ export function PublicFoodPhoto() {
   const analysisGeneration = useRef(0);
   const previewUrl = useRef<string | null>(null);
   const submission = useRef<{ key: string; id: string; createdAt: string } | null>(null);
+  const photoHeading = useRef<HTMLHeadingElement | null>(null);
+  const authHeading = useRef<HTMLHeadingElement | null>(null);
   const clientId = useGoogleDriveClientId();
   const endpoint = useTrainingDataEndpoint();
   const connection = useTrainingConnection(clientId, endpoint);
@@ -119,7 +121,7 @@ export function PublicFoodPhoto() {
       if (session.expiresAt <= Date.now()) throw new Error("認証の有効期限を確認できませんでした。もう一度お試しください。");
       setAccount(session);
       setMode("share");
-      setAuthMessage("Google認証済みです。写真と料理名を確認してから共有してください。まだ写真は送信していません。");
+      setAuthMessage("Google認証済みです。有効期限内は、この画面で続けて複数の食べ物を登録できます。写真と料理名を確認し、1品ずつ共有してください。認証だけでは送信しません。");
     } catch (error) {
       if (!controller.signal.aborted) setAuthMessage(error instanceof Error ? error.message : "認証できませんでした。再試行してください。");
     } finally {
@@ -134,31 +136,14 @@ export function PublicFoodPhoto() {
     setAuthMessage("認証待ちを解除しました。Googleの認証画面を閉じてから、もう一度お試しください。入力済みの内容はこの画面に残っています。");
   }
 
-  function chooseFile(event: ChangeEvent<HTMLInputElement>) {
-    if (authPending || !mode || (mode === "share" && (!account || account.expiresAt <= Date.now()))) return;
-    const next = event.target.files?.[0];
-    event.target.value = "";
-    if (!next) return;
-    if (!isSupportedFoodPhoto(next)) {
-      analysisGeneration.current += 1;
-      if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
-      previewUrl.current = null;
-      setPreview(null);
-      setFile(null);
-      setCandidates([]);
-      setLabelChecked(false);
-      setConsent(false);
-      setReceiptId("");
-      submission.current = null;
-      setMessage("20MB以下の食事写真を選んでください。");
-      setPhase("error");
-      return;
-    }
+  function resetPhotoDraft() {
+    // Keep the in-memory Google session and verified receipts, never the previous
+    // photo's label, nutrition, consent, candidates, or retry identity.
     analysisGeneration.current += 1;
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
-    previewUrl.current = URL.createObjectURL(next);
-    setPreview(previewUrl.current);
-    setFile(next);
+    previewUrl.current = null;
+    setPreview(null);
+    setFile(null);
     setCandidates([]);
     setSelectedId("");
     setCorrectName("");
@@ -166,10 +151,38 @@ export function PublicFoodPhoto() {
     setNutrition(emptyNutrition);
     setNutritionDrafts({});
     setConsent(false);
-    setReceiptId("");
     submission.current = null;
     setPhase("idle");
     setMessage("");
+  }
+
+  function chooseFile(event: ChangeEvent<HTMLInputElement>) {
+    if (sending.current || authPending || !mode || (mode === "share" && (!account || account.expiresAt <= Date.now()))) return;
+    const next = event.target.files?.[0];
+    event.target.value = "";
+    if (!next) return;
+    resetPhotoDraft();
+    if (!isSupportedFoodPhoto(next)) {
+      setMessage("20MB以下の食事写真を選んでください。");
+      setPhase("error");
+      return;
+    }
+    previewUrl.current = URL.createObjectURL(next);
+    setPreview(previewUrl.current);
+    setFile(next);
+  }
+
+  function startNextFood() {
+    if (sending.current || authPending || phase !== "sent") return;
+    resetPhotoDraft();
+    const needsAuthentication = !account || account.expiresAt <= Date.now();
+    if (needsAuthentication) {
+      setAccount(null);
+      setAuthMessage("登録済みの受付番号は下に残っています。Google認証を更新してから、次の食べ物を登録してください。");
+    }
+    const heading = needsAuthentication ? authHeading.current : photoHeading.current;
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ block: "start" });
   }
 
   function selectCandidate(candidate: FoodPhotoCandidate) {
@@ -248,7 +261,7 @@ export function PublicFoodPhoto() {
         confirmedFoodName: name, nutrition, createdAt: current.createdAt, consent: true,
         onProgress: setMessage,
       });
-      setReceiptId(receipt.id);
+      setRegistrations((current) => current.some((item) => item.id === receipt.id) ? current : [...current, { id: receipt.id, name }]);
       setPhase("sent");
       setMessage("foodDBへの保存を確認しました。確認後、独立評価に合格したデータだけを学習に利用します。");
     } catch (error) {
@@ -288,8 +301,9 @@ export function PublicFoodPhoto() {
         <p className="mt-2">Safari／Chromeでも接続できない場合はWi-Fiとモバイル通信を切り替えて「再接続」をお試しください。接続確認だけでは写真は送信されません。</p>
       </details>
       {!isSharedTestEnvironment && <section className="mt-6 rounded-md border border-[var(--line)] p-4" aria-label="共有前のGoogle認証">
-        <h2 className="font-bold">共有する方は、写真を選ぶ前にGoogle認証</h2>
+        <h2 ref={authHeading} tabIndex={-1} className="scroll-mt-6 font-bold">共有する方は、写真を選ぶ前にGoogle認証</h2>
         <p className="mt-2 text-xs leading-6 text-[var(--muted)]">2段階認証を先に済ませてから入力します。認証だけでは写真は送信されません。解析だけなら認証は不要です。</p>
+        <p className="mt-2 text-xs leading-6 text-[var(--muted)]">1回の認証で、食べ物を1品ずつ続けて登録できます。共有後は「次の食べ物を登録」を押してください。認証の期限が切れた場合は再認証が必要です。</p>
         <p className="mt-2 text-xs leading-6 text-[var(--muted)]">写真・入力・認証情報はこの画面のメモリ内だけで扱います。ページの再読み込みやブラウザの切り替えでは復元できません。認証後にこの画面が最初から表示された場合は、先にもう一度認証してから入力してください。</p>
         {file && !account && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">入力後の再認証中にスマホがページを再読み込みすると、写真と入力を選び直す必要があります。</p>}
         {(standalone || authPending) && <div className="mt-3 rounded-md bg-[var(--sand)] p-3" aria-label="ブラウザで認証を続ける">
@@ -311,7 +325,7 @@ export function PublicFoodPhoto() {
         {authMessage && <p role="status" className="mt-3 text-sm leading-6">{authMessage}</p>}
       </section>}
       <section className="mt-8" aria-label="食事写真の解析">
-        <h2 className="text-lg font-bold">1. 食事写真を選ぶ</h2>
+        <h2 ref={photoHeading} tabIndex={-1} className="scroll-mt-6 text-lg font-bold">1. 食事写真を選ぶ</h2>
         {(authPending || !canChoosePhoto) && <p role="status" className="mt-2 text-sm leading-6">{authPending ? "Google認証の結果を待っています。上に「認証済み」と表示されたら写真を選べます。戻っても変わらない場合は「認証待ちを解除してやり直す」、またはSafari／Chromeへの切り替えをご利用ください。" : mode === "share" ? "上のGoogle認証を更新すると、写真を選べます。" : "上のGoogle認証を完了するか、「認証せず解析だけ試す」を選ぶと、写真を選べます。"}</p>}
         <div className={`mt-4 flex items-start gap-4 ${busy || !canChoosePhoto ? "opacity-50" : ""}`}>
           {preview && <div className="relative size-28 shrink-0 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--sand)]"><Image src={preview} alt="選んだ食事写真" fill unoptimized className="object-cover" /></div>}
@@ -343,7 +357,19 @@ export function PublicFoodPhoto() {
           {connection.error && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">共有先に接続できていません。ページ上部の「再接続」を押してください。</p>}
         </div>}
       </section>}
-      {message && <p role="status" className={`mt-5 break-words rounded-md p-3 text-sm leading-6 ${phase === "error" ? "bg-[var(--coral-soft)] text-[var(--coral)]" : "bg-[var(--sage-soft)]"}`}>{message}{receiptId && <span className="mt-1 block text-xs">削除依頼・問い合わせ用の受付番号: {receiptId}</span>}</p>}
+      {message && <p role="status" className={`mt-5 break-words rounded-md p-3 text-sm leading-6 ${phase === "error" ? "bg-[var(--coral-soft)] text-[var(--coral)]" : "bg-[var(--sage-soft)]"}`}>{message}</p>}
+      {phase === "sent" && <div className="mt-4">
+        <Button type="button" className="w-full" disabled={busy} onClick={startNextFood}>次の食べ物を登録</Button>
+        <p className="mt-2 text-xs leading-6 text-[var(--muted)]">ページを閉じずに続けられます。次の写真・料理名・栄養値を入力し、共有への同意は1品ごとに確認してください。</p>
+      </div>}
+      {registrations.length > 0 && <section className="mt-6 rounded-md border border-[var(--line)] p-4" aria-label="この画面で登録した食べ物">
+        <h2 className="text-sm font-bold">登録済みの食べ物（{registrations.length}件）</h2>
+        <ul className="mt-3 space-y-3">{registrations.map((item) => <li key={item.id} className="break-words text-sm">
+          <p className="font-semibold">{item.name}</p>
+          <p className="mt-1 text-xs leading-6">削除依頼・問い合わせ用の受付番号: {item.id}</p>
+        </li>)}</ul>
+        <p className="mt-3 text-xs leading-6 text-[var(--muted)]">この一覧は今開いている画面の中だけに表示します。再読み込みや画面を閉じる前に、必要な受付番号を控えてください。</p>
+      </section>}
       <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{isSharedTestEnvironment ? "この画面の写真・正解データはメモリ内だけで扱います。テスト用の食事記録は「記録アプリへ」から保存できます。" : "写真・正解データは解析や送信のためにこの画面で扱い、個人の食事記録には保存しません。共有後に削除を希望する場合は受付番号をお知らせください。"}</p>
     </main>
   </div>;
