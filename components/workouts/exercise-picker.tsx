@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
-import { exerciseCatalog, exerciseCount } from "@/lib/data/exercise-catalog";
+import { beginnerExerciseCatalog, beginnerExerciseCount } from "@/lib/data/beginner-exercise-catalog";
 import { detectMuscleFocus, recommendExercises, usesRegisteredEquipment } from "@/lib/workouts/workout-recommender";
 import { getWorkoutDayPlan, getWorkoutWeek, weekdayLabels } from "@/lib/workouts/workout-split";
 import { getWorkoutPreferences } from "@/lib/storage/workout-preferences";
@@ -125,7 +125,9 @@ export function ExercisePicker({ onSelect, date, startWithEquipmentSetup = false
     };
   }, [isOpen]);
 
-  const results = useMemo(() => exerciseCatalog
+  const visibleFavoriteCount = useMemo(() => beginnerExerciseCatalog.flatMap((category) => category.groups.flatMap((group) => group.exercises))
+    .filter((exercise) => preferences.favoriteExercises.includes(exercise)).length, [preferences.favoriteExercises]);
+  const results = useMemo(() => beginnerExerciseCatalog
     .filter((category) => activeCategory === "すべて" || activeCategory === "お気に入り" || category.label === activeCategory)
     .map((category) => ({
       ...category,
@@ -205,11 +207,11 @@ export function ExercisePicker({ onSelect, date, startWithEquipmentSetup = false
     <Button type="button" variant="secondary" size="small" className="mt-2 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />種目一覧から選ぶ</Button>
     {isOpen ? <div ref={dialogRef} className="exercise-dialog" role="dialog" aria-modal="true" aria-label="筋トレ種目を選択" onClick={(event) => { if (event.target === event.currentTarget) closePicker(); }}>
       <section className="exercise-dialog-panel">
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 sm:px-5"><div><p className="text-base font-bold text-[var(--ink)]">{tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{exerciseCount}種目から検索できます</p></div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded bg-[var(--sand)] text-xl leading-none text-[var(--muted)]" aria-label="種目メニューを閉じる">×</button></header>
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 sm:px-5"><div><p className="text-base font-bold text-[var(--ink)]">{tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-[var(--muted)]">初心者向けの{beginnerExerciseCount}種目から選べます</p></div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded bg-[var(--sand)] text-xl leading-none text-[var(--muted)]" aria-label="種目メニューを閉じる">×</button></header>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(16px,env(safe-area-inset-bottom))]">
         <div className="sticky top-0 z-10 border-b border-[var(--line)] bg-white px-4 py-3 sm:px-5">
           <TextInput type="search" aria-label="種目名を検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="種目名を検索 例：ベンチプレス" />
-          <div className="mt-3 flex gap-2 overflow-x-auto px-0.5 py-1" aria-label="部位で絞り込み">{["すべて", "お気に入り", ...exerciseCatalog.map((category) => category.label)].map((category) => <button key={category} type="button" onClick={() => setActiveCategory(category)} aria-pressed={activeCategory === category} className={`min-h-11 shrink-0 rounded px-4 py-2 text-sm font-semibold transition ${activeCategory === category ? "bg-[var(--sage-deep)] text-white" : "bg-white text-[var(--muted)] ring-1 ring-[var(--line)]"}`}>{category === "お気に入り" ? `${category} ${preferences.favoriteExercises.length}` : category}</button>)}</div>
+          <div className="mt-3 flex gap-2 overflow-x-auto px-0.5 py-1" aria-label="部位で絞り込み">{["すべて", "お気に入り", ...beginnerExerciseCatalog.map((category) => category.label)].map((category) => <button key={category} type="button" onClick={() => setActiveCategory(category)} aria-pressed={activeCategory === category} className={`min-h-11 shrink-0 rounded px-4 py-2 text-sm font-semibold transition ${activeCategory === category ? "bg-[var(--sage-deep)] text-white" : "bg-white text-[var(--muted)] ring-1 ring-[var(--line)]"}`}>{category === "お気に入り" ? `${category} ${visibleFavoriteCount}` : category}</button>)}</div>
         </div>
         <div className="px-4 sm:px-5">
           <div className="mt-3 flex items-center justify-between gap-3">
@@ -236,7 +238,7 @@ export function ExercisePicker({ onSelect, date, startWithEquipmentSetup = false
                 <p className="mt-2 text-xs text-[var(--muted)]">目標・通う回数・曜日・分割方法は筋トレ画面上部の「週間メニュー」で変更できます。</p>
               </section>
               <p className="text-xs leading-5 text-[var(--muted)]">目標「{goal === "build-muscle" ? "筋肉を増やす" : goal === "lose-fat" ? "体脂肪を減らす" : "現在の体型を維持する"}」と器具・最近の記録・検索内容に合わせて選びます。</p>
-              {suggestions.length ? <div className="mt-3 space-y-2">{suggestions.map((suggestion) => <button key={suggestion.name} type="button" onClick={() => choose(suggestion.name)} className="min-h-12 w-full rounded border border-[var(--line)] bg-white px-3 py-3 text-left hover:border-[var(--sage-deep)]"><span className="block text-sm font-bold leading-6 text-[var(--ink)]">{suggestion.name}</span><span className="mt-1 block text-xs leading-5 text-[var(--muted)]">{suggestion.reasons.join("・") || suggestion.category}</span></button>)}</div> : <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{scheduledDay?.isRest ? "今日は休みの日です。必要なら下の一覧から手動で種目を選べます。" : preferences.favoriteExercises.length === 0 ? "種目一覧で、ジムにある器具でできる種目に☆を付けると、ここにおすすめが表示されます。" : "お気に入りの中に条件に合う候補がありません。器具設定や検索語を調整してください。"}</p>}
+              {suggestions.length ? <div className="mt-3 space-y-2">{suggestions.map((suggestion) => <button key={suggestion.name} type="button" onClick={() => choose(suggestion.name)} className="min-h-12 w-full rounded border border-[var(--line)] bg-white px-3 py-3 text-left hover:border-[var(--sage-deep)]"><span className="block text-sm font-bold leading-6 text-[var(--ink)]">{suggestion.name}</span><span className="mt-1 block text-xs leading-5 text-[var(--muted)]">{suggestion.reasons.join("・") || suggestion.category}</span></button>)}</div> : <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{scheduledDay?.isRest ? "今日は休みの日です。必要なら下の一覧から手動で種目を選べます。" : visibleFavoriteCount === 0 ? "下の初心者向け種目に☆を付けると、ここにおすすめが表示されます。" : "お気に入りの中に条件に合う候補がありません。器具設定や検索語を調整してください。"}</p>}
             </div>
           </details>
         </div>
