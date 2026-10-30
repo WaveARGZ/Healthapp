@@ -25,6 +25,7 @@
     "test:mobile-viewport": "node scripts/test-mobile-viewport.mjs",
     "test:workout-split": "node --experimental-strip-types --test scripts/test-workout-split.mjs",
     "test:muscle-activity": "node --experimental-strip-types --test scripts/test-muscle-activity.mjs",
+    "test:exercise-shorts": "node --experimental-strip-types --test scripts/test-exercise-short-videos.mjs",
     "test:environment-build": "node scripts/test-environment-build.mjs",
     "test:team-runtime": "node --test scripts/test-team-runtime.mjs",
     "test:photo-submission": "node --test scripts/food-ai/submission-client.test.mjs scripts/food-ai/public-photo-flow.test.mjs scripts/food-ai/jpeg-metadata.test.mjs scripts/food-ai/streaming-upload.test.mjs",
