@@ -49,7 +49,7 @@ export const exerciseShortVideoIds: Record<string, string> = {
   "階段昇降": "dLWZVhyXXhE",
 };
 
-export function getExerciseShortUrl(exerciseName: string): string | undefined {
+export function getExerciseShortEmbedUrl(exerciseName: string): string | undefined {
   const videoId = exerciseShortVideoIds[exerciseName];
-  return videoId ? `https://www.youtube.com/shorts/${videoId}` : undefined;
+  return videoId ? `https://www.youtube.com/embed/${videoId}?playlist=${videoId}&loop=1&playsinline=1&rel=0&autoplay=1` : undefined;
 }

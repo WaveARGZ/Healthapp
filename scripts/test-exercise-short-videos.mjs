@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { beginnerExerciseCatalog } from "../lib/data/beginner-exercise-catalog.ts";
-import { exerciseShortVideoIds, getExerciseShortUrl } from "../lib/data/exercise-short-videos.ts";
+import { exerciseShortVideoIds, getExerciseShortEmbedUrl } from "../lib/data/exercise-short-videos.ts";
 
 test("every beginner exercise has its own YouTube Short", () => {
   const exerciseNames = beginnerExerciseCatalog.flatMap((category) => category.groups.flatMap((group) => group.exercises));
@@ -12,7 +12,7 @@ test("every beginner exercise has its own YouTube Short", () => {
   for (const exerciseName of exerciseNames) {
     const videoId = exerciseShortVideoIds[exerciseName];
     assert.match(videoId, /^[A-Za-z0-9_-]{11}$/);
-    assert.equal(getExerciseShortUrl(exerciseName), `https://www.youtube.com/shorts/${videoId}`);
+    assert.equal(getExerciseShortEmbedUrl(exerciseName), `https://www.youtube.com/embed/${videoId}?playlist=${videoId}&loop=1&playsinline=1&rel=0&autoplay=1`);
   }
-  assert.equal(getExerciseShortUrl("登録されていない種目"), undefined);
+  assert.equal(getExerciseShortEmbedUrl("登録されていない種目"), undefined);
 });
