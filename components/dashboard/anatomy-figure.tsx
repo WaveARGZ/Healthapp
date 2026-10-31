@@ -40,19 +40,19 @@ const backRegions: Record<MuscleGroup, string[]> = {
   ],
 };
 
-export function AnatomyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
-  const maskId = `muscle-anatomy-${view}-mask`;
-  const visibilityMaskId = `muscle-anatomy-${view}-visibility`;
-  const edgeFilterId = `muscle-anatomy-${view}-edge`;
-  const outlineFilterId = `muscle-anatomy-${view}-outline`;
-  const clipId = `muscle-anatomy-${view}-clip`;
-  const regions = view === "front" ? frontRegions : backRegions;
-  const viewBox = view === "front" ? "0 0 720 1280" : "560 0 720 1280";
-  const visibleRegions = Object.entries(regions).flatMap(([group, paths]) => activity[group as MuscleGroup] > 0 ? paths : []);
+export function AnatomyFigure({ activity }: { activity: MuscleActivity }) {
+  const maskId = "muscle-anatomy-mask";
+  const visibilityMaskId = "muscle-anatomy-visibility";
+  const edgeFilterId = "muscle-anatomy-edge";
+  const outlineFilterId = "muscle-anatomy-outline";
+  const regions = [...Object.entries(frontRegions), ...Object.entries(backRegions)] as [MuscleGroup, string[]][];
+  const visibleRegions = regions.flatMap(([group, paths]) => activity[group] > 0 ? paths : []);
 
-  return <div className="rounded-xl border border-[#b7c8bb] bg-white px-2 pb-4 pt-4 text-center">
-    <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
-    <svg viewBox={viewBox} aria-hidden="true" className="mx-auto mt-2 aspect-[9/16] w-full max-w-[240px]">
+  return <div className="rounded-xl border border-[#b7c8bb] bg-white px-3 pb-4 pt-4 text-center">
+    <div className="mx-auto grid max-w-[640px] grid-cols-2 text-sm font-bold tracking-[0.18em] text-[var(--ink)]">
+      <p>正面</p><p>背面</p>
+    </div>
+    <svg viewBox="-16 -16 1312 1312" aria-hidden="true" className="mx-auto mt-2 aspect-square w-full max-w-[640px]">
       <defs>
         <filter id={edgeFilterId} x="-1%" y="-1%" width="102%" height="102%">
           <feMorphology in="SourceAlpha" operator="erode" radius="2" result="clean-alpha" />
@@ -73,19 +73,16 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
           <rect width="1280" height="1280" fill="black" />
           {visibleRegions.map((d, index) => <path key={index} d={d} fill="white" />)}
         </mask>
-        <clipPath id={clipId}>
-          <rect x={view === "front" ? 0 : 640} y="0" width="640" height="1280" />
-        </clipPath>
       </defs>
-      <g clipPath={`url(#${clipId})`}>
+      <g>
         <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
         <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
         <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
-          {Object.entries(regions).flatMap(([group, paths]) => {
-            const days = activity[group as MuscleGroup];
+          {regions.flatMap(([group, paths], regionIndex) => {
+            const days = activity[group];
             if (!days || days >= 3) return [];
             const level = Math.min(days, 3);
-            return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={activityColors[level]} opacity={overlayOpacity[level]} />);
+            return paths.map((d, index) => <path key={`${group}-${regionIndex}-${index}`} d={d} fill={activityColors[level]} opacity={overlayOpacity[level]} />);
           })}
         </g>
       </g>

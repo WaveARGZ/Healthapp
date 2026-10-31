@@ -24,9 +24,8 @@ export function MuscleActivityMap({ workouts, today, loading, unavailable }: { w
     </div>
     {loading || unavailable ? <p className="mt-5 text-sm text-[var(--muted)]">{loading ? "筋トレ記録を読み込み中…" : "筋トレ記録を読み込めませんでした。再読み込みしてお試しください。"}</p> : <>
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(230px,0.8fr)] lg:items-start">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <AnatomyFigure view="front" activity={activity} />
-          <AnatomyFigure view="back" activity={activity} />
+        <div>
+          <AnatomyFigure activity={activity} />
         </div>
         <div className="rounded-xl border border-[var(--line)] bg-white p-4 sm:p-5">
           <h3 className="text-sm font-bold">部位ごとの記録日数</h3>
