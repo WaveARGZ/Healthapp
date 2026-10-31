@@ -44,13 +44,19 @@ export function AnatomyFigure({ activity }: { activity: MuscleActivity }) {
   const maskId = "muscle-anatomy-mask";
   const edgeFilterId = "muscle-anatomy-edge";
   const outlineFilterId = "muscle-anatomy-outline";
-  const frontClipId = "muscle-anatomy-front-clip";
-  const backClipId = "muscle-anatomy-back-clip";
-  // The source figures overlap at the inner hands. Split them and leave space between the copies.
+  const frontHalfClipId = "muscle-anatomy-front-half";
+  const backHalfClipId = "muscle-anatomy-back-half";
+  // Mirror the clean outer halves because the inner hands overlap in the source image.
   const backOffset = 170;
   const figures = [
-    { key: "front", clipId: frontClipId, visibilityMaskId: "muscle-anatomy-front-visibility", offset: 0, regions: frontRegions },
-    { key: "back", clipId: backClipId, visibilityMaskId: "muscle-anatomy-back-visibility", offset: backOffset, regions: backRegions },
+    { key: "front", clipId: frontHalfClipId, visibilityMaskId: "muscle-anatomy-front-visibility", regions: frontRegions },
+    { key: "back", clipId: backHalfClipId, visibilityMaskId: "muscle-anatomy-back-visibility", regions: backRegions },
+  ];
+  const halves = [
+    { ...figures[0], key: "front-left", transform: "" },
+    { ...figures[0], key: "front-right", transform: "translate(720 0) scale(-1 1)" },
+    { ...figures[1], key: "back-right", transform: `translate(${backOffset} 0)` },
+    { ...figures[1], key: "back-left", transform: `translate(${1840 + backOffset} 0) scale(-1 1)` },
   ];
 
   return <div className="rounded-xl border border-[#b7c8bb] bg-white px-3 pb-4 pt-4 text-center">
@@ -59,8 +65,8 @@ export function AnatomyFigure({ activity }: { activity: MuscleActivity }) {
     </div>
     <svg viewBox="-16 -16 1482 1312" aria-hidden="true" className="mx-auto mt-2 aspect-[1482/1312] w-full max-w-[640px]">
       <defs>
-        <clipPath id={frontClipId}><path d="M0 0H650V500H690V740H650V1280H0Z" /></clipPath>
-        <clipPath id={backClipId}><path d="M650 0H1280V1280H650V740H610V500H650Z" /></clipPath>
+        <clipPath id={frontHalfClipId}><rect width="360" height="1280" /></clipPath>
+        <clipPath id={backHalfClipId}><rect x="920" width="360" height="1280" /></clipPath>
         <filter id={edgeFilterId} x="-1%" y="-1%" width="102%" height="102%">
           <feMorphology in="SourceAlpha" operator="erode" radius="2" result="clean-alpha" />
           <feComposite in="SourceGraphic" in2="clean-alpha" operator="in" />
@@ -81,16 +87,18 @@ export function AnatomyFigure({ activity }: { activity: MuscleActivity }) {
           {Object.entries(figure.regions).flatMap(([group, paths]) => activity[group as MuscleGroup] > 0 ? paths : []).map((d, index) => <path key={index} d={d} fill="white" />)}
         </mask>)}
       </defs>
-      {figures.map((figure) => <g key={figure.key} transform={`translate(${figure.offset} 0)`} clipPath={`url(#${figure.clipId})`}>
-        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
-        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${figure.visibilityMaskId})`} />
-        <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
-          {Object.entries(figure.regions).flatMap(([group, paths]) => {
-            const days = activity[group as MuscleGroup];
-            if (!days || days >= 3) return [];
-            const level = Math.min(days, 3);
-            return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={activityColors[level]} opacity={overlayOpacity[level]} />);
-          })}
+      {halves.map((figure) => <g key={figure.key} transform={figure.transform}>
+        <g clipPath={`url(#${figure.clipId})`}>
+          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
+          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${figure.visibilityMaskId})`} />
+          <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
+            {Object.entries(figure.regions).flatMap(([group, paths]) => {
+              const days = activity[group as MuscleGroup];
+              if (!days || days >= 3) return [];
+              const level = Math.min(days, 3);
+              return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={activityColors[level]} opacity={overlayOpacity[level]} />);
+            })}
+          </g>
         </g>
       </g>)}
     </svg>
