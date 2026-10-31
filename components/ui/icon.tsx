@@ -12,6 +12,7 @@ export type IconName =
   | "mail"
   | "more"
   | "plus"
+  | "play"
   | "progress"
   | "scale"
   | "search"
@@ -48,6 +49,7 @@ export function Icon({ name, className, ...props }: IconProps) {
     mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></>,
     more: <><circle cx="5" cy="12" r="1" fill="currentColor" /><circle cx="12" cy="12" r="1" fill="currentColor" /><circle cx="19" cy="12" r="1" fill="currentColor" /></>,
     plus: <path d="M12 5v14M5 12h14" />,
+    play: <path d="m8 5 11 7-11 7V5Z" />,
     progress: <><path d="M5 20V10m7 10V4m7 16v-7" /><path d="M3 20h18" /></>,
     scale: <><path d="M5 20h14a2 2 0 0 0 2-2V8a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v10a2 2 0 0 0 2 2Z" /><path d="M9 9a3 3 0 0 1 6 0" /><path d="m12 9 1.5 2" /></>,
     search: <><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></>,

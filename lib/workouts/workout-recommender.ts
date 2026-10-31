@@ -1,4 +1,4 @@
-import { exerciseCatalog } from "@/lib/data/exercise-catalog";
+import { beginnerExerciseCatalog } from "@/lib/data/beginner-exercise-catalog";
 import type { FitnessGoal } from "@/types/user";
 import type { WorkoutEntry } from "@/types/workout";
 import type { WorkoutSplitPlan } from "@/types/workout-preferences";
@@ -17,7 +17,7 @@ interface Candidate {
   group: string;
 }
 
-const candidates: Candidate[] = [...new Map(exerciseCatalog.flatMap((category) => category.groups.flatMap((group) =>
+const candidates: Candidate[] = [...new Map(beginnerExerciseCatalog.flatMap((category) => category.groups.flatMap((group) =>
   group.exercises.map((name) => [name, { name, category: category.label, group: group.label }] as const),
 ))).values()];
 

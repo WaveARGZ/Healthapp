@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
-import { exerciseCatalog, exerciseCount } from "@/lib/data/exercise-catalog";
+import { beginnerExerciseCatalog, beginnerExerciseCount } from "@/lib/data/beginner-exercise-catalog";
+import { getExerciseShortEmbedUrl } from "@/lib/data/exercise-short-videos";
 import { detectMuscleFocus, recommendExercises, usesRegisteredEquipment } from "@/lib/workouts/workout-recommender";
 import { getWorkoutDayPlan, getWorkoutWeek, weekdayLabels } from "@/lib/workouts/workout-split";
 import { getWorkoutPreferences } from "@/lib/storage/workout-preferences";
@@ -38,13 +39,32 @@ export function ExercisePicker({ onSelect, date, startWithEquipmentSetup = false
   const [pendingPreferenceWrites, setPendingPreferenceWrites] = useState(0);
   const [goal, setGoal] = useState<FitnessGoal>("maintain");
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
+  const [videoExercise, setVideoExercise] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const videoCloseRef = useRef<HTMLButtonElement>(null);
+  const videoOpenerNameRef = useRef<string | null>(null);
+  const videoExerciseRef = useRef<string | null>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null);
+  const savedListScrollRef = useRef(0);
   const firstFavoriteRef = useRef<HTMLButtonElement>(null);
   const recommendationsRef = useRef<HTMLDetailsElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const queryFocus = detectMuscleFocus(query);
+
+  useEffect(() => {
+    videoExerciseRef.current = videoExercise;
+    if (videoExercise) videoCloseRef.current?.focus();
+    else if (isOpen && videoOpenerNameRef.current) {
+      const frame = requestAnimationFrame(() => {
+        if (listScrollRef.current) listScrollRef.current.scrollTop = savedListScrollRef.current;
+        Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>("button[data-exercise-video]") ?? [])
+          .find((button) => button.dataset.exerciseVideo === videoOpenerNameRef.current)?.focus();
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [isOpen, videoExercise]);
 
   useEffect(() => {
     void Promise.all([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts()]).then(([profile, history]) => {
@@ -108,7 +128,11 @@ export function ExercisePicker({ onSelect, date, startWithEquipmentSetup = false
     initialFocus?.focus();
     document.body.style.overflow = "hidden";
     function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") { event.preventDefault(); closePicker(); }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (videoExerciseRef.current) setVideoExercise(null);
+        else closePicker();
+      }
       if (event.key !== "Tab") return;
       const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), summary, [tabindex="0"]') ?? []).filter((control) => control.getClientRects().length > 0);
       if (!controls?.length) return;
@@ -125,7 +149,9 @@ export function ExercisePicker({ onSelect, date, startWithEquipmentSetup = false
     };
   }, [isOpen]);
 
-  const results = useMemo(() => exerciseCatalog
+  const visibleFavoriteCount = useMemo(() => beginnerExerciseCatalog.flatMap((category) => category.groups.flatMap((group) => group.exercises))
+    .filter((exercise) => preferences.favoriteExercises.includes(exercise)).length, [preferences.favoriteExercises]);
+  const results = useMemo(() => beginnerExerciseCatalog
     .filter((category) => activeCategory === "すべて" || activeCategory === "お気に入り" || category.label === activeCategory)
     .map((category) => ({
       ...category,
@@ -198,18 +224,29 @@ export function ExercisePicker({ onSelect, date, startWithEquipmentSetup = false
 
   function closePicker() {
     setIsOpen(false);
+    setVideoExercise(null);
     setTutorialStage(null);
   }
 
   return <>
     <Button type="button" variant="secondary" size="small" className="mt-2 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />種目一覧から選ぶ</Button>
-    {isOpen ? <div ref={dialogRef} className="exercise-dialog" role="dialog" aria-modal="true" aria-label="筋トレ種目を選択" onClick={(event) => { if (event.target === event.currentTarget) closePicker(); }}>
+    {isOpen ? <div ref={dialogRef} className="exercise-dialog" role="dialog" aria-modal="true" aria-label={videoExercise ? `${videoExercise}の動作動画` : "筋トレ種目を選択"} onClick={(event) => { if (event.target === event.currentTarget) { if (videoExercise) setVideoExercise(null); else closePicker(); } }}>
+      {videoExercise ? <section className="exercise-dialog-panel">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 sm:px-5">
+          <div><p className="text-base font-bold text-[var(--ink)]">{videoExercise}</p><p className="mt-0.5 text-xs text-[var(--muted)]">動作説明の動画</p></div>
+          <button ref={videoCloseRef} type="button" onClick={() => setVideoExercise(null)} className="min-h-11 rounded bg-[var(--sand)] px-4 text-sm font-bold text-[var(--sage-deep)]">種目一覧に戻る</button>
+        </header>
+        <div className="min-h-0 overflow-y-auto px-4 py-4 text-center sm:px-5">
+          <iframe key={videoExercise} src={getExerciseShortEmbedUrl(videoExercise)} title={`${videoExercise}の動作説明`} className="mx-auto aspect-[9/16] w-full max-w-[300px] rounded bg-black" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen sandbox="allow-scripts allow-same-origin allow-presentation" referrerPolicy="strict-origin-when-cross-origin" />
+          <p className="mt-3 text-xs text-[var(--muted)]">動画を閉じると再生が止まります。</p>
+        </div>
+      </section> : <>
       <section className="exercise-dialog-panel">
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 sm:px-5"><div><p className="text-base font-bold text-[var(--ink)]">{tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{exerciseCount}種目から検索できます</p></div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded bg-[var(--sand)] text-xl leading-none text-[var(--muted)]" aria-label="種目メニューを閉じる">×</button></header>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(16px,env(safe-area-inset-bottom))]">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 sm:px-5"><div><p className="text-base font-bold text-[var(--ink)]">{tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-[var(--muted)]">初心者向けの{beginnerExerciseCount}種目から選べます</p><p className="mt-0.5 text-xs text-[var(--muted)]">再生ボタンでアプリ内に動画を表示します</p></div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded bg-[var(--sand)] text-xl leading-none text-[var(--muted)]" aria-label="種目メニューを閉じる">×</button></header>
+        <div ref={listScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(16px,env(safe-area-inset-bottom))]">
         <div className="sticky top-0 z-10 border-b border-[var(--line)] bg-white px-4 py-3 sm:px-5">
           <TextInput type="search" aria-label="種目名を検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="種目名を検索 例：ベンチプレス" />
-          <div className="mt-3 flex gap-2 overflow-x-auto px-0.5 py-1" aria-label="部位で絞り込み">{["すべて", "お気に入り", ...exerciseCatalog.map((category) => category.label)].map((category) => <button key={category} type="button" onClick={() => setActiveCategory(category)} aria-pressed={activeCategory === category} className={`min-h-11 shrink-0 rounded px-4 py-2 text-sm font-semibold transition ${activeCategory === category ? "bg-[var(--sage-deep)] text-white" : "bg-white text-[var(--muted)] ring-1 ring-[var(--line)]"}`}>{category === "お気に入り" ? `${category} ${preferences.favoriteExercises.length}` : category}</button>)}</div>
+          <div className="mt-3 flex gap-2 overflow-x-auto px-0.5 py-1" aria-label="部位で絞り込み">{["すべて", "お気に入り", ...beginnerExerciseCatalog.map((category) => category.label)].map((category) => <button key={category} type="button" onClick={() => setActiveCategory(category)} aria-pressed={activeCategory === category} className={`min-h-11 shrink-0 rounded px-4 py-2 text-sm font-semibold transition ${activeCategory === category ? "bg-[var(--sage-deep)] text-white" : "bg-white text-[var(--muted)] ring-1 ring-[var(--line)]"}`}>{category === "お気に入り" ? `${category} ${visibleFavoriteCount}` : category}</button>)}</div>
         </div>
         <div className="px-4 sm:px-5">
           <div className="mt-3 flex items-center justify-between gap-3">
@@ -236,12 +273,12 @@ export function ExercisePicker({ onSelect, date, startWithEquipmentSetup = false
                 <p className="mt-2 text-xs text-[var(--muted)]">目標・通う回数・曜日・分割方法は筋トレ画面上部の「週間メニュー」で変更できます。</p>
               </section>
               <p className="text-xs leading-5 text-[var(--muted)]">目標「{goal === "build-muscle" ? "筋肉を増やす" : goal === "lose-fat" ? "体脂肪を減らす" : "現在の体型を維持する"}」と器具・最近の記録・検索内容に合わせて選びます。</p>
-              {suggestions.length ? <div className="mt-3 space-y-2">{suggestions.map((suggestion) => <button key={suggestion.name} type="button" onClick={() => choose(suggestion.name)} className="min-h-12 w-full rounded border border-[var(--line)] bg-white px-3 py-3 text-left hover:border-[var(--sage-deep)]"><span className="block text-sm font-bold leading-6 text-[var(--ink)]">{suggestion.name}</span><span className="mt-1 block text-xs leading-5 text-[var(--muted)]">{suggestion.reasons.join("・") || suggestion.category}</span></button>)}</div> : <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{scheduledDay?.isRest ? "今日は休みの日です。必要なら下の一覧から手動で種目を選べます。" : preferences.favoriteExercises.length === 0 ? "種目一覧で、ジムにある器具でできる種目に☆を付けると、ここにおすすめが表示されます。" : "お気に入りの中に条件に合う候補がありません。器具設定や検索語を調整してください。"}</p>}
+              {suggestions.length ? <div className="mt-3 space-y-2">{suggestions.map((suggestion) => <button key={suggestion.name} type="button" onClick={() => choose(suggestion.name)} className="min-h-12 w-full rounded border border-[var(--line)] bg-white px-3 py-3 text-left hover:border-[var(--sage-deep)]"><span className="block text-sm font-bold leading-6 text-[var(--ink)]">{suggestion.name}</span><span className="mt-1 block text-xs leading-5 text-[var(--muted)]">{suggestion.reasons.join("・") || suggestion.category}</span></button>)}</div> : <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{scheduledDay?.isRest ? "今日は休みの日です。必要なら下の一覧から手動で種目を選べます。" : visibleFavoriteCount === 0 ? "下の初心者向け種目に☆を付けると、ここにおすすめが表示されます。" : "お気に入りの中に条件に合う候補がありません。器具設定や検索語を調整してください。"}</p>}
             </div>
           </details>
         </div>
         <div className="px-4 pt-5 sm:px-5">
-          {results.length ? <div className="space-y-6">{results.map((category) => <section key={category.label}><h2 className="text-sm font-bold text-[var(--ink)]">{category.label}</h2><div className="mt-3 space-y-4">{category.groups.map((group) => <div key={group.label}><p className="mb-2 text-xs font-semibold leading-5 text-[var(--sage-deep)]">{group.label}</p><div className="overflow-hidden rounded-md border border-[var(--line)] bg-white">{group.exercises.map((exercise, index) => <div key={exercise} className={`flex min-h-16 items-stretch ${index ? "border-t border-[var(--line)]" : ""}`}><button type="button" onClick={() => choose(exercise)} className="flex min-w-0 flex-1 items-center gap-2 px-3 py-3 text-left transition hover:bg-[var(--sage-soft)] sm:gap-3"><span className="grid size-6 shrink-0 place-items-center text-[var(--muted)]"><Icon name="dumbbell" className="size-4" /></span><span className="min-w-0 flex-1 break-words text-sm font-semibold leading-6 text-[var(--ink)]">{exercise}</span><Icon name="chevron-right" className="size-4 shrink-0 text-[var(--muted)]" /></button><button ref={exercise === guideExerciseName ? firstFavoriteRef : undefined} type="button" disabled={!preferencesReady || Boolean(preferencesError)} aria-label={preferences.favoriteExercises.includes(exercise) ? `${exercise}をお気に入りから削除` : `${exercise}をお気に入りに登録`} aria-pressed={preferences.favoriteExercises.includes(exercise)} onClick={() => toggleFavorite(exercise)} className={`grid min-h-16 w-11 shrink-0 place-items-center border-l border-[var(--line)] text-xl text-[var(--sage-deep)] disabled:opacity-40 sm:w-12 ${tutorialStage === "favorite" && exercise === guideExerciseName ? "workout-favorite-nudge" : ""}`} title="お気に入り">{preferences.favoriteExercises.includes(exercise) ? "★" : "☆"}</button></div>)}</div></div>)}</div></section>)}</div> : <div className="py-14 text-center"><Icon name="dumbbell" className="mx-auto size-6 text-[#a6ada8]" /><p className="mt-3 text-sm font-semibold text-[var(--ink)]">{activeCategory === "お気に入り" && !query ? "お気に入りはまだありません" : "該当する種目がありません"}</p><p className="mt-2 text-xs leading-5 text-[var(--muted)]">種目名を変えるか、種目の☆を押して登録してください。</p></div>}
+          {results.length ? <div className="space-y-6">{results.map((category) => <section key={category.label}><h2 className="text-sm font-bold text-[var(--ink)]">{category.label}</h2><div className="mt-3 space-y-4">{category.groups.map((group) => <div key={group.label}><p className="mb-2 text-xs font-semibold leading-5 text-[var(--sage-deep)]">{group.label}</p><div className="overflow-hidden rounded-md border border-[var(--line)] bg-white">{group.exercises.map((exercise, index) => <div key={exercise} className={`flex min-h-16 items-stretch ${index ? "border-t border-[var(--line)]" : ""}`}><button type="button" onClick={() => choose(exercise)} className="flex min-w-0 flex-1 items-center gap-2 px-3 py-3 text-left transition hover:bg-[var(--sage-soft)] sm:gap-3"><span className="grid size-6 shrink-0 place-items-center text-[var(--muted)]"><Icon name="dumbbell" className="size-4" /></span><span className="min-w-0 flex-1 break-words text-sm font-semibold leading-6 text-[var(--ink)]">{exercise}</span><Icon name="chevron-right" className="size-4 shrink-0 text-[var(--muted)]" /></button><button type="button" data-exercise-video={exercise} onClick={() => { videoOpenerNameRef.current = exercise; savedListScrollRef.current = listScrollRef.current?.scrollTop ?? 0; setVideoExercise(exercise); }} aria-label={`${exercise}の動作説明をアプリ内で見る`} title="動作動画を見る" className="grid min-h-16 w-11 shrink-0 place-items-center border-l border-[var(--line)] text-[var(--sage-deep)] hover:bg-[var(--sage-soft)] sm:w-12"><Icon name="play" className="size-5" /></button><button ref={exercise === guideExerciseName ? firstFavoriteRef : undefined} type="button" disabled={!preferencesReady || Boolean(preferencesError)} aria-label={preferences.favoriteExercises.includes(exercise) ? `${exercise}をお気に入りから削除` : `${exercise}をお気に入りに登録`} aria-pressed={preferences.favoriteExercises.includes(exercise)} onClick={() => toggleFavorite(exercise)} className={`grid min-h-16 w-11 shrink-0 place-items-center border-l border-[var(--line)] text-xl text-[var(--sage-deep)] disabled:opacity-40 sm:w-12 ${tutorialStage === "favorite" && exercise === guideExerciseName ? "workout-favorite-nudge" : ""}`} title="お気に入り">{preferences.favoriteExercises.includes(exercise) ? "★" : "☆"}</button></div>)}</div></div>)}</div></section>)}</div> : <div className="py-14 text-center"><Icon name="dumbbell" className="mx-auto size-6 text-[#a6ada8]" /><p className="mt-3 text-sm font-semibold text-[var(--ink)]">{activeCategory === "お気に入り" && !query ? "お気に入りはまだありません" : "該当する種目がありません"}</p><p className="mt-2 text-xs leading-5 text-[var(--muted)]">種目名を変えるか、種目の☆を押して登録してください。</p></div>}
         </div>
         </div>
         {tutorialStage && <div className="shrink-0 border-t border-[var(--line)] bg-white px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 sm:px-5">
@@ -254,6 +291,7 @@ export function ExercisePicker({ onSelect, date, startWithEquipmentSetup = false
           <button type="button" onClick={() => setTutorialStage(null)} className="mt-1 min-h-11 text-xs font-medium text-[var(--muted)] underline underline-offset-2">案内を閉じる</button>
         </div>}
       </section>
+      </>}
     </div> : null}
   </>;
 }
