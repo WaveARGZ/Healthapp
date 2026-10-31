@@ -42,18 +42,25 @@ const backRegions: Record<MuscleGroup, string[]> = {
 
 export function AnatomyFigure({ activity }: { activity: MuscleActivity }) {
   const maskId = "muscle-anatomy-mask";
-  const visibilityMaskId = "muscle-anatomy-visibility";
   const edgeFilterId = "muscle-anatomy-edge";
   const outlineFilterId = "muscle-anatomy-outline";
-  const regions = [...Object.entries(frontRegions), ...Object.entries(backRegions)] as [MuscleGroup, string[]][];
-  const visibleRegions = regions.flatMap(([group, paths]) => activity[group] > 0 ? paths : []);
+  const frontClipId = "muscle-anatomy-front-clip";
+  const backClipId = "muscle-anatomy-back-clip";
+  // The source figures overlap at the inner hands. Split them and leave space between the copies.
+  const backOffset = 170;
+  const figures = [
+    { key: "front", clipId: frontClipId, visibilityMaskId: "muscle-anatomy-front-visibility", offset: 0, regions: frontRegions },
+    { key: "back", clipId: backClipId, visibilityMaskId: "muscle-anatomy-back-visibility", offset: backOffset, regions: backRegions },
+  ];
 
   return <div className="rounded-xl border border-[#b7c8bb] bg-white px-3 pb-4 pt-4 text-center">
     <div className="mx-auto grid max-w-[640px] grid-cols-2 text-sm font-bold tracking-[0.18em] text-[var(--ink)]">
       <p>正面</p><p>背面</p>
     </div>
-    <svg viewBox="-16 -16 1312 1312" aria-hidden="true" className="mx-auto mt-2 aspect-square w-full max-w-[640px]">
+    <svg viewBox="-16 -16 1482 1312" aria-hidden="true" className="mx-auto mt-2 aspect-[1482/1312] w-full max-w-[640px]">
       <defs>
+        <clipPath id={frontClipId}><path d="M0 0H650V500H690V740H650V1280H0Z" /></clipPath>
+        <clipPath id={backClipId}><path d="M650 0H1280V1280H650V740H610V500H650Z" /></clipPath>
         <filter id={edgeFilterId} x="-1%" y="-1%" width="102%" height="102%">
           <feMorphology in="SourceAlpha" operator="erode" radius="2" result="clean-alpha" />
           <feComposite in="SourceGraphic" in2="clean-alpha" operator="in" />
@@ -69,23 +76,23 @@ export function AnatomyFigure({ activity }: { activity: MuscleActivity }) {
         <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "alpha" }}>
           <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} />
         </mask>
-        <mask id={visibilityMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "luminance" }}>
+        {figures.map((figure) => <mask key={figure.key} id={figure.visibilityMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "luminance" }}>
           <rect width="1280" height="1280" fill="black" />
-          {visibleRegions.map((d, index) => <path key={index} d={d} fill="white" />)}
-        </mask>
+          {Object.entries(figure.regions).flatMap(([group, paths]) => activity[group as MuscleGroup] > 0 ? paths : []).map((d, index) => <path key={index} d={d} fill="white" />)}
+        </mask>)}
       </defs>
-      <g>
+      {figures.map((figure) => <g key={figure.key} transform={`translate(${figure.offset} 0)`} clipPath={`url(#${figure.clipId})`}>
         <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
-        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
+        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${figure.visibilityMaskId})`} />
         <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
-          {regions.flatMap(([group, paths], regionIndex) => {
-            const days = activity[group];
+          {Object.entries(figure.regions).flatMap(([group, paths]) => {
+            const days = activity[group as MuscleGroup];
             if (!days || days >= 3) return [];
             const level = Math.min(days, 3);
-            return paths.map((d, index) => <path key={`${group}-${regionIndex}-${index}`} d={d} fill={activityColors[level]} opacity={overlayOpacity[level]} />);
+            return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={activityColors[level]} opacity={overlayOpacity[level]} />);
           })}
         </g>
-      </g>
+      </g>)}
     </svg>
   </div>;
 }
