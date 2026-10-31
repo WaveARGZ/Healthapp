@@ -52,7 +52,7 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
 
   return <div className="rounded-xl border border-[#b7c8bb] bg-white px-2 pb-4 pt-4 text-center">
     <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
-    <svg viewBox={viewBox} aria-hidden="true" className="mx-auto mt-2 aspect-[9/16] w-full max-w-[240px]">
+    <svg viewBox={viewBox} aria-hidden="true" className="mx-auto mt-2 aspect-[9/16] w-full max-w-[240px] -translate-x-2">
       <defs>
         <filter id={edgeFilterId} x="-1%" y="-1%" width="102%" height="102%">
           <feMorphology in="SourceAlpha" operator="erode" radius="2" result="clean-alpha" />
