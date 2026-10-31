@@ -2,6 +2,7 @@ export interface WorkoutPreferences {
   facilityEquipment: string[];
   customEquipment: string[];
   favoriteExercises: string[];
+  isGymMember?: boolean;
   splitPlan?: WorkoutSplitPlan;
 }
 
@@ -46,6 +47,7 @@ export function normalizeWorkoutPreferences(value: unknown): WorkoutPreferences 
     facilityEquipment: Array.isArray(stored.facilityEquipment) ? stored.facilityEquipment.filter((item): item is string => typeof item === "string") : [],
     customEquipment: Array.isArray(stored.customEquipment) ? stored.customEquipment.filter((item): item is string => typeof item === "string") : [],
     favoriteExercises: Array.isArray(stored.favoriteExercises) ? stored.favoriteExercises.filter((item): item is string => typeof item === "string") : [],
+    ...(typeof stored.isGymMember === "boolean" ? { isGymMember: stored.isGymMember } : {}),
     ...(validPlan ? { splitPlan: { kind: plan.kind, trainingDays: [...trainingDays].sort((a, b) => a - b), anchorDate: plan.anchorDate, ...(plan.kind === "custom" ? { customByWeekday } : {}) } as WorkoutSplitPlan } : {}),
   };
 }
