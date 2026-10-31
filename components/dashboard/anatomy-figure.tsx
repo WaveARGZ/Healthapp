@@ -46,6 +46,7 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
   const edgeFilterId = `muscle-anatomy-${view}-edge`;
   const outlineFilterId = `muscle-anatomy-${view}-outline`;
   const clipId = `muscle-anatomy-${view}-clip`;
+  const armClipId = `muscle-anatomy-${view}-arm-clip`;
   const regions = view === "front" ? frontRegions : backRegions;
   const viewBox = view === "front" ? "0 0 720 1280" : "560 0 720 1280";
   const visibleRegions = Object.entries(regions).flatMap(([group, paths]) => activity[group as MuscleGroup] > 0 ? paths : []);
@@ -73,8 +74,12 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
           <rect width="1280" height="1280" fill="black" />
           {visibleRegions.map((d, index) => <path key={index} d={d} fill="white" />)}
         </mask>
+        {/* The two inner hands overlap in the source image, so keep each torso and reflect its unobstructed outer forearm. */}
         <clipPath id={clipId}>
-          <rect x={view === "front" ? 0 : 640} y="0" width="640" height="1280" />
+          <path d={view === "front" ? "M0 0H640V500H555L595 600V735H640V1280H0Z" : "M640 0H1280V1280H640V735H690V600L720 500H640Z"} />
+        </clipPath>
+        <clipPath id={armClipId}>
+          <path d={view === "front" ? "M0 500H185L145 600V735H0Z" : "M1120 500H1280V735H1150V600Z"} />
         </clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>
@@ -87,6 +92,15 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
             const level = Math.min(days, 3);
             return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={activityColors[level]} opacity={overlayOpacity[level]} />);
           })}
+        </g>
+      </g>
+      <g transform={view === "front" ? "translate(740 0) scale(-1 1)" : "translate(1870 0) scale(-1 1)"}>
+        <g clipPath={`url(#${armClipId})`}>
+          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
+          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
+          <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
+            {activity["腕"] > 0 && activity["腕"] < 3 && <path d={view === "front" ? frontRegions["腕"][0] : backRegions["腕"][1]} fill={activityColors[activity["腕"]]} opacity={overlayOpacity[activity["腕"]]} />}
+          </g>
         </g>
       </g>
     </svg>
