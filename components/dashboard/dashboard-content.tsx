@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
 import { MuscleActivityMap } from "@/components/dashboard/muscle-activity-map";
+import { WeeklyWorkoutAdvice } from "@/components/dashboard/weekly-workout-advice";
 import { bodyMakeClient } from "@/lib/api/client";
 import { loadWorkoutPreferences } from "@/lib/api/workout-preferences-client";
 import { formatToday, toDateInputValue } from "@/lib/utils/date";
@@ -144,6 +145,7 @@ export function DashboardContent() {
       {mealStatus && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{mealStatus}</p>}
     </section>
     <details className="mt-1 text-xs leading-5 text-[var(--muted)]"><summary className="min-h-11 cursor-pointer content-center">計算方法と注意点</summary><p className="pb-2">{calorieGuide?.status === "ready" && `身長${data.profile?.heightCm}cm・体重${summary.currentWeight}kg・年齢と目標から計算。活動量は低め〜標準を仮定${calorieGuide.broadRange ? "し、性別を計算に用いない設定のため幅を広げています" : "しています"}。今日の記録との差はノルマではありません。`}成人のMifflin-St Jeor式を使用し、活動量を1.4〜1.6倍で概算しています。目標による補正（筋肉を増やす +5%、体脂肪を減らす -10%）はアプリ独自の控えめな仮定です。妊娠・授乳中や持病のある方には適用せず、必要に応じて医療・栄養の専門家に相談してください。<a className="underline underline-offset-2" href="https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner" target="_blank" rel="noopener noreferrer">参考：米国NIH</a></p></details>
+    <WeeklyWorkoutAdvice workouts={data.workouts} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} profileUnavailable={profileLoadFailed} />
     <MuscleActivityMap workouts={data.workouts} today={today} loading={loading} unavailable={workoutLoadFailed} />
     <WeightTrendChart entries={data.weights.filter((entry) => entry.measuredOn <= today)} loading={loading} />
     <section aria-label="現在の身体と目標" className="mt-7 grid grid-cols-2 border-y border-[var(--ink)] py-6 sm:py-7">
