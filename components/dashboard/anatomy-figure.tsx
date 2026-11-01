@@ -1,8 +1,6 @@
 import anatomyImage from "@/public/images/muscle-anatomy.png";
 import type { MuscleActivity, MuscleGroup } from "@/lib/workouts/muscle-activity";
-
-export const activityColors = ["transparent", "#42ad61", "#397fcb", "#ca8b80"];
-const overlayOpacity = [0, 0.85, 0.9, 0];
+import { activityTint } from "@/components/dashboard/activity-color";
 
 const frontRegions: Record<MuscleGroup, string[]> = {
   "胸": [
@@ -99,9 +97,9 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
         <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
           {Object.entries(regions).flatMap(([group, paths]) => {
             const days = activity[group as MuscleGroup];
-            if (!days || days >= 3) return [];
-            const level = Math.min(days, 3);
-            return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={activityColors[level]} opacity={overlayOpacity[level]} />);
+            if (!days) return [];
+            const tint = activityTint(days);
+            return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={tint.color} opacity={tint.opacity} />);
           })}
         </g>
       </g>
@@ -110,7 +108,10 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
           <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
           <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
           <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
-            {activity["腕"] > 0 && activity["腕"] < 3 && (view === "front" ? [frontRegions["腕"][0], frontRegions["腕"][2]] : [backRegions["腕"][1], backRegions["腕"][2]]).map((d, index) => <path key={index} d={d} fill={activityColors[activity["腕"]]} opacity={overlayOpacity[activity["腕"]]} />)}
+            {activity["腕"] > 0 && (view === "front" ? [frontRegions["腕"][0], frontRegions["腕"][2]] : [backRegions["腕"][1], backRegions["腕"][2]]).map((d, index) => {
+              const tint = activityTint(activity["腕"]);
+              return <path key={index} d={d} fill={tint.color} opacity={tint.opacity} />;
+            })}
           </g>
         </g>
       </g>
