@@ -44,7 +44,7 @@ export function MuscleActivityMap({ workouts, today, loading, unavailable }: { w
           </div>
         </div>
       </div>
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は各部位につき1日として数えます。0日は透明、1日は緑、2日は青、3日以上は元の色です。種目名から部位を判定できない記録は色に含みません。14日間に記録がなければ透明に戻ります。</p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は各部位につき1日として数えます。頭は常に元の色です。頭以外は0日は透明、1日は緑、2日は青、3日以上は元の色です。種目名から部位を判定できない記録は色に含みません。14日間に記録がなければ対象部位は透明に戻ります。</p>
     </>}
   </section>;
 }
