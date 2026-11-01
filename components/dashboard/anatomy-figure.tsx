@@ -94,7 +94,7 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
           })}
         </g>
       </g>
-      <g transform={view === "front" ? "translate(740 0) scale(-1 1)" : "translate(1870 0) scale(-1 1)"}>
+      <g transform={view === "front" ? "translate(734 0) scale(-1 1)" : "translate(1875 0) scale(-1 1)"}>
         <g clipPath={`url(#${armClipId})`}>
           <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
           <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
