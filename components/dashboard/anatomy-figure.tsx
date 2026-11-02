@@ -49,7 +49,6 @@ const backRegions: Record<MuscleGroup, string[]> = {
 };
 
 export function AnatomyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
-  const maskId = `muscle-anatomy-${view}-mask`;
   const visibilityMaskId = `muscle-anatomy-${view}-visibility`;
   const edgeFilterId = `muscle-anatomy-${view}-edge`;
   const outlineFilterId = `muscle-anatomy-${view}-outline`;
@@ -58,7 +57,13 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
   const regions = view === "front" ? frontRegions : backRegions;
   const viewBox = view === "front" ? "0 0 720 1280" : "560 0 720 1280";
   const headPath = view === "front" ? "M270 0H450V200H270Z" : "M835 0H1025V200H835Z";
-  const visibleRegions = [headPath, ...Object.entries(regions).flatMap(([group, paths]) => activity[group as MuscleGroup] > 0 ? paths : [])];
+  const visibleRegions = [
+    { d: headPath, opacity: 1 },
+    ...Object.entries(regions).flatMap(([group, paths]) => {
+      const opacity = activityTint(activity[group as MuscleGroup]).opacity;
+      return opacity > 0 ? paths.map((d) => ({ d, opacity })) : [];
+    }),
+  ];
 
   return <div className="rounded-xl border border-[#b7c8bb] bg-white px-2 pb-4 pt-4 text-center">
     <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
@@ -76,12 +81,9 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
           <feFlood floodColor="#b1c2b6" floodOpacity="0.8" result="outline-color" />
           <feComposite in="outline-color" in2="outline" operator="in" />
         </filter>
-        <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "alpha" }}>
-          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} />
-        </mask>
         <mask id={visibilityMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "luminance" }}>
           <rect width="1280" height="1280" fill="black" />
-          {visibleRegions.map((d, index) => <path key={index} d={d} fill="white" />)}
+          {visibleRegions.map(({ d, opacity }, index) => <path key={index} d={d} fill="white" opacity={opacity} />)}
         </mask>
         {/* The two inner hands overlap in the source image, so keep each torso and reflect its unobstructed outer forearm. */}
         <clipPath id={clipId}>
@@ -94,25 +96,11 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
       <g clipPath={`url(#${clipId})`}>
         <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
         <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
-        <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
-          {Object.entries(regions).flatMap(([group, paths]) => {
-            const days = activity[group as MuscleGroup];
-            if (!days) return [];
-            const tint = activityTint(days);
-            return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={tint.color} opacity={tint.opacity} />);
-          })}
-        </g>
       </g>
       <g transform={view === "front" ? "translate(734 0) scale(-1 1)" : "translate(1875 0) scale(-1 1)"}>
         <g clipPath={`url(#${armClipId})`}>
           <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
           <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
-          <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
-            {activity["腕"] > 0 && (view === "front" ? [frontRegions["腕"][0], frontRegions["腕"][2]] : [backRegions["腕"][1], backRegions["腕"][2]]).map((d, index) => {
-              const tint = activityTint(activity["腕"]);
-              return <path key={index} d={d} fill={tint.color} opacity={tint.opacity} />;
-            })}
-          </g>
         </g>
       </g>
     </svg>

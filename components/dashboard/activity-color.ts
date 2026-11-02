@@ -1,10 +1,9 @@
-export const maxActivityDays = 3;
+export const maxActivityDays = 2;
 
 const activityTints = [
   { color: "transparent", opacity: 0 },
-  { color: "#42ad61", opacity: 0.85 },
-  { color: "#397fcb", opacity: 0.9 },
-  { color: "#ca8b80", opacity: 0 },
+  { color: "#e2bfb9", opacity: 0.55 },
+  { color: "#ca8b80", opacity: 1 },
 ] as const;
 
 export function activityTint(days: number): { color: string; opacity: number } {
