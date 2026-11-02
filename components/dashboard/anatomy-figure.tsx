@@ -1,119 +1,87 @@
-import anatomyImage from "@/public/images/muscle-anatomy.png";
-import type { MuscleActivity, MuscleGroup } from "@/lib/workouts/muscle-activity";
 import { activityTint } from "@/components/dashboard/activity-color";
+import { muscleGroups, type MuscleActivity, type MuscleGroup } from "@/lib/workouts/muscle-activity";
 
-const frontRegions: Record<MuscleGroup, string[]> = {
-  "胸": [
-    "M211 240Q360 206 510 240L504 356Q360 388 218 356Z",
-    "M260 200H460L510 245H210Z",
-  ],
+type Region = { d: string; mirrored?: boolean };
+
+// Each half is reflected around x=100 so the left and right outlines meet cleanly.
+const frontRegions: Record<MuscleGroup, Region[]> = {
+  "胸": [{ d: "M91 73Q78 72 69 86L75 108Q85 116 100 111V82Q96 77 91 73Z", mirrored: true }],
   "背中": [],
   "腕": [
-    "M178 297Q220 283 251 324L231 416Q207 505 151 571L97 637L43 641L64 560Q106 486 137 407Z",
-    "M542 297Q500 283 469 324L489 416Q513 505 569 571L623 637L677 641L656 560Q614 486 583 407Z",
-    "M0 575H145V745H0Z",
+    { d: "M55 91Q48 105 50 129L56 139Q67 125 70 99L67 89Z", mirrored: true },
+    { d: "M50 129Q43 144 39 169L35 187L47 190Q52 162 57 137Z", mirrored: true },
+    { d: "M35 187L47 190L44 206Q42 213 36 213Q29 210 31 200Z", mirrored: true },
   ],
-  "肩": [
-    "M202 228Q243 207 275 238L261 317Q234 352 190 349L166 304Z",
-    "M518 228Q477 207 445 238L459 317Q486 352 530 349L554 304Z",
-  ],
-  "腹筋・体幹": ["M257 348Q360 361 463 348L484 537L457 621L263 621L236 537Z"],
+  "肩": [{ d: "M91 59Q70 60 57 73Q49 81 55 92L69 98Q76 80 91 74Z", mirrored: true }],
+  "腹筋・体幹": [{ d: "M75 109Q87 116 100 111Q113 116 125 109L127 151Q120 170 100 184Q80 170 73 151Z" }],
   "脚": [
-    "M234 611L360 612L359 839L334 1045L320 1192L220 1192L221 1056L200 862Z",
-    "M486 611L360 612L361 839L386 1045L400 1192L500 1192L499 1056L520 862Z",
-    "M245 520H200L185 690H235L260 620Z",
-    "M475 520H520L535 690H485L460 620Z",
-    "M185 1150H550V1280H185Z",
+    { d: "M73 181Q86 183 100 187L98 270Q88 281 78 270L69 211Z", mirrored: true },
+    { d: "M78 270Q87 279 98 270L95 345Q89 353 80 344L75 310Z", mirrored: true },
+    { d: "M80 344Q88 349 95 345L98 358Q99 366 91 368H68Q62 368 65 362Z", mirrored: true },
   ],
 };
 
-const backRegions: Record<MuscleGroup, string[]> = {
+const backRegions: Record<MuscleGroup, Region[]> = {
   "胸": [],
-  "背中": ["M823 203Q920 184 1017 203L1050 340L1018 510Q969 539 920 555Q871 539 822 510L790 340Z"],
+  "背中": [
+    { d: "M91 59Q78 65 69 83L75 117L81 145Q88 157 100 165V79Q94 67 91 59Z", mirrored: true },
+    { d: "M81 143Q88 157 100 165Q112 157 119 143L127 180Q111 190 100 194Q89 190 73 180Z" },
+  ],
   "腕": [
-    "M749 302Q786 295 809 337L792 417Q759 507 706 578L667 646L613 643L627 558Q653 464 684 398Z",
-    "M1091 302Q1054 295 1031 337L1048 417Q1081 507 1134 578L1173 646L1227 643L1213 558Q1187 464 1156 398Z",
-    "M1120 565H1280V745H1120Z",
-    "M600 565H760V745H600Z",
+    { d: "M55 91Q48 104 50 129L56 139Q67 125 70 99L67 89Z", mirrored: true },
+    { d: "M50 129Q42 147 39 169L35 187L47 190Q52 163 57 137Z", mirrored: true },
+    { d: "M35 187L47 190L44 206Q42 213 36 213Q29 210 31 200Z", mirrored: true },
   ],
-  "肩": [
-    "M758 226Q789 206 833 237L837 319Q805 354 764 345L726 302Z",
-    "M1082 226Q1051 206 1007 237L1003 319Q1035 354 1076 345L1114 302Z",
-  ],
+  "肩": [{ d: "M91 59Q70 60 57 73Q49 81 55 92L69 98Q76 80 91 74Z", mirrored: true }],
   "腹筋・体幹": [],
   "脚": [
-    "M797 511Q858 492 920 515L919 833L900 1047L891 1188L782 1188L787 1047L762 835Z",
-    "M1043 511Q982 492 920 515L921 833L940 1047L949 1188L1058 1188L1053 1047L1078 835Z",
-    "M740 1140H1105V1280H740Z",
+    { d: "M73 181Q86 183 100 187L98 270Q88 281 78 270L69 211Z", mirrored: true },
+    { d: "M78 270Q87 279 98 270L95 345Q89 353 80 344L75 310Z", mirrored: true },
+    { d: "M80 344Q88 349 95 345L98 358Q99 366 91 368H68Q62 368 65 362Z", mirrored: true },
   ],
 };
 
-export function AnatomyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
-  const maskId = `muscle-anatomy-${view}-mask`;
-  const visibilityMaskId = `muscle-anatomy-${view}-visibility`;
-  const edgeFilterId = `muscle-anatomy-${view}-edge`;
-  const outlineFilterId = `muscle-anatomy-${view}-outline`;
-  const clipId = `muscle-anatomy-${view}-clip`;
-  const armClipId = `muscle-anatomy-${view}-arm-clip`;
-  const regions = view === "front" ? frontRegions : backRegions;
-  const viewBox = view === "front" ? "0 0 720 1280" : "560 0 720 1280";
-  const headPath = view === "front" ? "M270 0H450V200H270Z" : "M835 0H1025V200H835Z";
-  const visibleRegions = [headPath, ...Object.entries(regions).flatMap(([group, paths]) => activity[group as MuscleGroup] > 0 ? paths : [])];
+const frontDetails = [
+  "M100 83V179", "M76 109Q87 105 100 111Q113 105 124 109",
+  "M82 128Q91 132 100 129Q109 132 118 128",
+  "M82 145Q91 149 100 146Q109 149 118 145",
+  "M87 161Q94 164 100 162Q106 164 113 161",
+  "M77 207Q88 218 97 220", "M78 265Q87 259 98 270",
+  "M79 307Q88 311 96 307",
+];
 
-  return <div className="rounded-xl border border-[#b7c8bb] bg-white px-2 pb-4 pt-4 text-center">
-    <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
-    <svg viewBox={viewBox} aria-hidden="true" className="mx-auto mt-2 aspect-[9/16] w-full max-w-[240px] -translate-x-2">
-      <defs>
-        <filter id={edgeFilterId} x="-1%" y="-1%" width="102%" height="102%">
-          <feMorphology in="SourceAlpha" operator="erode" radius="2" result="clean-alpha" />
-          <feComposite in="SourceGraphic" in2="clean-alpha" operator="in" />
-        </filter>
-        <filter id={outlineFilterId} x="-2%" y="-2%" width="104%" height="104%">
-          <feMorphology in="SourceAlpha" operator="erode" radius="2" result="clean-alpha" />
-          <feMorphology in="clean-alpha" operator="dilate" radius="6" result="outer-edge" />
-          <feMorphology in="clean-alpha" operator="erode" radius="2" result="inner-edge" />
-          <feComposite in="outer-edge" in2="inner-edge" operator="out" result="outline" />
-          <feFlood floodColor="#b1c2b6" floodOpacity="0.8" result="outline-color" />
-          <feComposite in="outline-color" in2="outline" operator="in" />
-        </filter>
-        <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "alpha" }}>
-          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} />
-        </mask>
-        <mask id={visibilityMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "luminance" }}>
-          <rect width="1280" height="1280" fill="black" />
-          {visibleRegions.map((d, index) => <path key={index} d={d} fill="white" />)}
-        </mask>
-        {/* The two inner hands overlap in the source image, so keep each torso and reflect its unobstructed outer forearm. */}
-        <clipPath id={clipId}>
-          <path d={view === "front" ? "M0 0H640V500H555L595 600V735H640V1280H0Z" : "M640 0H1280V1280H640V735H690V600L720 500H640Z"} />
-        </clipPath>
-        <clipPath id={armClipId}>
-          <path d={view === "front" ? "M0 500H185L145 600V735H0Z" : "M1120 500H1280V735H1150V600Z"} />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${clipId})`}>
-        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
-        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
-        <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
-          {Object.entries(regions).flatMap(([group, paths]) => {
-            const days = activity[group as MuscleGroup];
-            if (!days) return [];
-            const tint = activityTint(days);
-            return paths.map((d, index) => <path key={`${group}-${index}`} d={d} fill={tint.color} opacity={tint.opacity} />);
-          })}
-        </g>
+const backDetails = [
+  "M100 79V164", "M73 92Q84 105 100 111Q116 105 127 92",
+  "M77 115Q88 126 100 130Q112 126 123 115",
+  "M81 145Q91 150 100 165Q109 150 119 145",
+  "M74 203Q85 212 98 218", "M78 266Q87 260 98 270",
+  "M79 307Q88 311 96 307",
+];
+
+export function AnatomyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
+  const regions = view === "front" ? frontRegions : backRegions;
+  const details = view === "front" ? frontDetails : backDetails;
+  const outline = "#f2ebdc";
+
+  return <div className="rounded-xl border border-[#37413d] bg-[#202624] px-2 pb-4 pt-4 text-center">
+    <p className="text-sm font-bold tracking-[0.18em] text-[#f2ebdc]">{view === "front" ? "正面" : "背面"}</p>
+    <svg viewBox="0 0 200 380" aria-hidden="true" className="mx-auto mt-2 w-full max-w-[220px]">
+      <g stroke={outline} strokeWidth="2.1" strokeLinejoin="round" strokeLinecap="round">
+        <ellipse cx="100" cy="31" rx="15" ry="20" fill="#ca8b80" />
+        <path d="M91 49L91 60M109 49L109 60M91 60L100 73L109 60" fill="none" />
+        {muscleGroups.flatMap((group) => regions[group].flatMap((region, index) => {
+          const fill = activityTint(activity[group]).color;
+          const key = `${group}-${index}`;
+          if (!region.mirrored) return [<path key={key} d={region.d} fill={fill} />];
+          return [
+            <path key={`${key}-left`} d={region.d} fill={fill} />,
+            <path key={`${key}-right`} d={region.d} fill={fill} transform="translate(200 0) scale(-1 1)" />,
+          ];
+        }))}
       </g>
-      <g transform={view === "front" ? "translate(734 0) scale(-1 1)" : "translate(1875 0) scale(-1 1)"}>
-        <g clipPath={`url(#${armClipId})`}>
-          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
-          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
-          <g mask={`url(#${maskId})`} style={{ mixBlendMode: "color" }}>
-            {activity["腕"] > 0 && (view === "front" ? [frontRegions["腕"][0], frontRegions["腕"][2]] : [backRegions["腕"][1], backRegions["腕"][2]]).map((d, index) => {
-              const tint = activityTint(activity["腕"]);
-              return <path key={index} d={d} fill={tint.color} opacity={tint.opacity} />;
-            })}
-          </g>
-        </g>
+      <g fill="none" stroke={outline} strokeWidth="1.3" strokeLinecap="round" opacity="0.75">
+        {details.map((d, index) => <path key={index} d={d} />)}
+        <path d="M38 195L37 207M43 195L42 207M162 195L163 207M157 195L158 207" />
       </g>
     </svg>
   </div>;
