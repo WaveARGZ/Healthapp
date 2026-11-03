@@ -22,7 +22,8 @@ if (process.argv.includes("--shared")) {
   assert.ok(!html.includes('"/Healthapp/'), "Firebase is hosted at root even in GitHub Actions");
   console.log("Shared test build requires isolated Firebase login and is visibly labeled; training stays disabled.");
 } else {
-  assert.ok(html.includes("種目一覧から選ぶ"), "test build renders the local recording screen");
+  assert.ok(html.includes("筋トレカレンダー"), "test build renders the workout calendar");
+  assert.ok(!html.includes("種目一覧から選ぶ"), "workout form opens only after selecting a calendar date");
   assert.ok(!html.includes("ログイン状態を確認しています"), "production authentication is not inherited");
   console.log("Test build is labeled and does not require the production login.");
 }
