@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
 import { MuscleActivityMap } from "@/components/dashboard/muscle-activity-map";
+import { CalorieDifferenceChart } from "@/components/dashboard/calorie-difference-chart";
 import { bodyMakeClient } from "@/lib/api/client";
 import { loadWorkoutPreferences } from "@/lib/api/workout-preferences-client";
 import { formatToday, toDateInputValue } from "@/lib/utils/date";
@@ -15,14 +16,16 @@ import { fitnessGoalLabels, type UserProfile } from "@/types/user";
 import type { MealEntry } from "@/types/meal";
 import type { WeightEntry } from "@/types/progress";
 import type { WorkoutEntry } from "@/types/workout";
+import type { DailyBurnEntry } from "@/types/workout";
 
 interface DashboardData {
   profile: UserProfile | null;
   workouts: WorkoutEntry[];
   meals: MealEntry[];
   weights: WeightEntry[];
+  burns: DailyBurnEntry[];
 }
-const initialData: DashboardData = { profile: null, workouts: [], meals: [], weights: [] };
+const initialData: DashboardData = { profile: null, workouts: [], meals: [], weights: [], burns: [] };
 
 function RecordRow({ href, icon, label, description, complete }: { href: string; icon: IconName; label: string; description: string; complete: boolean }) {
   return <Link href={href} className="group flex min-h-20 items-center gap-4 border-b border-[var(--line)] px-1 py-4 transition-colors hover:bg-[var(--sand)] sm:gap-5">
@@ -40,6 +43,7 @@ export function DashboardContent() {
   const [profileLoadFailed, setProfileLoadFailed] = useState(false);
   const [mealLoadFailed, setMealLoadFailed] = useState(false);
   const [workoutLoadFailed, setWorkoutLoadFailed] = useState(false);
+  const [burnLoadFailed, setBurnLoadFailed] = useState(false);
   const [hasFacilityEquipment, setHasFacilityEquipment] = useState<boolean | null>(null);
   const [today, setToday] = useState(toDateInputValue);
   useEffect(() => {
@@ -58,21 +62,23 @@ export function DashboardContent() {
     return () => { clearTimeout(midnightTimer); document.removeEventListener("visibilitychange", refreshWhenVisible); };
   }, []);
   useEffect(() => {
-    void Promise.allSettled([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), loadWorkoutPreferences()])
-      .then(([profile, workouts, meals, weights, preferences]) => {
+    void Promise.allSettled([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), loadWorkoutPreferences(), bodyMakeClient.getDailyBurnEntries()])
+      .then(([profile, workouts, meals, weights, preferences, burns]) => {
         setData({
           profile: profile.status === "fulfilled" ? profile.value : null,
           workouts: workouts.status === "fulfilled" ? workouts.value : [],
           meals: meals.status === "fulfilled" ? meals.value : [],
           weights: weights.status === "fulfilled" ? weights.value : [],
+          burns: burns.status === "fulfilled" ? burns.value : [],
         });
         setProfileLoadFailed(profile.status === "rejected");
         setMealLoadFailed(meals.status === "rejected");
         setWorkoutLoadFailed(workouts.status === "rejected");
+        setBurnLoadFailed(burns.status === "rejected");
         if (preferences.status === "fulfilled") {
           setHasFacilityEquipment(preferences.value.facilityEquipment.length + preferences.value.customEquipment.length > 0);
         }
-        if ([profile, workouts, meals, weights, preferences].some((result) => result.status === "rejected")) {
+        if ([profile, workouts, meals, weights, preferences, burns].some((result) => result.status === "rejected")) {
           setError("一部の記録を読み込めませんでした。保存済みの記録は表示しています。ページを再読み込みしてください。");
         }
       })
@@ -101,6 +107,8 @@ export function DashboardContent() {
   const calorieGoal = calorieGuide?.status === "ready" ? calorieGuide.maxKcal : null;
   const recordedCalories = loading || mealLoadFailed || (dailyCalories.mealCount > 0 && dailyCalories.countedMeals === 0)
     ? null : Math.round(dailyCalories.calories);
+  const burnedCalories = loading || burnLoadFailed ? null : data.burns.find((entry) => entry.performedAt === today)?.caloriesBurned ?? null;
+  const consumedForDifference = dailyCalories.countedMeals > 0 ? recordedCalories : null;
   const calorieProgress = calorieGoal !== null && recordedCalories !== null
     ? Math.min(100, (recordedCalories / calorieGoal) * 100) : 0;
   const calorieExcess = calorieGoal !== null && recordedCalories !== null && recordedCalories > calorieGoal
@@ -142,6 +150,7 @@ export function DashboardContent() {
       {calorieExcess > 0 && <p className="mt-2 text-xs font-semibold text-[var(--coral)]">目安上限を {calorieExcess.toLocaleString("ja-JP")} kcal 超えています。</p>}
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">濃い緑色＝登録した食事の摂取カロリー</p>
       {mealStatus && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{mealStatus}</p>}
+      <CalorieDifferenceChart burned={burnedCalories} consumed={consumedForDifference} loading={loading} burnLoadFailed={burnLoadFailed} mealLoadFailed={mealLoadFailed} incompleteMeals={dailyCalories.missingMeals > 0 || dailyCalories.partiallyCountedMeals > 0} />
     </section>
     <details className="mt-1 text-xs leading-5 text-[var(--muted)]"><summary className="min-h-11 cursor-pointer content-center">計算方法と注意点</summary><p className="pb-2">{calorieGuide?.status === "ready" && `身長${data.profile?.heightCm}cm・体重${summary.currentWeight}kg・年齢と目標から計算。活動量は低め〜標準を仮定${calorieGuide.broadRange ? "し、性別を計算に用いない設定のため幅を広げています" : "しています"}。今日の記録との差はノルマではありません。`}成人のMifflin-St Jeor式を使用し、活動量を1.4〜1.6倍で概算しています。目標による補正（筋肉を増やす +5%、体脂肪を減らす -10%）はアプリ独自の控えめな仮定です。妊娠・授乳中や持病のある方には適用せず、必要に応じて医療・栄養の専門家に相談してください。<a className="underline underline-offset-2" href="https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner" target="_blank" rel="noopener noreferrer">参考：米国NIH</a></p></details>
     <MuscleActivityMap workouts={data.workouts} today={today} loading={loading} unavailable={workoutLoadFailed} />

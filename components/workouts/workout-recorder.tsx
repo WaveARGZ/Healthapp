@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { RecordActions } from "@/components/ui/record-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExercisePicker } from "@/components/workouts/exercise-picker";
+import { DailyBurnRecorder } from "@/components/workouts/daily-burn-recorder";
 import { WorkoutPlanSetup } from "@/components/workouts/workout-plan-setup";
 import { bodyMakeClient } from "@/lib/api/client";
 import { formatDate, toDateInputValue, toTimeInputValue } from "@/lib/utils/date";
@@ -92,6 +93,7 @@ export function WorkoutRecorder() {
 
   return <>
     <PageHeader title="筋トレ" description="種目を選んで、セットごとに記録。" />
+    <DailyBurnRecorder />
     <div role="tablist" aria-label="筋トレの表示切り替え" className="mb-6 flex border-b border-[var(--line)]">
       {([{ id: "record", label: "筋トレ記録" }, { id: "plan", label: "週間メニュー" }] as const).map((tab) => <button
         key={tab.id}
