@@ -70,3 +70,21 @@ export const exerciseCount = exerciseCatalog.reduce(
   (total, category) => total + category.groups.reduce((groupTotal, group) => groupTotal + group.exercises.length, 0),
   0,
 );
+
+export const exerciseEquipmentOrder = ["マシーン種目", "バーベル種目", "ダンベル種目", "その他・自重"] as const;
+export type ExerciseEquipmentGroup = typeof exerciseEquipmentOrder[number];
+
+export function equipmentGroupForExercise(name: string): ExerciseEquipmentGroup {
+  if (/マシン|スミス|ケーブル|プレートロード|ハンマーストレングス|ペックデック|ペックプレス|チェストプレス|プルダウン|シーテッドロー|ハックスクワット|レッグプレス|レッグエクステンション|トライセプスプッシュダウン|アシストプルアップ|アシストディップス|リバースペックデック|フェイスプル|トレッドミル|エアロバイク|スピンバイク|クロストレーナー|ステアクライマー|スキーエルゴ/.test(name) || /^(シーテッドレッグカール|レッグカール|アダクション|アブダクション)$/.test(name)) return "マシーン種目";
+  if (/ダンベル|アーノルドプレス|ハンマーカール|コンセントレーションカール|^サイドレイズ$|^リアレイズ$|^キックバック$|^ファーマーズウォーク$/.test(name)) return "ダンベル種目";
+  if (!name.includes("自重") && /バーベル|EZバー|ベンチプレス|バックスクワット|フロントスクワット|デッドリフト|ルーマニアンデッドリフト|ラックプル|^グッドモーニング$|ベントオーバーロウ|Tバーロウ|スポトプレス|ランドマインプレス/.test(name)) return "バーベル種目";
+  return "その他・自重";
+}
+
+export function groupExercisesByEquipment(exercises: string[]): ExerciseGroup[] {
+  const unique = [...new Set(exercises)];
+  return exerciseEquipmentOrder.map((label) => ({
+    label,
+    exercises: unique.filter((exercise) => equipmentGroupForExercise(exercise) === label),
+  })).filter((group) => group.exercises.length > 0);
+}
