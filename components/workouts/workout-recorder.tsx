@@ -230,8 +230,8 @@ export function WorkoutRecorder() {
               {exercises.length > 1 && <button type="button" aria-label={`${index + 1}番目の種目を削除`} onClick={() => removeExercise(exercise.id)} className="delete-button"><Icon name="trash" className="size-4" /></button>}
             </div>
             <div className="px-3 py-5 sm:px-5">
-              <FieldLabel htmlFor={`exercise-${exercise.id}`}>種目名</FieldLabel>
-              <TextInput id={`exercise-${exercise.id}`} value={exercise.name} onChange={(event) => updateExercise(exercise.id, { name: event.target.value })} placeholder="例：ベンチプレス" />
+              <p className="text-xs font-semibold text-[var(--muted)]">種目</p>
+              <p className="mt-2 break-words text-sm font-bold text-[var(--ink)]">{exercise.name || "未選択"}</p>
               <ExercisePicker date={performedAt} startWithEquipmentSetup={index === 0} exerciseName={exercise.name} sets={sets} onSelect={(name) => updateExercise(exercise.id, { name })} onUpdateSet={(setId, patch) => updateSet(exercise.id, setId, patch)} onAddSet={() => addSet(exercise.id)} onRemoveSet={(setId) => removeSet(exercise.id, setId)} />
               <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span><span>完了 {completedCount} / {sets.length}</span></div>
               <div className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] gap-1.5 border-y border-[var(--line)] py-2 text-center text-xs font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>回数</span><span>完了</span><span className="sr-only">削除</span></div>
