@@ -62,8 +62,22 @@ export function DashboardContent() {
     return () => { clearTimeout(midnightTimer); document.removeEventListener("visibilitychange", refreshWhenVisible); };
   }, []);
   useEffect(() => {
+    let active = true;
+    let refreshingWorkouts = false;
+    function refreshWorkouts() {
+      if (!active || document.visibilityState !== "visible" || refreshingWorkouts) return;
+      refreshingWorkouts = true;
+      void bodyMakeClient.getWorkouts().then((workouts) => {
+        if (!active) return;
+        setData((current) => ({ ...current, workouts }));
+        setWorkoutLoadFailed(false);
+      }).catch(() => {
+        if (active) setWorkoutLoadFailed(true);
+      }).finally(() => { refreshingWorkouts = false; });
+    }
     void Promise.allSettled([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), loadWorkoutPreferences(), bodyMakeClient.getDailyBurnEntries()])
       .then(([profile, workouts, meals, weights, preferences, burns]) => {
+        if (!active) return;
         setData({
           profile: profile.status === "fulfilled" ? profile.value : null,
           workouts: workouts.status === "fulfilled" ? workouts.value : [],
@@ -82,7 +96,19 @@ export function DashboardContent() {
           setError("一部の記録を読み込めませんでした。保存済みの記録は表示しています。ページを再読み込みしてください。");
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!active) return;
+        setLoading(false);
+        window.addEventListener("focus", refreshWorkouts);
+        window.addEventListener("pageshow", refreshWorkouts);
+        document.addEventListener("visibilitychange", refreshWorkouts);
+      });
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refreshWorkouts);
+      window.removeEventListener("pageshow", refreshWorkouts);
+      document.removeEventListener("visibilitychange", refreshWorkouts);
+    };
   }, []);
 
   const summary = useMemo(() => {

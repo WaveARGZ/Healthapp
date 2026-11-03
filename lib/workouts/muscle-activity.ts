@@ -7,6 +7,11 @@ export type MuscleActivity = Record<MuscleGroup, number>;
 
 const muscleGroupSet = new Set<string>(muscleGroups);
 const groupsByExercise = new Map<string, MuscleGroup[]>();
+const commonFreeTextExercises = new Map<string, MuscleGroup[]>([
+  ["ベンチプレス", ["胸"]],
+  ["腕立て伏せ", ["胸"]],
+  ["スクワット", ["脚"]],
+]);
 for (const category of exerciseCatalog) {
   if (!muscleGroupSet.has(category.label)) continue;
   for (const exercise of category.groups.flatMap((group) => group.exercises)) {
@@ -20,6 +25,8 @@ function groupsForExercise(name: string): MuscleGroup[] {
   const trimmed = name.trim();
   const catalogGroups = groupsByExercise.get(trimmed);
   if (catalogGroups) return catalogGroups;
+  const freeTextGroups = commonFreeTextExercises.get(trimmed);
+  if (freeTextGroups) return freeTextGroups;
   const matches: MuscleGroup[] = [];
   if (/胸|大胸筋/.test(trimmed)) matches.push("胸");
   if (/背中|背筋|広背筋/.test(trimmed)) matches.push("背中");
