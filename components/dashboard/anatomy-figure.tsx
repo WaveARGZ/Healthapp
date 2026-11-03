@@ -51,6 +51,7 @@ const backRegions: Record<MuscleGroup, string[]> = {
 
 export function AnatomyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
   const visibilityMaskId = `muscle-anatomy-${view}-visibility`;
+  const outlineMaskId = `muscle-anatomy-${view}-outline-visibility`;
   const edgeFilterId = `muscle-anatomy-${view}-edge`;
   const outlineFilterId = `muscle-anatomy-${view}-outline`;
   const clipId = `muscle-anatomy-${view}-clip`;
@@ -86,6 +87,10 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
           <rect width="1280" height="1280" fill="black" />
           {visibleRegions.map(({ d, opacity }, index) => <path key={index} d={d} fill="white" opacity={opacity} />)}
         </mask>
+        <mask id={outlineMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "luminance" }}>
+          <rect width="1280" height="1280" fill="black" />
+          {visibleRegions.map(({ d }, index) => <path key={index} d={d} fill="white" />)}
+        </mask>
         {/* The two inner hands overlap in the source image, so keep each torso and reflect its unobstructed outer forearm. */}
         <clipPath id={clipId}>
           <path d={view === "front" ? "M0 0H640V500H555L595 600V735H640V1280H0Z" : "M640 0H1280V1280H640V735H690V600L720 500H640Z"} />
@@ -95,12 +100,12 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
         </clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>
-        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
+        <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} mask={`url(#${outlineMaskId})`} />
         <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
       </g>
       <g transform={view === "front" ? "translate(734 0) scale(-1 1)" : "translate(1875 0) scale(-1 1)"}>
         <g clipPath={`url(#${armClipId})`}>
-          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} />
+          <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${outlineFilterId})`} mask={`url(#${outlineMaskId})`} />
           <image href={anatomyImage.src} width="1280" height="1280" filter={`url(#${edgeFilterId})`} mask={`url(#${visibilityMaskId})`} />
         </g>
       </g>
