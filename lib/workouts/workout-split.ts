@@ -4,7 +4,7 @@ export const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"];
 
 const rotations = {
   five: [["胸"], ["背中"], ["肩"], ["腕"], ["脚"]],
-  three: [["胸", "腕"], ["背中"], ["脚"]],
+  three: [["胸", "腕"], ["背中", "肩"], ["脚"]],
 } as const;
 const fullBodyCategories = ["胸", "背中", "肩", "腕", "脚", "腹筋・体幹"];
 

@@ -11,8 +11,9 @@ test("5分割は週5日トレーニング・2日休みで繰り返す", () => {
 
 test("3分割は週が変わっても順番をリセットしない", () => {
   const plan = { kind: "three", trainingDays: [1, 2, 3, 4, 5], anchorDate: "2026-10-12" };
-  assert.deepEqual(getWorkoutWeek(plan, "2026-10-14").map((day) => day.label), ["胸・腕", "背中", "脚", "胸・腕", "背中", "休み", "休み"]);
-  assert.deepEqual(getWorkoutWeek(plan, "2026-10-21").map((day) => day.label), ["脚", "胸・腕", "背中", "脚", "胸・腕", "休み", "休み"]);
+  assert.deepEqual(getWorkoutWeek(plan, "2026-10-14").map((day) => day.label), ["胸・腕", "背中・肩", "脚", "胸・腕", "背中・肩", "休み", "休み"]);
+  assert.deepEqual(getWorkoutWeek(plan, "2026-10-21").map((day) => day.label), ["脚", "胸・腕", "背中・肩", "脚", "胸・腕", "休み", "休み"]);
+  assert.deepEqual(getWorkoutDayPlan(plan, "2026-10-13").categories, ["背中", "肩"]);
   assert.equal(getWorkoutDayPlan(plan, "2026-10-09").label, "脚");
 });
 
@@ -20,7 +21,7 @@ test("通う曜日を変更しても選択した回数を保つ", () => {
   const plan = { kind: "three", trainingDays: [0, 1, 3, 4, 6], anchorDate: "2026-10-12" };
   const week = getWorkoutWeek(plan, "2026-10-12");
   assert.equal(week.filter((day) => day.isRest).length, 2);
-  assert.deepEqual(week.map((day) => day.label), ["胸・腕", "休み", "背中", "脚", "休み", "胸・腕", "背中"]);
+  assert.deepEqual(week.map((day) => day.label), ["胸・腕", "休み", "背中・肩", "脚", "休み", "胸・腕", "背中・肩"]);
 });
 
 test("週2回の5分割は週をまたいで部位を続ける", () => {
@@ -50,4 +51,6 @@ test("旧設定や壊れた設定を安全に読み込む", () => {
   assert.equal(invalidLegacy.splitPlan, undefined);
   const valid = normalizeWorkoutPreferences({ splitPlan: { kind: "custom", trainingDays: [1], anchorDate: "2026-10-12", customByWeekday: { "1": ["胸", "脚", "不明"] } } });
   assert.deepEqual(valid.splitPlan?.customByWeekday["1"], ["胸", "脚"]);
+  assert.equal(normalizeWorkoutPreferences({ isGymMember: false }).isGymMember, false);
+  assert.equal(normalizeWorkoutPreferences({ isGymMember: "false" }).isGymMember, undefined);
 });
