@@ -243,12 +243,12 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
   }
 
   return <>
-    <Button type="button" variant="secondary" size="small" className="mt-2 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setShowEquipmentEditor(false); setActiveCategory(null); setIsEditingSets(false); setVideoExercise(null); setQuery(""); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />種目一覧から選ぶ</Button>
+    <Button type="button" variant="secondary" size="small" className="mt-2 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setShowEquipmentEditor(false); setActiveCategory(null); setIsEditingSets(false); setVideoExercise(null); setQuery(""); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />登録</Button>
     {isOpen ? <div ref={dialogRef} className="exercise-dialog" role="dialog" aria-modal="true" aria-label={videoExercise ? `${videoExercise}の動作動画` : "筋トレ種目を選択"} onClick={(event) => { if (event.target === event.currentTarget) { if (videoExercise) setVideoExercise(null); else closePicker(); } }}>
       {videoExercise ? <section className="exercise-dialog-panel">
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 sm:px-5">
           <div><p className="text-base font-bold text-[var(--ink)]">{videoExercise}</p><p className="mt-0.5 text-xs text-[var(--muted)]">動作説明の動画</p></div>
-          <button ref={videoCloseRef} type="button" onClick={() => setVideoExercise(null)} className="min-h-11 rounded bg-[var(--sand)] px-4 text-sm font-bold text-[var(--sage-deep)]">種目一覧に戻る</button>
+          <button ref={videoCloseRef} type="button" onClick={() => setVideoExercise(null)} className="min-h-11 rounded bg-[var(--sand)] px-4 text-sm font-bold text-[var(--sage-deep)]">種目選択に戻る</button>
         </header>
         <div className="min-h-0 overflow-y-auto px-4 py-4 text-center sm:px-5">
           <iframe key={videoExercise} src={getExerciseShortEmbedUrl(videoExercise)} title={`${videoExercise}の動作説明`} className="mx-auto aspect-[9/16] w-full max-w-[300px] rounded bg-black" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen sandbox="allow-scripts allow-same-origin allow-presentation" referrerPolicy="strict-origin-when-cross-origin" />
@@ -259,7 +259,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 sm:px-5"><div><p className="text-base font-bold text-[var(--ink)]">{isEditingSets ? "重量・レップ数を入力" : tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{isEditingSets ? "セットごとに入力できます" : `初心者向けの${beginnerExerciseCount}種目から選べます`}</p>{!isEditingSets && <p className="mt-0.5 text-xs text-[var(--muted)]">再生ボタンでアプリ内に動画を表示します</p>}</div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded bg-[var(--sand)] text-xl leading-none text-[var(--muted)]" aria-label="種目メニューを閉じる">×</button></header>
         <div ref={listScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(16px,env(safe-area-inset-bottom))]">
         {isEditingSets ? <section aria-label={`${exerciseName}のセット入力`} className="px-4 py-5 sm:px-5">
-          <button type="button" onClick={() => { setIsEditingSets(false); requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus()); }} className="mb-4 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目一覧へ戻る</button>
+          <button type="button" onClick={() => { setIsEditingSets(false); requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus()); }} className="mb-4 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目選択へ戻る</button>
           <h2 className="text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
           <p className="mt-2 text-xs leading-5 text-[var(--muted)]">入力内容は筋トレ記録に反映されます。保存は記録画面で行います。</p>
           <div className="mt-5 overflow-hidden rounded-md border border-[var(--line)] bg-white">
