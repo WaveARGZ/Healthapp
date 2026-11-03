@@ -80,7 +80,7 @@ export function AnatomyFigure({ view, activity }: { view: "front" | "back"; acti
           <feMorphology in="clean-alpha" operator="dilate" radius="6" result="outer-edge" />
           <feMorphology in="clean-alpha" operator="erode" radius="2" result="inner-edge" />
           <feComposite in="outer-edge" in2="inner-edge" operator="out" result="outline" />
-          <feFlood floodColor="#b1c2b6" floodOpacity="0.8" result="outline-color" />
+          <feFlood floodColor={activityTint(2).color} floodOpacity="0.95" result="outline-color" />
           <feComposite in="outline-color" in2="outline" operator="in" />
         </filter>
         <mask id={visibilityMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280" style={{ maskType: "luminance" }}>
