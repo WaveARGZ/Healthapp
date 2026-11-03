@@ -1,12 +1,13 @@
 import { deleteDoc, doc, getDoc, getDocs, collection, setDoc } from "firebase/firestore";
 import type { BodyMakeClient } from "@/lib/api/bodymake-client";
+import { splitWorkoutRecords } from "@/lib/utils/daily-burn";
 import { currentFirebaseUser } from "@/lib/auth/firebase-session";
 import { firebaseDb } from "@/lib/firebase/app";
 import { deleteDeviceBodyPhoto, getDeviceBodyPhotos, saveDeviceBodyPhoto } from "@/lib/storage/device-body-photos";
 import type { MealEntry } from "@/types/meal";
 import type { BodyPhotoEntry, WeightEntry } from "@/types/progress";
 import type { UserProfile } from "@/types/user";
-import type { WorkoutEntry } from "@/types/workout";
+import type { DailyBurnEntry, WorkoutEntry } from "@/types/workout";
 
 const clean = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -44,9 +45,12 @@ export class FirebaseBodyMakeClient implements BodyMakeClient {
     await setDoc(doc(firebaseDb(), path), value);
     return value;
   }
-  getWorkouts() { return list<WorkoutEntry>("workouts"); }
+  async getWorkouts() { return splitWorkoutRecords(await list<WorkoutEntry>("workouts")).workouts; }
   saveWorkout(entry: WorkoutEntry) { return put("workouts", entry); }
   deleteWorkout(id: string) { return remove("workouts", id); }
+  async getDailyBurnEntries() { return splitWorkoutRecords(await list<WorkoutEntry>("workouts")).burns; }
+  saveDailyBurnEntry(entry: DailyBurnEntry) { return put("workouts", entry); }
+  deleteDailyBurnEntry(id: string) { return remove("workouts", id); }
   getMeals() { return list<MealEntry>("meals"); }
   saveMeal(entry: MealEntry) { return put("meals", entry); }
   deleteMeal(id: string) { return remove("meals", id); }

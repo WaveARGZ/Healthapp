@@ -1,7 +1,7 @@
 import type { MealEntry } from "@/types/meal";
 import type { BodyPhotoEntry, WeightEntry } from "@/types/progress";
 import type { UserProfile } from "@/types/user";
-import type { WorkoutEntry } from "@/types/workout";
+import type { DailyBurnEntry, WorkoutEntry } from "@/types/workout";
 
 /**
  * Persistence contract for BodyMake. The UI only depends on this shape, so a
@@ -13,6 +13,9 @@ export interface BodyMakeClient {
   getWorkouts(): Promise<WorkoutEntry[]>;
   saveWorkout(entry: WorkoutEntry): Promise<WorkoutEntry>;
   deleteWorkout(id: string): Promise<void>;
+  getDailyBurnEntries(): Promise<DailyBurnEntry[]>;
+  saveDailyBurnEntry(entry: DailyBurnEntry): Promise<DailyBurnEntry>;
+  deleteDailyBurnEntry(id: string): Promise<void>;
   getMeals(): Promise<MealEntry[]>;
   saveMeal(entry: MealEntry): Promise<MealEntry>;
   deleteMeal(id: string): Promise<void>;
