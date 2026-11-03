@@ -42,7 +42,7 @@ export function MuscleActivityMap({ workouts, today, loading, unavailable }: { w
           <div className="mt-5">
             <p className="text-xs font-semibold text-[var(--ink-soft)]">色の目安</p>
             <div className="mt-2 flex items-start gap-3 text-[10px] text-[var(--muted)]">
-              <div className="shrink-0 text-center"><span className="mx-auto mb-1 block size-4 rounded-sm border border-[#ced9cf]" style={{ backgroundImage: "conic-gradient(#d5ded7 25%, #fff 0 50%, #d5ded7 0 75%, #fff 0)", backgroundSize: "8px 8px" }} />0日<br />透明</div>
+              <div className="shrink-0 text-center"><span className="mx-auto mb-1 block size-4 rounded-sm border border-[#ced9cf]" style={{ backgroundImage: "conic-gradient(#d5ded7 25%, #fff 0 50%, #d5ded7 0 75%, #fff 0)", backgroundSize: "8px 8px" }} />0日<br />外枠のみ</div>
               <div className="min-w-0 flex-1">
                 <span className="mb-1 block h-4 rounded-sm border border-[#ced9cf]" style={{ backgroundImage: `linear-gradient(to right, ${gradientColors})` }} />
                 <div className="flex justify-between gap-1"><span>1日<br />薄い赤</span><span className="text-right">2日以上<br />赤</span></div>
@@ -51,7 +51,7 @@ export function MuscleActivityMap({ workouts, today, loading, unavailable }: { w
           </div>
         </div>
       </div>
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は各部位につき1日として数えます。頭は常に元の色です。頭以外は0日は透明、1日は薄い赤、2日以上は元画像の赤系の色です。種目名から部位を判定できない記録は色に含みません。14日間に記録がなければ対象部位は透明に戻ります。</p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は各部位につき1日として数えます。0日の部位は外枠だけが残り、内側の筋肉画像は消えます。1日は薄い赤、2日以上は元画像の赤系の色です。記録がある間、頭は元の色で表示します。種目名から部位を判定できない記録は色に含みません。14日間に記録がなければ外枠だけに戻ります。</p>
     </>}
   </section>;
 }
