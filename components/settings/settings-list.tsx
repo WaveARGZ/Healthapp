@@ -7,12 +7,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { GoogleDriveSettings } from "@/components/settings/google-drive-settings";
 import { clearDemoSession } from "@/lib/auth/demo-session";
 import { signOutCloud } from "@/lib/auth/cognito-session";
-import { isCloudConfigured } from "@/lib/cloud/config";
-import { isFirebaseSelected } from "@/lib/firebase/config";
+import { isCloudConfigured, isSharedTestEnvironment, isTestEnvironment } from "@/lib/cloud/config";
+import { firebaseConfig, isFirebaseConfigured, isFirebaseSelected } from "@/lib/firebase/config";
+import { recommendationMode } from "@/lib/recommendations/availability";
 import { signOutFirebase } from "@/lib/auth/firebase-session";
 
 const settings: Array<{ label: string; description: string; icon: IconName; href: string }> = [
-  { label: "プロフィール", description: "名前・目標・身体情報", icon: "user", href: "/onboarding" },
+  { label: "プロフィール", description: recommendationMode({ test: isTestEnvironment, sharedTest: isSharedTestEnvironment, cloud: isCloudConfigured, firebase: isFirebaseSelected, firebaseConfigured: isFirebaseConfigured, projectId: firebaseConfig.projectId }) ? "名前・目標・身体情報・おすすめの基本情報" : "名前・目標・身体情報", icon: "user", href: "/onboarding" },
   { label: "データ管理", description: "記録の保存先について", icon: "progress", href: "#data" },
   { label: "プライバシー", description: "写真とデータの取り扱い", icon: "lock", href: "#privacy" },
   { label: "利用規約", description: "ご利用の前に", icon: "more", href: "#terms" },
