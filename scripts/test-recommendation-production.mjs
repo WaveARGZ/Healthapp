@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { recommendationMode } from "../lib/recommendations/availability.ts";
 import { openRecommendationIdentity } from "../lib/recommendations/firebase-identity.ts";
 import { checkProductionRecommendationApi, requestProductionAiRanking, isProductionRecommendationOrigin } from "../lib/recommendations/client.ts";
@@ -17,6 +18,15 @@ const result = { source: "openai", model: "gpt-5.6-luna", requestId, mealIds: ["
 const identity = { assertCurrent() {}, async getIdToken() { return token; } };
 const input = { origin, identity, requestId, transferConsent: true, request };
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
+
+test("test runtime rejects production API destinations even if invoked directly", () => {
+  execFileSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", `
+    import assert from 'node:assert/strict';
+    import { isProductionRecommendationOrigin, checkProductionRecommendationApi } from './lib/recommendations/client.ts';
+    assert.equal(isProductionRecommendationOrigin('https://healthapp-14a3f.web.app'), false);
+    await assert.rejects(checkProductionRecommendationApi({origin:'https://healthapp-14a3f.web.app',identity:{assertCurrent(){assert.fail('no auth')},getIdToken(){assert.fail('no token')}}},()=>assert.fail('no fetch')), /production_origin_required/);
+  `], { cwd: new URL("..", import.meta.url), env: { ...process.env, NEXT_PUBLIC_BODYMAKE_ENV: "test" }, stdio: "pipe" });
+});
 
 test("entry, onboarding, settings and recommendations share the same environment gate", () => {
   for (const file of ["dashboard/dashboard-content.tsx", "profile/onboarding-form.tsx", "settings/settings-list.tsx", "recommendations/recommendation-panel.tsx"]) {

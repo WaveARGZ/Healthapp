@@ -1,7 +1,9 @@
 import type { RecommendationRequest, RecommendationResult } from "./types.ts";
 
 const gateway = "http://127.0.0.1:3004";
-const productionGateway = "https://bodymake-recommendation-api.ajimo023.workers.dev";
+// Compile production destinations out of all test bundles, not merely hide their UI.
+const productionGateway = process.env.NEXT_PUBLIC_BODYMAKE_ENV === "test"
+  ? "" : "https://bodymake-recommendation-api.ajimo023.workers.dev";
 export const recommendationConsentVersion = "recommendation-api-v1";
 export const featureVersion = "recommendation-features-v1";
 
@@ -10,6 +12,7 @@ export function isLocalRecommendationOrigin(origin: string): boolean {
 }
 
 export function isProductionRecommendationOrigin(origin: string): boolean {
+  if (process.env.NEXT_PUBLIC_BODYMAKE_ENV === "test") return false;
   return origin === "https://healthapp-14a3f.web.app" || origin === "https://healthapp-14a3f.firebaseapp.com";
 }
 
