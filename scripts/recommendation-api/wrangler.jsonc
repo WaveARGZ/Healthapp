@@ -1,0 +1,21 @@
+{
+  "name": "bodymake-recommendation-api",
+  "account_id": "f20582cb2543f13f263b9ebc6917e700",
+  "main": "cloudflare-worker.ts",
+  "compatibility_date": "2026-11-04",
+  "workers_dev": true,
+  "preview_urls": false,
+  "send_metrics": false,
+  "observability": { "enabled": false },
+  "vars": {
+    "BODYMAKE_RECOMMENDATION_API_ENABLED": "false"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "RECOMMENDATION_BUDGET", "class_name": "BodyMakeRecommendationBudget" }
+    ]
+  },
+  "migrations": [
+    { "tag": "lifetime-usd5-v1", "new_sqlite_classes": ["BodyMakeRecommendationBudget"] }
+  ]
+}

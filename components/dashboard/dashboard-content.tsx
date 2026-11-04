@@ -7,6 +7,9 @@ import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
 import { MuscleActivityMap } from "@/components/dashboard/muscle-activity-map";
 import { bodyMakeClient } from "@/lib/api/client";
 import { loadWorkoutPreferences } from "@/lib/api/workout-preferences-client";
+import { isCloudConfigured, isSharedTestEnvironment, isTestEnvironment } from "@/lib/cloud/config";
+import { firebaseConfig, isFirebaseConfigured, isFirebaseSelected } from "@/lib/firebase/config";
+import { recommendationMode } from "@/lib/recommendations/availability";
 import { formatToday, toDateInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
 import { summarizeDailyFeedback } from "@/lib/utils/daily-feedback";
@@ -124,6 +127,7 @@ export function DashboardContent() {
       <Link href="/onboarding" className="text-link max-w-[45%]"><span className="truncate">{data.profile?.name ? `${data.profile.name}さん` : "プロフィール設定"}</span><Icon name="user" className="size-4 shrink-0" /></Link>
     </header>
     {error && <p role="alert" className="mt-4 text-xs text-[var(--coral)]">{error}</p>}
+    {recommendationMode({ test: isTestEnvironment, sharedTest: isSharedTestEnvironment, cloud: isCloudConfigured, firebase: isFirebaseSelected, firebaseConfigured: isFirebaseConfigured, projectId: firebaseConfig.projectId }) && <Link href="/recommendations" className="mt-5 flex min-h-16 items-center justify-between gap-3 rounded-md border border-[var(--line)] bg-white p-4"><div><p className="text-sm font-bold">次の食事・筋トレを考える</p><p className="mt-1 text-xs text-[var(--muted)]">まずは端末内で無料作成・AIへの送信は同意した時だけ</p></div><Icon name="arrow-right" className="size-4 shrink-0" /></Link>}
     <section aria-label="一日の摂取カロリーの目安" aria-busy={loading} className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><h2 className="section-title">一日の摂取カロリーの目安</h2>{data.profile && <span className="text-xs text-[var(--muted)]">{fitnessGoalLabels[data.profile.goal]}</span>}</div>
       {loading ? <p className="mt-5 text-sm text-[var(--muted)]">計算中…</p>

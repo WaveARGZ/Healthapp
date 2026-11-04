@@ -1,3 +1,5 @@
+import type { RecommendationPreferences } from "./recommendation-preferences.ts";
+
 export type Gender = "male" | "female" | "other" | "prefer-not-to-say";
 
 export type FitnessGoal = "build-muscle" | "lose-fat" | "maintain";
@@ -17,5 +19,7 @@ export interface UserProfile {
   heightCm?: number;
   startingWeightKg?: number;
   goal: FitnessGoal;
+  /** User-entered basic preferences, not consent to API transfer or model training. */
+  recommendationPreferences?: RecommendationPreferences;
   updatedAt: string;
 }

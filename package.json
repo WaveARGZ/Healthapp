@@ -28,6 +28,8 @@
     "test:exercise-shorts": "node --experimental-strip-types --test scripts/test-exercise-short-videos.mjs",
     "test:environment-build": "node scripts/test-environment-build.mjs",
     "test:team-runtime": "node --test scripts/test-team-runtime.mjs",
+    "test:recommendations": "node --experimental-strip-types --test scripts/test-recommendation-*.mjs scripts/recommendation-api/tests.mjs scripts/recommendation-api/*.test.mjs",
+    "recommendation:api": "node --experimental-strip-types scripts/recommendation-api/server.ts",
     "test:photo-submission": "node --test scripts/food-ai/submission-client.test.mjs scripts/food-ai/public-photo-flow.test.mjs scripts/food-ai/jpeg-metadata.test.mjs scripts/food-ai/streaming-upload.test.mjs",
     "test:food-ai:model-cache": "node --test scripts/food-ai/streaming/model-cache.test.mjs",
     "food-ai:learn": "node scripts/food-ai/learn.mjs",
@@ -46,6 +48,7 @@
   "dependencies": {
     "@huggingface/transformers": "^4.3.0",
     "firebase": "^12.19.0",
+    "jose": "6.2.15",
     "next": "16.3.7",
     "react": "19.2.8",
     "react-dom": "19.2.8"
