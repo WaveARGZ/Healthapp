@@ -160,7 +160,7 @@ export function DashboardContent() {
       <Link href="/onboarding" className="text-link max-w-[45%]"><span className="truncate">{data.profile?.name ? `${data.profile.name}さん` : "プロフィール設定"}</span><Icon name="user" className="size-4 shrink-0" /></Link>
     </header>
     {error && <p role="alert" className="mt-4 text-xs text-[var(--coral)]">{error}</p>}
-    <section aria-label="一日の摂取カロリーの目安" aria-busy={loading} className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-5 sm:p-6">
+    <section aria-label="一日の摂取カロリーの目安" aria-busy={loading} className="mt-6 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><h2 className="section-title">一日の摂取カロリーの目安</h2>{data.profile && <span className="text-xs text-[var(--muted)]">{fitnessGoalLabels[data.profile.goal]}</span>}</div>
       {loading ? <p className="mt-5 text-sm text-[var(--muted)]">計算中…</p>
         : profileLoadFailed ? <p className="mt-5 text-sm text-[var(--muted)]">プロフィールを読み込めないため目安を表示できません。</p>

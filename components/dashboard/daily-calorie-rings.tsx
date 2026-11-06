@@ -22,7 +22,7 @@ function RingCard({ title, label, value, unit, segments, children }: {
   segments: RingSegment[];
   children: ReactNode;
 }) {
-  return <article className="flex min-w-0 flex-col items-center rounded-xl border border-[var(--line)] bg-[var(--sand)] px-1.5 py-3 text-center sm:px-3 sm:py-4">
+  return <article className="flex min-w-0 flex-col items-center px-1 py-3 text-center sm:px-2 sm:py-4">
     <h3 className="flex min-h-9 items-center justify-center text-[11px] font-bold leading-4 text-[var(--ink)] sm:text-sm">{title}</h3>
     <div className="relative mt-2 aspect-square w-full max-w-[140px]" role="img" aria-label={label}>
       <svg viewBox="0 0 112 112" aria-hidden="true" className="size-full -rotate-90">
