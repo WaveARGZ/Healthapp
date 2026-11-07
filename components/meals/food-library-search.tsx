@@ -130,7 +130,8 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     <div className="flex items-start gap-3">
       <div><p className="text-sm font-bold text-[var(--ink)]">料理・食品を検索</p><p className="mt-0.5 text-xs leading-5 text-[var(--muted)]">料理名を検索して、食べた量を選んでください。</p></div>
     </div>
-    <div className="mt-3 flex min-h-12 items-center gap-1 rounded border border-[var(--line)] bg-white px-1.5 focus-within:outline-2 focus-within:outline-[var(--sage-deep)]">
+    <div onMouseLeave={() => setSearchEngaged(false)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchEngaged(false); }}>
+    <div onMouseEnter={() => { setSearchEngaged(true); loadExtendedCatalog(); }} className="mt-3 flex min-h-12 items-center gap-1 rounded border border-[var(--line)] bg-white px-1.5 focus-within:outline-2 focus-within:outline-[var(--sage-deep)]">
       <button type="button" aria-label="料理・食品の検索を開始" onClick={() => searchInput.current?.focus()} className="grid size-10 shrink-0 place-items-center rounded text-[var(--muted)] hover:text-[var(--sage-deep)]"><Icon name="search" className="size-4" /></button>
       <input ref={searchInput} type="search" aria-label="料理・食品を検索" value={query} onFocus={() => { setSearchEngaged(true); loadExtendedCatalog(); }} onChange={(event) => { setSearchEngaged(true); setQuery(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} placeholder="例：白米、とりにく、カレーライス" className="h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--ink)] outline-none placeholder:text-[#a6ada9]" />
     </div>
@@ -185,6 +186,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
       </div> : null}
     </div>}
     </>}
+    </div>
     <details className="mt-4 text-xs leading-6 text-[var(--muted)]"><summary className="min-h-11 py-3">栄養データと出典について</summary><p className="mt-2">定番料理{library.foods.length}件・日本の食品成分表{catalogStatus === "loaded" ? extendedFoods.length.toLocaleString() : "約2,500"}件。表示値は可食部100gを基準に計算します。</p><p className="mt-2">詳細データの出典：<a href="https://www.mext.go.jp/a_menu/syokuhinseibun/mext_00001.html" target="_blank" rel="noreferrer" className="font-bold text-[var(--sage-deep)] underline underline-offset-2">日本食品標準成分表（八訂）増補2023年</a>。定番料理の一部は<a href={library.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-[var(--sage-deep)] underline underline-offset-2">米国農務省の食品データ</a>に基づきます。調理方法・商品によって値は変わります。</p></details>
   </section>;
 }
