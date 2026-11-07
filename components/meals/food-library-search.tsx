@@ -34,6 +34,8 @@ function detailLabel(food: FoodLibraryItem): string {
 export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
   const [query, setQuery] = useState("");
   const [searchEngaged, setSearchEngaged] = useState(false);
+  const [expandedResults, setExpandedResults] = useState(false);
+  const [saveNotice, setSaveNotice] = useState<{ text: string; error: boolean } | null>(null);
   const [category, setCategory] = useState("すべて");
   const [extendedFoods, setExtendedFoods] = useState<FoodLibraryItem[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
@@ -77,12 +79,13 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     setVisibleVariants(10);
   }
 
-  const showPopular = !query.trim() && category === "すべて";
+  const showPopular = !query.trim() && category === "すべて" && !expandedResults;
   const results = useMemo<ReturnType<typeof searchFoodGroups>>(
-    () => searchEngaged ? searchFoodGroups(showPopular ? popularFoods : allFoods, showPopular ? "" : query, category) : { groups: [], matchingRecords: 0, usedFuzzy: false },
-    [searchEngaged, showPopular, allFoods, query, category],
+    () => searchEngaged || expandedResults ? searchFoodGroups(showPopular ? popularFoods : allFoods, showPopular ? "" : query, category) : { groups: [], matchingRecords: 0, usedFuzzy: false },
+    [searchEngaged, expandedResults, showPopular, allFoods, query, category],
   );
   const shownGroups = results.groups.slice(0, visibleCount);
+  const previewGroups = results.groups.slice(0, 5);
   const variantResults = useMemo(() => {
     if (!activeGroup) return [];
     const needle = variantQuery.trim().toLocaleLowerCase();
@@ -102,6 +105,9 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
 
   function chooseGroup(group: FoodGroup) {
     setActiveGroup(group);
+    setSearchEngaged(false);
+    setExpandedResults(false);
+    setSaveNotice(null);
     setVariantQuery("");
     setVisibleVariants(10);
     const onlyFood = group.variants.length === 1 ? group.variants[0] : null;
@@ -111,6 +117,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
 
   function chooseVariant(food: FoodLibraryItem) {
     setSelectedFood(food);
+    setSaveNotice(null);
     setFoodPortion(food);
   }
 
@@ -120,41 +127,44 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     setIsAdding(true);
     try {
       await onAddFood(foodToMealItem(selectedFood, grams, { unit, quantity, gramsPerPiece }));
+      setSaveNotice({ text: `${selectedFood.name} ${quantity}${unit}を保存しました。`, error: false });
       clearSelection();
       setQuery("");
-    } catch { /* Keep the selection so the user can retry; the parent shows the error. */ }
+      setSearchEngaged(false);
+      setExpandedResults(false);
+    } catch { setSaveNotice({ text: "保存できませんでした。入力を確認して、もう一度お試しください。", error: true }); }
     finally { addingFood.current = false; setIsAdding(false); }
   }
 
+  function renderGroup(group: FoodGroup) {
+    const single = group.variants.length === 1 ? group.variants[0] : null;
+    return <button key={group.name} type="button" onClick={() => chooseGroup(group)} className="flex min-h-14 w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left last:border-b-0 hover:bg-[var(--sage-soft)]">
+      <span className="min-w-0"><span className="block break-words text-sm font-bold text-[var(--ink)]">{group.name}</span><span className="mt-0.5 block text-xs text-[var(--muted)]">{single ? single.category : `${group.variants.length.toLocaleString()}品目から選択`}</span></span>
+      {single ? <span className="metric shrink-0 text-sm font-semibold text-[var(--sage-deep)]">{single.per100g.calories}<span className="ml-1 text-xs font-normal">kcal</span></span> : <Icon name="chevron-right" className="size-4 shrink-0 text-[var(--sage-deep)]" />}
+    </button>;
+  }
+
   return <section className="mt-5">
-    <div className="flex items-start gap-3">
-      <div><p className="text-sm font-bold text-[var(--ink)]">料理・食品を検索</p><p className="mt-0.5 text-xs leading-5 text-[var(--muted)]">料理名を検索して、食べた量を選んでください。</p></div>
-    </div>
-    <div onMouseLeave={() => setSearchEngaged(false)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchEngaged(false); }}>
-    <div onMouseEnter={() => { setSearchEngaged(true); loadExtendedCatalog(); }} className="mt-3 flex min-h-12 items-center gap-1 rounded border border-[var(--line)] bg-white px-1.5 focus-within:outline-2 focus-within:outline-[var(--sage-deep)]">
+    <label htmlFor="meal-food-search" className="text-sm font-bold text-[var(--ink)]">食品名</label>
+    <div onMouseLeave={() => setSearchEngaged(false)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchEngaged(false); }} className="relative mt-2">
+    <div onMouseEnter={() => { if (!expandedResults) setSearchEngaged(true); loadExtendedCatalog(); }} className="flex min-h-12 items-center gap-1 rounded-lg border border-[var(--line)] bg-white px-1.5 focus-within:outline-2 focus-within:outline-[var(--sage-deep)]">
       <button type="button" aria-label="料理・食品の検索を開始" onClick={() => searchInput.current?.focus()} className="grid size-10 shrink-0 place-items-center rounded text-[var(--muted)] hover:text-[var(--sage-deep)]"><Icon name="search" className="size-4" /></button>
-      <input ref={searchInput} type="search" aria-label="料理・食品を検索" value={query} onFocus={() => { setSearchEngaged(true); loadExtendedCatalog(); }} onChange={(event) => { setSearchEngaged(true); setQuery(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} placeholder="例：白米、とりにく、カレーライス" className="h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--ink)] outline-none placeholder:text-[#a6ada9]" />
+      <input id="meal-food-search" ref={searchInput} type="search" value={query} onFocus={() => { if (!expandedResults) setSearchEngaged(true); loadExtendedCatalog(); }} onChange={(event) => { setExpandedResults(false); setSearchEngaged(true); setSaveNotice(null); setQuery(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} placeholder="例：白米、とりにく、カレーライス" className="h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--ink)] outline-none placeholder:text-[#a6ada9]" />
     </div>
-    {searchEngaged && <>
-    <p className="mt-2 text-xs leading-5 text-[var(--muted)]">ひらがな・カタカナ、別名でも検索できます。</p>
-    <select aria-label="食品のカテゴリ" value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} className="mt-2 h-12 w-full rounded border border-[var(--line)] bg-white px-3 text-base font-semibold text-[var(--ink)] outline-none">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-    {results.usedFuzzy && <p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs text-[var(--sage-deep)]" role="status">入力に近い候補を表示しています。品目を確認してから追加してください。</p>}
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--muted)]"><p className="font-semibold">{showPopular ? "検索候補" : `検索結果 ${results.groups.length.toLocaleString()}品目`}</p><span>栄養値は100gあたり</span></div>
-    {shownGroups.length ? <div className="mt-2 max-h-80 overflow-y-auto overscroll-contain rounded-md border border-[var(--line)] bg-white">
-      {shownGroups.map((group) => {
-        const single = group.variants.length === 1 ? group.variants[0] : null;
-        return <button key={group.name} type="button" aria-pressed={activeGroup?.name === group.name} onClick={() => chooseGroup(group)} className={`block w-full border-b border-[var(--line)] px-3 py-4 text-left last:border-b-0 hover:bg-[#fafbf9] ${activeGroup?.name === group.name ? "bg-[var(--sage-soft)]" : ""}`}>
-          <div className="flex items-start justify-between gap-3"><p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-[var(--ink)]">{group.name}</p>{single ? <p className="shrink-0 pt-0.5 text-sm font-semibold text-[var(--sage-deep)]">{single.per100g.calories}<span className="ml-1 text-xs font-normal">kcal</span></p> : <Icon name="chevron-right" className="mt-1 size-4 shrink-0 text-[var(--sage-deep)]" />}</div>
-          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{single ? single.category : `${group.variants.length.toLocaleString()}件の候補から選択`}</p>
-          {single && <div className="metric mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--muted)]"><span>P {single.per100g.proteinG}g</span><span>F {single.per100g.fatG}g</span><span>C {single.per100g.carbsG}g</span></div>}
-        </button>;
-      })}
-    </div> : <p className="mt-3 text-xs text-[var(--muted)]">{catalogStatus === "loading" ? "詳細データの読み込み後に再度検索します。" : "見つかりませんでした。別名や短い料理名でも検索してみてください。"}</p>}
-    {results.groups.length > shownGroups.length && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="mt-3 min-h-11 w-full rounded border border-[var(--line)] bg-white px-3 py-2.5 text-xs font-bold text-[var(--sage-deep)]">さらに30品目表示</button>}
-    {(catalogStatus === "idle" || catalogStatus === "error") && <button type="button" onClick={loadExtendedCatalog} className="text-link mt-1 underline underline-offset-2">{catalogStatus === "error" ? "詳細データを再読み込み" : "日本の食品成分表を読み込む"}</button>}
-    {catalogStatus === "loading" && <p className="mt-3 text-xs text-[var(--muted)]" role="status">詳細データを読み込み中…</p>}
-    {catalogStatus === "loaded" && <p className="mt-3 text-xs leading-5 text-[var(--muted)]">同じ食品はまとめて表示しています。部位・調理法は追加前に選べます。</p>}
-    {activeGroup && <div className="mt-4 rounded-md border border-[var(--sage-deep)] bg-white p-3 sm:p-4">
+    {searchEngaged && !expandedResults && <div className="absolute inset-x-0 top-full z-30 max-h-[min(28rem,65dvh)] overflow-y-auto overscroll-contain rounded-b-xl border border-t-0 border-[var(--line)] bg-white shadow-[0_18px_35px_rgba(32,38,34,.16)]" role="region" aria-label="食品の検索候補">
+      <div className="flex items-center gap-2 border-b border-[var(--line)] px-3 py-2"><p className="min-w-0 flex-1 text-xs font-semibold text-[var(--ink)]">{showPopular ? "検索候補" : `検索結果 ${results.groups.length.toLocaleString()}品目`}</p><select aria-label="食品のカテゴリ" value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} className="min-h-10 max-w-[55%] rounded-md border border-[var(--line)] bg-white px-2 text-xs text-[var(--ink)]">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
+      {results.usedFuzzy && <p className="px-3 py-2 text-xs text-[var(--sage-deep)]">入力に近い候補です。品目を確認してください。</p>}
+      {previewGroups.length ? previewGroups.map(renderGroup) : <p className="px-3 py-4 text-xs text-[var(--muted)]">{catalogStatus === "loading" ? "食品データを読み込み中…" : "見つかりませんでした。別名や短い名前でお試しください。"}</p>}
+      {results.groups.length > previewGroups.length && <button type="button" onClick={() => { setExpandedResults(true); setSearchEngaged(false); setVisibleCount(30); }} className="min-h-11 w-full border-t border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)]">{showPopular ? "全食品の一覧を見る" : `残り${(results.groups.length - previewGroups.length).toLocaleString()}品目を見る`}</button>}
+      {catalogStatus === "error" && <button type="button" onClick={loadExtendedCatalog} className="text-link px-3">詳細データを再読み込み</button>}
+    </div>}
+    </div>
+    {expandedResults && <div className="mt-4 rounded-xl border border-[var(--line)] bg-white" role="region" aria-label="食品の検索結果一覧">
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2"><p className="text-sm font-semibold">検索結果 {results.groups.length.toLocaleString()}品目</p><button type="button" onClick={() => setExpandedResults(false)} className="text-link">閉じる</button></div>
+      {shownGroups.length ? shownGroups.map(renderGroup) : <p className="p-3 text-xs text-[var(--muted)]">該当する食品はありません。</p>}
+      {results.groups.length > shownGroups.length && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="min-h-11 w-full border-t border-[var(--line)] text-sm font-semibold text-[var(--sage-deep)]">さらに30品目表示</button>}
+    </div>}
+    {activeGroup && <div className="mt-4 rounded-xl border border-[var(--sage-deep)] bg-white p-3 sm:p-4">
       <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">選択した食品</p><p className="mt-1 break-words text-base font-bold leading-6 text-[var(--ink)]">{activeGroup.name}</p></div><button type="button" onClick={clearSelection} aria-label="食品の選択を閉じる" className="delete-button -mr-2 -mt-2 shrink-0"><Icon name="plus" className="size-4 rotate-45" /></button></div>
       {activeGroup.variants.length > 1 && <div className="mt-3">
         <p className="text-xs font-semibold text-[var(--ink)]">元データの品目を選択してください（{activeGroup.variants.length.toLocaleString()}件）</p>
@@ -179,14 +189,13 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
         {unit !== "g" && <label className="mt-3 block text-xs font-medium text-[var(--ink)]">1{unit}あたりの重さ（目安・変更可）<span className="mt-2 flex items-center gap-2"><input aria-label={`1${unit}あたりの重さ`} type="number" min="1" max="3000" step="1" inputMode="numeric" value={gramsPerPiece || ""} onChange={(event) => setGramsPerPiece(event.target.value === "" ? 0 : Number(event.target.value))} className="form-input max-w-40" /><span>g</span></span></label>}
         <p className="mt-2 text-xs text-[var(--muted)]">{unit !== "g" ? `${quantity}${unit} ≒ ${grams}g。大きさによって変わるため目安です。` : `1食分の目安：${selectedFood.suggestedGrams}g`}</p>
         {selectedFood.sourceUrl && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{selectedFood.sourceDescription}</p>}
-        {nutrition && <div className="mt-4 rounded bg-[var(--sand)] p-3"><p className="metric text-xl font-bold text-[var(--ink)]">{nutrition.calories}<span className="ml-1 text-xs font-normal text-[var(--muted)]">kcal</span></p><div className="metric mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]"><span>P {nutrition.proteinG}g</span><span>F {nutrition.fatG}g</span><span>C {nutrition.carbsG}g</span></div></div>}
+        {nutrition && <div className="mt-4 rounded-xl bg-[var(--sand)] p-4"><p className="text-xs font-bold text-[var(--ink)]">栄養情報 · 入力した量</p><div className="mt-3 flex flex-wrap items-center gap-4"><div className="metric grid size-20 shrink-0 place-content-center rounded-full border-[5px] border-[#38bdc8] bg-white text-center"><strong className="text-lg leading-none text-[var(--ink)]">{nutrition.calories}</strong><span className="mt-1 text-[11px] text-[var(--muted)]">kcal</span></div><dl className="metric grid min-w-[155px] flex-1 grid-cols-3 gap-2 text-center">{([ ["P", nutrition.proteinG, "#b4509f"], ["F", nutrition.fatG, "#8f6b12"], ["C", nutrition.carbsG, "#6748b4"] ] as const).map(([label, value, color]) => <div key={label}><dt className="text-xs font-semibold" style={{ color }}>{label}</dt><dd className="mt-1 text-sm font-bold text-[var(--ink)]">{value}<span className="ml-0.5 text-xs font-normal text-[var(--muted)]">g</span></dd></div>)}</dl></div></div>}
         {!valid && <p className="mt-2 text-xs text-[var(--coral)]">量と1個あたりの重さを確認してください（合計3,000gまで）。</p>}
         <Button type="button" className="mt-4 w-full" onClick={() => void addSelectedFood()} disabled={!valid || isAdding}>{isAdding ? "保存中…" : "この食品を追加して保存"}</Button>
         <a href={sourceLink(selectedFood)} target="_blank" rel="noreferrer" className="text-link mt-1 underline underline-offset-2">栄養値の出典を見る</a>
       </div> : null}
     </div>}
-    </>}
-    </div>
+    {saveNotice && <p role={saveNotice.error ? "alert" : "status"} aria-live="polite" className={`mt-4 flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold ${saveNotice.error ? "bg-[var(--coral-soft)] text-[var(--coral)]" : "bg-[var(--sage-soft)] text-[var(--sage-deep)]"}`}>{!saveNotice.error && <Icon name="check" className="size-4 shrink-0" />}{saveNotice.text}</p>}
     <details className="mt-4 text-xs leading-6 text-[var(--muted)]"><summary className="min-h-11 py-3">栄養データと出典について</summary><p className="mt-2">定番料理{library.foods.length}件・日本の食品成分表{catalogStatus === "loaded" ? extendedFoods.length.toLocaleString() : "約2,500"}件。表示値は可食部100gを基準に計算します。</p><p className="mt-2">詳細データの出典：<a href="https://www.mext.go.jp/a_menu/syokuhinseibun/mext_00001.html" target="_blank" rel="noreferrer" className="font-bold text-[var(--sage-deep)] underline underline-offset-2">日本食品標準成分表（八訂）増補2023年</a>。定番料理の一部は<a href={library.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-[var(--sage-deep)] underline underline-offset-2">米国農務省の食品データ</a>に基づきます。調理方法・商品によって値は変わります。</p></details>
   </section>;
 }
