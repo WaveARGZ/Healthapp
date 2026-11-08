@@ -18,7 +18,7 @@ const activityStages = [
 export function MuscleActivityMap({ workouts, today, loading, unavailable }: { workouts: WorkoutEntry[]; today: string; loading: boolean; unavailable: boolean }) {
   const activity = summarizeMuscleActivity(workouts, today);
 
-  return <section aria-labelledby="muscle-activity-title" aria-busy={loading} className="mt-8 rounded-2xl border border-[var(--line)] bg-[var(--sand)] p-4 sm:p-6">
+  return <section aria-labelledby="muscle-activity-title" aria-busy={loading} className="panel mt-7 sm:p-6">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <p className="text-xs font-semibold tracking-widest text-[var(--sage-deep)]">TRAINING MAP</p>

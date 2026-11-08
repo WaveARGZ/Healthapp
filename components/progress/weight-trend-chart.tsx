@@ -19,7 +19,7 @@ export function WeightTrendChart({ entries, loading = false, detail = false }: {
   }));
 
   return (
-    <section className="mt-6 min-w-0 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4 sm:p-5" aria-labelledby="weight-trend-title" aria-busy={loading}>
+    <section className="mt-5 min-w-0 rounded-2xl border border-[var(--line)] bg-white p-4 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-6" aria-labelledby="weight-trend-title" aria-busy={loading}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
           <h2 id="weight-trend-title" className="section-title">体重の変化</h2>
@@ -28,9 +28,9 @@ export function WeightTrendChart({ entries, loading = false, detail = false }: {
         <Link href={detail ? "/weight" : "/progress"} className="text-link shrink-0">{detail ? "体重を記録" : "詳しく見る"} <span aria-hidden="true">↗</span></Link>
       </div>
       {loading ? (
-        <p className="border-y border-[var(--line)] py-8 text-center text-xs text-[var(--muted)]">体重記録を読み込み中…</p>
+        <p className="border-t border-[var(--line)] py-8 text-center text-xs text-[var(--muted)]">体重記録を読み込み中…</p>
       ) : recent.length === 0 ? (
-        <div className="border-y border-[var(--line)]"><EmptyState description="体重を記録すると、変化がグラフに表示されます。" href="/weight" action="体重を記録" /></div>
+        <div className="border-t border-[var(--line)]"><EmptyState description="体重を記録すると、変化がグラフに表示されます。" href="/weight" action="体重を記録" /></div>
       ) : (
         <div className="mt-4 border-t border-[var(--line)] pt-4">
           <div className="grid grid-cols-[36px_minmax(0,1fr)] gap-x-1">

@@ -57,6 +57,7 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
     recordedByDate.set(entry.performedAt, entries);
   }
   const selectedEntries = selectedDate ? recordedByDate.get(selectedDate) ?? [] : [];
+  const recordedDaysThisMonth = [...recordedByDate.keys()].filter((date) => date.startsWith(`${month}-`)).length;
   const currentYear = new Date().getFullYear();
   const recordedYears = history.map((entry) => entry.performedAt).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).map((date) => Number(date.slice(0, 4)));
   const firstYear = Math.min(currentYear - 5, year, ...recordedYears);
@@ -69,23 +70,23 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
 
   return <section aria-labelledby={selectedDate ? "workout-selected-date-title" : "workout-history-title"}>
     <div hidden={selectedDate !== null}>
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><h2 id="workout-history-title" className="section-title">筋トレカレンダー</h2><span className="text-xs text-[var(--muted)]">全{history.length}件</span></div>
-    <div className="rounded-md border border-[var(--line)] bg-white p-3 sm:p-5">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 id="workout-history-title" className="section-title">筋トレカレンダー</h2><p className="mt-1 text-xs text-[var(--muted)]">日付を選んで記録を追加・確認</p></div><span className="metric rounded-full bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-bold text-[var(--sage-deep)]">今月 {recordedDaysThisMonth}日</span></div>
+    <div className="rounded-2xl border border-[var(--line)] bg-white p-3 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-5">
       <div className="mb-5 flex items-center justify-between gap-2">
-        <button type="button" aria-label="前の月" onClick={() => changeMonth(-1)} className="grid size-11 shrink-0 place-items-center rounded border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--sand)]">‹</button>
+        <button type="button" aria-label="前の月" onClick={() => changeMonth(-1)} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--sand)]">‹</button>
         <div className="flex min-w-0 items-center justify-center gap-1.5">
-          <select aria-label="表示する年" value={year} onChange={(event) => onMonthChange(`${event.target.value}-${String(monthNumber).padStart(2, "0")}`)} className="min-h-11 rounded border border-[var(--line)] bg-white px-2 text-sm font-semibold">
+          <select aria-label="表示する年" value={year} onChange={(event) => onMonthChange(`${event.target.value}-${String(monthNumber).padStart(2, "0")}`)} className="min-h-11 rounded-lg border border-[var(--line)] bg-white px-2 text-sm font-semibold">
             {Array.from({ length: lastYear - firstYear + 1 }, (_, index) => firstYear + index).map((option) => <option key={option} value={option}>{option}年</option>)}
           </select>
-          <select aria-label="表示する月" value={monthNumber} onChange={(event) => onMonthChange(`${year}-${String(event.target.value).padStart(2, "0")}`)} className="min-h-11 rounded border border-[var(--line)] bg-white px-2 text-sm font-semibold">
+          <select aria-label="表示する月" value={monthNumber} onChange={(event) => onMonthChange(`${year}-${String(event.target.value).padStart(2, "0")}`)} className="min-h-11 rounded-lg border border-[var(--line)] bg-white px-2 text-sm font-semibold">
             {Array.from({ length: 12 }, (_, index) => index + 1).map((option) => <option key={option} value={option}>{option}月</option>)}
           </select>
         </div>
-        <button type="button" aria-label="次の月" onClick={() => changeMonth(1)} className="grid size-11 shrink-0 place-items-center rounded border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--sand)]">›</button>
+        <button type="button" aria-label="次の月" onClick={() => changeMonth(1)} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--sand)]">›</button>
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[308px]">
-          <div className="grid grid-cols-7 text-center text-xs font-semibold text-[var(--muted)]">{calendarWeekdays.map((day) => <span key={day} className="py-2">{day}</span>)}</div>
+          <div className="grid grid-cols-7 border-b border-[var(--line)] pb-1 text-center text-xs font-semibold text-[var(--muted)]">{calendarWeekdays.map((day) => <span key={day} className="py-2">{day}</span>)}</div>
           <div className="grid grid-cols-7 gap-y-1">{Array.from({ length: firstWeekday + daysInMonth }, (_, index) => {
             const day = index - firstWeekday + 1;
             if (day < 1) return <span key={`empty-${index}`} aria-hidden="true" />;
@@ -104,7 +105,7 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
           })}</div>
         </div>
       </div>
-      <p className="mt-4 text-xs text-[var(--muted)]">日付を選ぶと種目を登録できます。緑色は記録がある日です。</p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">色の付いた日には記録があります。日付を押すと種目の登録画面が開きます。</p>
     </div>
     </div>
     {selectedDate && <div id="workout-selected-date">
@@ -112,17 +113,17 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
         onDateSelect(null);
         requestAnimationFrame(() => document.getElementById(`workout-day-${selectedDate}`)?.focus());
       }} className="mb-5 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← カレンダーへ戻る</button>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 id="workout-selected-date-title" className="section-title">{formatDate(selectedDate, { year: "numeric" })}の種目登録</h2>
-        {selectedEntries.length > 0 && <a href="#workout-selected-records" className="text-xs font-semibold text-[var(--sage-deep)] underline underline-offset-2">この日の記録 {selectedEntries.length}件を見る</a>}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-[var(--sage-soft)] p-4">
+        <div><p className="text-xs font-bold text-[var(--sage-deep)]">選択した日</p><h2 id="workout-selected-date-title" className="mt-1 text-base font-bold text-[var(--ink)]">{formatDate(selectedDate, { year: "numeric" })}の種目登録</h2></div>
+        {selectedEntries.length > 0 && <a href="#workout-selected-records" className="inline-flex min-h-11 items-center text-xs font-semibold text-[var(--sage-deep)] underline underline-offset-2">この日の記録 {selectedEntries.length}件を見る</a>}
       </div>
       {children}
     </div>}
-    {selectedDate && <div id="workout-selected-records" className="mt-7" aria-live="polite">
+    {selectedDate && <div id="workout-selected-records" className="mt-7 rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5" aria-live="polite">
       <h3 className="text-sm font-bold">{formatDate(selectedDate, { year: "numeric" })}の記録 <span className="ml-1 font-normal text-[var(--muted)]">{selectedEntries.length}件</span></h3>
-      {selectedEntries.length ? <div className="mt-3 border-t border-[var(--line)]">{selectedEntries.map((entry) => <article key={entry.id} className="border-b border-[var(--line)] py-5">
+      {selectedEntries.length ? <div className="mt-3 border-t border-[var(--line)]">{selectedEntries.map((entry) => <article key={entry.id} className="border-b border-[var(--line)] py-5 last:border-b-0">
         <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">{entry.performedTime ? <span className="metric">{entry.performedTime}</span> : "時刻未記録"}</p><p className="mt-2 break-words text-sm font-semibold leading-6">{entry.exercises.map((exercise) => exercise.name).join("・")}</p></div><button type="button" aria-label={`${formatDate(entry.performedAt)}の筋トレ記録を削除`} onClick={() => onDelete(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button></div>
-        <div className="mt-3 space-y-3">{entry.exercises.map((exercise) => <div key={exercise.id} className="text-xs leading-6 text-[var(--muted)]"><p className="break-words font-medium">{exercise.name}</p><div className="mt-1 flex flex-wrap gap-2">{setsFor(exercise).map((set, setIndex) => <span key={set.id} className="metric rounded bg-[var(--sand)] px-2 py-1"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{set.weightKg ?? "—"}kg × {set.reps ?? "—"}回</span>)}</div></div>)}</div>
+        <div className="mt-3 space-y-3">{entry.exercises.map((exercise) => <div key={exercise.id} className="text-xs leading-6 text-[var(--muted)]"><p className="break-words font-medium">{exercise.name}</p><div className="mt-1 flex flex-wrap gap-2">{setsFor(exercise).map((set, setIndex) => <span key={set.id} className="metric rounded-lg bg-[var(--sand)] px-2 py-1"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{set.weightKg ?? "—"}kg × {set.reps ?? "—"}回</span>)}</div></div>)}</div>
       </article>)}</div> : <p className="mt-3 text-sm text-[var(--muted)]">この日の記録はありません。</p>}
     </div>}
   </section>;
@@ -189,7 +190,7 @@ export function WorkoutRecorder() {
   return <>
     <PageHeader title="筋トレ" description="カレンダーで日付を選んで、種目を記録。" />
     <DailyBurnRecorder />
-    <div role="tablist" aria-label="筋トレの表示切り替え" className="mb-6 flex border-b border-[var(--line)]">
+    <div role="tablist" aria-label="筋トレの表示切り替え" className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-[var(--line)] bg-white p-1 shadow-[0_6px_18px_rgba(32,38,34,.04)]">
       {([{ id: "record", label: "筋トレ記録" }, { id: "plan", label: "週間メニュー" }] as const).map((tab) => <button
         key={tab.id}
         id={`workout-${tab.id}-tab`}
@@ -206,7 +207,7 @@ export function WorkoutRecorder() {
           setActiveTab(next);
           document.getElementById(`workout-${next}-tab`)?.focus();
         }}
-        className={`min-h-12 flex-1 border-b-2 px-3 py-3 text-sm font-semibold ${activeTab === tab.id ? "border-[var(--sage-deep)] text-[var(--sage-deep)]" : "border-transparent text-[var(--muted)]"}`}
+        className={`min-h-12 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "bg-[#19182f] text-white" : "text-[var(--muted)] hover:bg-[var(--sand)] hover:text-[var(--ink)]"}`}
       >{tab.label}</button>)}
     </div>
     {activeTab === null && <p role="status" className="mb-6 text-sm text-[var(--muted)]">週間メニューを確認中…</p>}
@@ -216,22 +217,22 @@ export function WorkoutRecorder() {
     <div id="workout-record-panel" role="tabpanel" aria-labelledby="workout-record-tab" hidden={activeTab !== "record"}>
     <WorkoutHistoryCalendar history={history} month={calendarMonth} selectedDate={selectedDate} onMonthChange={(month) => { setCalendarMonth(month); setSelectedDate(null); }} onDateSelect={(date) => { setSelectedDate(date); if (date) setPerformedAt(date); setNotice(""); }} onDelete={(id) => { void deleteEntry(id); }}>
     <form onSubmit={handleSubmit}>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div className="w-full min-w-0 sm:max-w-[180px]"><FieldLabel htmlFor="workout-time">時刻</FieldLabel><TextInput id="workout-time" type="time" step="60" value={performedTime} onChange={(event) => setPerformedTime(event.target.value)} required /></div>
-        <p className="pb-3 text-xs text-[var(--muted)]">{exercises.length} 種目</p>
+        <p className="metric rounded-full bg-[var(--sand)] px-3 py-2 text-xs font-semibold text-[var(--muted)]">{exercises.length} 種目</p>
       </div>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {exercises.map((exercise, index) => {
           const sets = setsFor(exercise);
           const completedCount = sets.filter((set) => set.completed).length;
-          return <section key={exercise.id} className="overflow-hidden rounded-md border border-[var(--line)]">
+          return <section key={exercise.id} className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-[0_6px_18px_rgba(32,38,34,.04)]">
             <div className="flex min-h-14 items-center justify-between border-b border-[var(--line)] bg-[var(--sand)] pl-4 pr-2">
-              <h2 className="flex items-center gap-3 text-sm font-semibold"><span className="metric text-xs text-[var(--muted)]">{String(index + 1).padStart(2, "0")}</span>トレーニング</h2>
+              <h2 className="flex items-center gap-3 text-sm font-semibold"><span className="metric grid size-7 place-items-center rounded-lg bg-white text-xs font-bold text-[var(--sage-deep)]">{String(index + 1).padStart(2, "0")}</span>トレーニング</h2>
               {exercises.length > 1 && <button type="button" aria-label={`${index + 1}番目の種目を削除`} onClick={() => removeExercise(exercise.id)} className="delete-button"><Icon name="trash" className="size-4" /></button>}
             </div>
             <div className="px-3 py-5 sm:px-5">
               <p className="text-xs font-semibold text-[var(--muted)]">種目</p>
-              <p className="mt-2 break-words text-sm font-bold text-[var(--ink)]">{exercise.name || "未選択"}</p>
+              <p className={`mt-2 break-words text-sm font-bold ${exercise.name ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}>{exercise.name || "まだ種目を選んでいません"}</p>
               <ExercisePicker date={performedAt} startWithEquipmentSetup={index === 0} exerciseName={exercise.name} sets={sets} onSelect={(name) => updateExercise(exercise.id, { name })} onUpdateSet={(setId, patch) => updateSet(exercise.id, setId, patch)} onAddSet={() => addSet(exercise.id)} onRemoveSet={(setId) => removeSet(exercise.id, setId)} />
               <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span><span>完了 {completedCount} / {sets.length}</span></div>
               <div className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] gap-1.5 border-y border-[var(--line)] py-2 text-center text-xs font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>回数</span><span>完了</span><span className="sr-only">削除</span></div>
@@ -242,7 +243,7 @@ export function WorkoutRecorder() {
                 <button type="button" onClick={() => updateSet(exercise.id, set.id, { completed: !set.completed })} aria-pressed={set.completed} aria-label={`${setIndex + 1}セット目の完了`} className={`grid size-11 place-items-center rounded border ${set.completed ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name="check" className="size-5" /></button>
                 <button type="button" disabled={sets.length === 1} onClick={() => removeSet(exercise.id, set.id)} aria-label={`${setIndex + 1}セット目を削除`} className="grid size-11 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-3.5" /></button>
               </div>)}</div>
-              <Button type="button" variant="ghost" size="small" className="mt-4 w-full text-[var(--sage-deep)]" onClick={() => addSet(exercise.id)}><Icon name="plus" className="size-4" />セットを追加</Button>
+              <Button type="button" variant="secondary" size="small" className="mt-4 w-full text-[var(--sage-deep)]" onClick={() => addSet(exercise.id)}><Icon name="plus" className="size-4" />セットを追加</Button>
             </div>
           </section>;
         })}

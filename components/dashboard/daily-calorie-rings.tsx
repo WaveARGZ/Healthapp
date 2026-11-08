@@ -8,7 +8,8 @@ const outerRadius = 102;
 const burnRadius = 80;
 const outerCircumference = 2 * Math.PI * outerRadius;
 const burnCircumference = 2 * Math.PI * burnRadius;
-const macroColors = { proteinG: "#2f7f64", fatG: "#d79037", carbsG: "#547bb3" };
+const macroColors = { proteinG: "#e989db", fatG: "#ffd16d", carbsG: "#aa91ff" };
+const macroTextColors = { proteinG: "#a83e91", fatG: "#926510", carbsG: "#6247a8" };
 
 function formatGrams(value: number) {
   return (Math.round(value * 10) / 10).toLocaleString("ja-JP", { maximumFractionDigits: 1 });
@@ -75,9 +76,9 @@ export function DailyCalorieRings({ macros, burned, consumed, calorieGoal, loadi
         <div className="py-3 first:pt-0">
           <p className="text-xs font-bold">外側の帯 · PFC</p>
           <p className="metric mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm font-semibold">
-            <span style={{ color: macroColors.proteinG }}>P {gramText("proteinG")}</span>
-            <span style={{ color: macroColors.fatG }}>F {gramText("fatG")}</span>
-            <span style={{ color: macroColors.carbsG }}>C {gramText("carbsG")}</span>
+            <span style={{ color: macroTextColors.proteinG }}>P {gramText("proteinG")}</span>
+            <span style={{ color: macroTextColors.fatG }}>F {gramText("fatG")}</span>
+            <span style={{ color: macroTextColors.carbsG }}>C {gramText("carbsG")}</span>
           </p>
         </div>
         <div className="py-3">
