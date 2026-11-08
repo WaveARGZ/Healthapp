@@ -19,7 +19,7 @@ export function WeightTrendChart({ entries, loading = false, detail = false }: {
   }));
 
   return (
-    <section className="mt-5 min-w-0 rounded-2xl border border-[var(--line)] bg-white p-4 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-6" aria-labelledby="weight-trend-title" aria-busy={loading}>
+    <section className="mt-5 min-w-0 rounded-2xl border border-[var(--line)] bg-white p-4 shadow-[0_6px_18px_rgba(25,24,47,.04)] sm:p-6" aria-labelledby="weight-trend-title" aria-busy={loading}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
           <h2 id="weight-trend-title" className="section-title">体重の変化</h2>

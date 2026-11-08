@@ -207,7 +207,7 @@ export function WorkoutRecorder() {
           setActiveTab(next);
           document.getElementById(`workout-${next}-tab`)?.focus();
         }}
-        className={`min-h-12 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "bg-[#19182f] text-white" : "text-[var(--muted)] hover:bg-[var(--sand)] hover:text-[var(--ink)]"}`}
+        className={`min-h-12 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "bg-[var(--navy)] text-white" : "text-[var(--muted)] hover:bg-[var(--sand)] hover:text-[var(--ink)]"}`}
       >{tab.label}</button>)}
     </div>
     {activeTab === null && <p role="status" className="mb-6 text-sm text-[var(--muted)]">週間メニューを確認中…</p>}

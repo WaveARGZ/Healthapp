@@ -121,35 +121,35 @@ export function MealRecorder() {
   }
 
   return <>
-    <header className="overflow-hidden rounded-[24px] bg-[#19182f] px-5 py-6 text-white shadow-[0_18px_40px_rgba(25,24,47,.14)] sm:px-7">
+    <header className="overflow-hidden rounded-[24px] bg-[var(--navy)] px-5 py-6 text-white shadow-[0_18px_40px_rgba(25,24,47,.14)] sm:px-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div><p className="text-xs font-semibold tracking-[.18em] text-[#b8b4db]">BODYMAKE FOOD JOURNAL</p><h1 className="mt-2 text-[27px] font-bold tracking-tight">食事日記</h1><p className="mt-1 text-xs text-[#c9c7de]">選んだ日の食事と栄養を確認</p></div>
-        <label className="min-w-0 text-xs font-semibold text-[#dbd9ee]">記録日<input id="meal-date" type="date" value={recordedAt} onChange={(event) => setRecordedAt(event.target.value)} required className="mt-1 block h-11 max-w-full rounded-lg border border-white/20 bg-white px-3 text-base text-[#19182f]" /></label>
+        <div><p className="text-xs font-semibold tracking-[.18em] text-[var(--navy-label)]">BODYMAKE FOOD JOURNAL</p><h1 className="mt-2 text-[27px] font-bold tracking-tight">食事日記</h1><p className="mt-1 text-xs text-[var(--navy-copy)]">選んだ日の食事と栄養を確認</p></div>
+        <label className="min-w-0 text-xs font-semibold text-[var(--navy-copy)]">記録日<input id="meal-date" type="date" value={recordedAt} onChange={(event) => setRecordedAt(event.target.value)} required className="mt-1 block h-11 max-w-full rounded-lg border border-white/20 bg-white px-3 text-base text-[var(--navy)]" /></label>
       </div>
       <div className="mt-7 flex items-center justify-between gap-3 sm:gap-6">
         <div className="min-w-0 flex-1 space-y-3" aria-label="記録済みのPFC">
           {([
-            ["P", "たんぱく質", dayMacros.proteinG, proteinShare, "#e989db"],
-            ["F", "脂質", dayMacros.fatG, fatShare, "#ffd16d"],
-            ["C", "炭水化物", dayMacros.carbsG, macroEnergy > 0 ? 100 - proteinShare - fatShare : 0, "#aa91ff"],
+            ["P", "たんぱく質", dayMacros.proteinG, proteinShare, "var(--pfc-protein)"],
+            ["F", "脂質", dayMacros.fatG, fatShare, "var(--pfc-fat)"],
+            ["C", "炭水化物", dayMacros.carbsG, macroEnergy > 0 ? 100 - proteinShare - fatShare : 0, "var(--pfc-carbs)"],
           ] as const).map(([initial, label, value, share, color]) => <div key={initial}>
-            <div className="flex items-baseline justify-between gap-2 text-sm"><span className="font-semibold">{initial} <span className="text-xs font-normal text-[#d5d2e9]">{label}</span></span><span className="metric font-semibold">{Math.round(value * 10) / 10} g</span></div>
+            <div className="flex items-baseline justify-between gap-2 text-sm"><span className="font-semibold">{initial} <span className="text-xs font-normal text-[var(--navy-copy)]">{label}</span></span><span className="metric font-semibold">{Math.round(value * 10) / 10} g</span></div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full" style={{ width: `${share}%`, backgroundColor: color }} /></div>
           </div>)}
         </div>
-        <div role="img" aria-label={`${dayCalories.countedMeals === 0 && dayCalories.mealCount > 0 ? "摂取カロリー未入力" : `摂取カロリー ${Math.round(dayCalories.calories)} kcal`}。円の色は記録済みPFCの割合`} className="metric grid size-28 shrink-0 place-items-center rounded-full p-2 sm:size-36" style={{ background: macroEnergy > 0 ? `conic-gradient(#e989db 0 ${proteinShare}%, #ffd16d ${proteinShare}% ${proteinShare + fatShare}%, #aa91ff ${proteinShare + fatShare}% 100%)` : "rgba(255,255,255,.16)" }}>
-          <div className="grid size-full place-content-center rounded-full bg-[#19182f] text-center"><strong className="text-[21px] leading-none sm:text-[26px]">{dayCalories.countedMeals === 0 && dayCalories.mealCount > 0 ? "—" : Math.round(dayCalories.calories).toLocaleString("ja-JP")}</strong><span className="mt-1 text-[11px] text-[#d5d2e9] sm:text-xs">摂取 kcal</span></div>
+        <div role="img" aria-label={`${dayCalories.countedMeals === 0 && dayCalories.mealCount > 0 ? "摂取カロリー未入力" : `摂取カロリー ${Math.round(dayCalories.calories)} kcal`}。円の色は記録済みPFCの割合`} className="metric grid size-28 shrink-0 place-items-center rounded-full p-2 sm:size-36" style={{ background: macroEnergy > 0 ? `conic-gradient(var(--pfc-protein) 0 ${proteinShare}%, var(--pfc-fat) ${proteinShare}% ${proteinShare + fatShare}%, var(--pfc-carbs) ${proteinShare + fatShare}% 100%)` : "rgb(255 255 255 / .16)" }}>
+          <div className="grid size-full place-content-center rounded-full bg-[var(--navy)] text-center"><strong className="text-[21px] leading-none sm:text-[26px]">{dayCalories.countedMeals === 0 && dayCalories.mealCount > 0 ? "—" : Math.round(dayCalories.calories).toLocaleString("ja-JP")}</strong><span className="mt-1 text-[11px] text-[var(--navy-copy)] sm:text-xs">摂取 kcal</span></div>
         </div>
       </div>
-      {(dayCalories.missingMeals > 0 || dayMacros.incompleteMeals > 0) && <p className="mt-5 text-xs leading-5 text-[#d5d2e9]">栄養値が未入力の食事は、合計やPFC内訳に含まれません。</p>}
+      {(dayCalories.missingMeals > 0 || dayMacros.incompleteMeals > 0) && <p className="mt-5 text-xs leading-5 text-[var(--navy-copy)]">栄養値が未入力の食事は、合計やPFC内訳に含まれません。</p>}
     </header>
     <section aria-label="選択日の食事" className="mt-6 space-y-3">
       {mealTypes.map(([type, label]) => {
         const entries = dayMeals.filter((entry) => entry.mealType === type);
         const calories = entries.reduce((sum, entry) => sum + (recordedCalories(entry) ?? 0), 0);
         const missingCalories = entries.some((entry) => recordedCalories(entry) === undefined);
-        return <article key={type} className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-[0_6px_18px_rgba(32,38,34,.04)]">
-          <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5"><div><h2 className="text-sm font-bold text-[var(--ink)]">{label}</h2><p className="metric mt-0.5 text-xs text-[var(--muted)]">{entries.length ? `${missingCalories && entries.every((entry) => recordedCalories(entry) === undefined) ? "カロリー未入力" : `${missingCalories ? "入力済み分 " : ""}${Math.round(calories)} kcal`} · ${entries.length}品` : "まだ記録がありません"}</p></div><button type="button" onClick={() => openComposer(type)} aria-label={`${label}に食品を追加`} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)] hover:bg-[#dce9da]"><Icon name="plus" className="size-5" /></button></div>
+        return <article key={type} className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-[0_6px_18px_rgba(25,24,47,.04)]">
+          <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5"><div><h2 className="text-sm font-bold text-[var(--ink)]">{label}</h2><p className="metric mt-0.5 text-xs text-[var(--muted)]">{entries.length ? `${missingCalories && entries.every((entry) => recordedCalories(entry) === undefined) ? "カロリー未入力" : `${missingCalories ? "入力済み分 " : ""}${Math.round(calories)} kcal`} · ${entries.length}品` : "まだ記録がありません"}</p></div><button type="button" onClick={() => openComposer(type)} aria-label={`${label}に食品を追加`} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)] hover:bg-[var(--sage-soft-hover)]"><Icon name="plus" className="size-5" /></button></div>
           {entries.length > 0 && <div className="border-t border-[var(--line)] px-4 sm:px-5">{entries.map((entry) => <div key={entry.id} className="flex min-h-16 items-center gap-3 border-b border-[var(--line)] py-2 last:border-b-0"><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-[var(--ink)]">{entry.name}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{entry.recordedTime || "時刻なし"}{entry.items?.[0]?.portionQuantity ? ` · ${entry.items[0].portionQuantity}${entry.items[0].portionUnit ?? "g"}` : ""}</p></div><span className="metric shrink-0 text-xs font-semibold text-[var(--ink)]">{recordedCalories(entry) === undefined ? "—" : `${Math.round(recordedCalories(entry) ?? 0)} kcal`}</span><button type="button" aria-label={`${entry.name}の食事記録を削除`} onClick={() => void deleteEntry(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button></div>)}</div>}
         </article>;
       })}

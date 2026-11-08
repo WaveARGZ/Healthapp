@@ -156,9 +156,9 @@ export function DashboardContent() {
 
   return <>
     <header className="rounded-[24px] bg-[var(--navy)] px-5 py-6 text-white shadow-[0_18px_40px_rgba(25,24,47,.12)] sm:px-7 sm:py-7">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold tracking-[.12em] text-[#b8b4db]">{formatToday()}</p><h1 className="mt-2 text-[27px] font-bold tracking-tight">今日の記録</h1><p className="mt-2 text-xs text-[#d5d2e9]">毎日の積み重ねを、ここで確認</p></div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold tracking-[.12em] text-[var(--navy-label)]">{formatToday()}</p><h1 className="mt-2 text-[27px] font-bold tracking-tight">今日の記録</h1><p className="mt-2 text-xs text-[var(--navy-copy)]">毎日の積み重ねを、ここで確認</p></div>
         <Link href="/onboarding" className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-xl border border-white/20 px-3 text-xs font-semibold text-white hover:bg-white/10"><Icon name="user" className="size-4 shrink-0" /><span className="max-w-32 truncate">{data.profile?.name ? `${data.profile.name}さん` : "プロフィール設定"}</span></Link></div>
-      <p className="mt-6 border-t border-white/15 pt-4 text-sm text-[#d5d2e9]">今日の記録 <strong className="metric ml-1 text-xl text-white">{loading ? "—" : doneCount} / 3</strong></p>
+      <p className="mt-6 border-t border-white/15 pt-4 text-sm text-[var(--navy-copy)]">今日の記録 <strong className="metric ml-1 text-xl text-white">{loading ? "—" : doneCount} / 3</strong></p>
     </header>
     {error && <p role="alert" className="mt-4 text-xs text-[var(--coral)]">{error}</p>}
     <section aria-label="一日の摂取カロリーの目安" aria-busy={loading} className="panel mt-5 sm:p-6">
