@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Icon, type IconName } from "@/components/ui/icon";
+import { Icon } from "@/components/ui/icon";
 import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
 import { MuscleActivityMap } from "@/components/dashboard/muscle-activity-map";
 import { DailyCalorieRings } from "@/components/dashboard/daily-calorie-rings";
@@ -27,15 +27,6 @@ interface DashboardData {
   burns: DailyBurnEntry[];
 }
 const initialData: DashboardData = { profile: null, workouts: [], meals: [], weights: [], burns: [] };
-
-function RecordRow({ href, icon, label, description, complete }: { href: string; icon: IconName; label: string; description: string; complete: boolean }) {
-  return <Link href={href} className="group flex min-h-20 items-center gap-4 border-b border-[var(--line)] px-1 py-4 transition-colors last:border-b-0 hover:bg-[var(--sand)] sm:gap-5">
-    <Icon name={icon} className="size-[22px] shrink-0 text-[var(--sage-deep)]" />
-    <div className="min-w-0 flex-1"><p className="text-sm font-bold">{label}</p><p className="mt-1 truncate text-xs text-[var(--muted)]">{description}</p></div>
-    <span className={`flex shrink-0 items-center gap-1 text-xs ${complete ? "text-[var(--sage-deep)]" : "text-[var(--muted)]"}`}>{complete ? <><Icon name="check" className="size-3.5" />記録済み</> : "記録する"}</span>
-    <Icon name="chevron-right" className="size-4 shrink-0 text-[var(--muted)]" />
-  </Link>;
-}
 
 export function DashboardContent() {
   const [data, setData] = useState<DashboardData>(initialData);
@@ -148,12 +139,6 @@ export function DashboardContent() {
     : dailyCalories.missingMeals > 0 || dailyCalories.partiallyCountedMeals > 0
       ? `${dailyCalories.mealCount}件のうち、カロリー入力済み分の合計です。未入力の料理・食事は含みません。`
       : null;
-  const recordedDays = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(); date.setDate(date.getDate() - (6 - index));
-    const iso = toDateInputValue(date);
-    return { date: iso, day: new Intl.DateTimeFormat("ja-JP", { weekday: "narrow" }).format(date), number: date.getDate(), active: data.workouts.some((entry) => entry.performedAt === iso) || data.meals.some((entry) => entry.recordedAt === iso) || data.weights.some((entry) => entry.measuredOn === iso) };
-  });
-
   return <>
     <header className="rounded-[24px] border border-[var(--line)] border-l-[5px] border-l-[var(--sage-deep)] bg-white px-5 py-6 text-[var(--ink)] shadow-[0_12px_30px_rgba(34,71,44,.07)] sm:px-7 sm:py-7">
       <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold tracking-[.12em] text-[var(--sage-deep)]">{formatToday()}</p><h1 className="mt-2 text-[27px] font-bold tracking-tight text-[var(--sage-deep)]">今日の記録</h1><p className="mt-2 text-xs text-[var(--muted)]">毎日の積み重ねを、ここで確認</p></div>
@@ -193,13 +178,6 @@ export function DashboardContent() {
       <div className="min-w-0"><h2 className="text-sm font-bold leading-6">ジムの器具を登録しましょう</h2><p className="mt-1 text-[13px] leading-6 text-[var(--muted)]">使えるマシン・器具に合わせて、筋トレのおすすめを表示します。</p></div>
       <Link href="/workouts?setup=equipment" className="col-start-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--sage-deep)] px-4 text-[13px] font-bold text-white sm:col-start-auto">器具を登録<Icon name="arrow-right" className="size-4" /></Link>
     </section>}
-    <section className="panel mt-7" aria-busy={loading}>
-      <div className="flex items-center justify-between border-b border-[var(--line)] pb-3"><h2 className="section-title">記録をつける</h2><span className="metric text-xs text-[var(--muted)]">{loading ? "—" : doneCount} / 3 記録済み</span></div>
-      <RecordRow href="/workouts" icon="dumbbell" label="筋トレ" description={summary.workouts.length ? summary.workouts.flatMap((workout) => workout.exercises.map((exercise) => exercise.name)).join("・") : "種目・重量・回数"} complete={summary.workouts.length > 0} />
-      <RecordRow href="/meals" icon="leaf" label="食事" description={summary.meals.length ? `${summary.meals.length}件の食事を記録` : "朝食・昼食・夕食・間食"} complete={summary.meals.length > 0} />
-      <RecordRow href="/weight" icon="scale" label="体重" description={summary.weightDone ? `${summary.currentWeight} kg` : "今日の体重を入力"} complete={summary.weightDone} />
-    </section>
-    <Link href="/photos" className="mt-3 inline-flex min-h-11 items-center gap-2 text-xs text-[var(--muted)] underline underline-offset-4"><Icon name="camera" className="size-4" />身体写真は任意で記録できます</Link>
     <section className="mt-9" aria-label="食事と筋トレのふり返り" aria-busy={loading}>
       <h2 className="section-title">食事と筋トレのふり返り</h2>
       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">入力された記録から作る自動コメントです。写真やフォームをAIが判定した結果ではありません。</p>
@@ -216,11 +194,6 @@ export function DashboardContent() {
         })}
       </div>
       <p className="mt-3 text-xs leading-5 text-[var(--muted)]">記録のない食事や運動は含みません。栄養・運動の良し悪しや健康状態の診断ではありません。</p>
-    </section>
-    <section className="panel mt-8">
-      <div className="mb-3 flex items-center justify-between"><h2 className="section-title">この7日間</h2><Link href="/progress" className="text-link">進捗<Icon name="arrow-right" className="size-3.5" /></Link></div>
-      <div className="grid grid-cols-7 gap-1 border-y border-[var(--line)] py-5">{recordedDays.map((item, index) => <div key={item.date} className="flex flex-col items-center gap-3" aria-label={`${item.date} ${item.active ? "記録あり" : "記録なし"}`}><span className="text-xs text-[var(--muted)]">{item.day}</span><span className={`metric grid h-10 w-full max-w-9 place-items-center rounded-lg text-xs font-semibold ${item.active ? "bg-[var(--sage-deep)] text-white" : "bg-[var(--sand)] text-[var(--muted)]"} ${index === 6 ? "outline outline-1 outline-offset-2 outline-[var(--sage-deep)]" : ""}`}>{item.active ? <Icon name="check" className="size-4" /> : item.number}</span></div>)}</div>
-      <p className="mt-3 text-xs text-[var(--muted)]">記録のある日 <span className="font-semibold text-[var(--ink)]">{recordedDays.filter((day) => day.active).length}日</span></p>
     </section>
   </>;
 }
