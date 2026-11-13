@@ -10,9 +10,9 @@ const muscleLabels: Record<MuscleGroup, string> = {
 };
 
 const activityStages = [
-  { days: 0, label: "外枠のみ" },
+  { days: 0, label: "緑の線のみ" },
   { days: 1, label: "薄い赤" },
-  { days: 2, label: "元の赤" },
+  { days: 2, label: "濃い赤" },
 ] as const;
 
 export function MuscleActivityMap({ workouts, today, loading, unavailable }: { workouts: WorkoutEntry[]; today: string; loading: boolean; unavailable: boolean }) {
@@ -60,7 +60,7 @@ export function MuscleActivityMap({ workouts, today, loading, unavailable }: { w
           </div>
         </div>
       </div>
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は、各部位につき1日として数えます。今日を含む14日間に記録がなければ0日に戻ります。頭は記録がある間、元の色で表示します。部位を判定できない種目は対象外です。</p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は、各部位につき1日として数えます。今日を含む14日間に記録がなければ0日に戻ります。頭は常に緑の輪郭線のみです。部位を判定できない種目は対象外です。</p>
     </>}
   </section>;
 }
