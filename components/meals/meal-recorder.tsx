@@ -121,10 +121,10 @@ export function MealRecorder() {
   }
 
   return <>
-    <header className="overflow-hidden rounded-[24px] bg-[#19182f] px-5 py-6 text-white shadow-[0_18px_40px_rgba(25,24,47,.14)] sm:px-7">
+    <header className="overflow-hidden rounded-[24px] border border-[var(--line)] border-l-[5px] border-l-[var(--sage-deep)] bg-white px-5 py-6 text-[var(--ink)] shadow-[0_12px_30px_rgba(34,71,44,.07)] sm:px-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div><p className="text-xs font-semibold tracking-[.18em] text-[#b8b4db]">BODYMAKE FOOD JOURNAL</p><h1 className="mt-2 text-[27px] font-bold tracking-tight">食事日記</h1><p className="mt-1 text-xs text-[#c9c7de]">選んだ日の食事と栄養を確認</p></div>
-        <label className="min-w-0 text-xs font-semibold text-[#dbd9ee]">記録日<input id="meal-date" type="date" value={recordedAt} onChange={(event) => setRecordedAt(event.target.value)} required className="mt-1 block h-11 max-w-full rounded-lg border border-white/20 bg-white px-3 text-base text-[#19182f]" /></label>
+        <div><p className="text-xs font-semibold tracking-[.18em] text-[var(--sage-deep)]">BODYMAKE</p><h1 className="mt-2 text-[27px] font-bold tracking-tight text-[var(--sage-deep)]">食事記録</h1><p className="mt-1 text-xs text-[var(--muted)]">選んだ日の食事と栄養を確認</p></div>
+        <label className="min-w-0 text-xs font-semibold text-[var(--sage-deep)]">記録日<input id="meal-date" type="date" value={recordedAt} onChange={(event) => setRecordedAt(event.target.value)} required className="mt-1 block h-11 max-w-full rounded-lg border border-[var(--line)] bg-white px-3 text-base text-[var(--ink)] focus:border-[var(--sage-deep)]" /></label>
       </div>
       <div className="mt-7 flex items-center justify-between gap-3 sm:gap-6">
         <div className="min-w-0 flex-1 space-y-3" aria-label="記録済みのPFC">
@@ -133,15 +133,15 @@ export function MealRecorder() {
             ["F", "脂質", dayMacros.fatG, fatShare, "#ffd16d"],
             ["C", "炭水化物", dayMacros.carbsG, macroEnergy > 0 ? 100 - proteinShare - fatShare : 0, "#aa91ff"],
           ] as const).map(([initial, label, value, share, color]) => <div key={initial}>
-            <div className="flex items-baseline justify-between gap-2 text-sm"><span className="font-semibold">{initial} <span className="text-xs font-normal text-[#d5d2e9]">{label}</span></span><span className="metric font-semibold">{Math.round(value * 10) / 10} g</span></div>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full" style={{ width: `${share}%`, backgroundColor: color }} /></div>
+            <div className="flex items-baseline justify-between gap-2 text-sm text-[var(--sage-deep)]"><span className="font-semibold">{initial} <span className="text-xs font-normal text-[var(--muted)]">{label}</span></span><span className="metric font-semibold">{Math.round(value * 10) / 10} g</span></div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--sage-soft)]"><div className="h-full rounded-full" style={{ width: `${share}%`, backgroundColor: color }} /></div>
           </div>)}
         </div>
-        <div role="img" aria-label={`${dayCalories.countedMeals === 0 && dayCalories.mealCount > 0 ? "摂取カロリー未入力" : `摂取カロリー ${Math.round(dayCalories.calories)} kcal`}。円の色は記録済みPFCの割合`} className="metric grid size-28 shrink-0 place-items-center rounded-full p-2 sm:size-36" style={{ background: macroEnergy > 0 ? `conic-gradient(#e989db 0 ${proteinShare}%, #ffd16d ${proteinShare}% ${proteinShare + fatShare}%, #aa91ff ${proteinShare + fatShare}% 100%)` : "rgba(255,255,255,.16)" }}>
-          <div className="grid size-full place-content-center rounded-full bg-[#19182f] text-center"><strong className="text-[21px] leading-none sm:text-[26px]">{dayCalories.countedMeals === 0 && dayCalories.mealCount > 0 ? "—" : Math.round(dayCalories.calories).toLocaleString("ja-JP")}</strong><span className="mt-1 text-[11px] text-[#d5d2e9] sm:text-xs">摂取 kcal</span></div>
+        <div role="img" aria-label={`${dayCalories.countedMeals === 0 && dayCalories.mealCount > 0 ? "摂取カロリー未入力" : `摂取カロリー ${Math.round(dayCalories.calories)} kcal`}。円の色は記録済みPFCの割合`} className="metric grid size-28 shrink-0 place-items-center rounded-full p-2 sm:size-36" style={{ background: macroEnergy > 0 ? `conic-gradient(#e989db 0 ${proteinShare}%, #ffd16d ${proteinShare}% ${proteinShare + fatShare}%, #aa91ff ${proteinShare + fatShare}% 100%)` : "var(--sage-soft)" }}>
+          <div className="grid size-full place-content-center rounded-full bg-white text-center text-[var(--sage-deep)]"><strong className="text-[21px] leading-none sm:text-[26px]">{dayCalories.countedMeals === 0 && dayCalories.mealCount > 0 ? "—" : Math.round(dayCalories.calories).toLocaleString("ja-JP")}</strong><span className="mt-1 text-[11px] text-[var(--muted)] sm:text-xs">摂取 kcal</span></div>
         </div>
       </div>
-      {(dayCalories.missingMeals > 0 || dayMacros.incompleteMeals > 0) && <p className="mt-5 text-xs leading-5 text-[#d5d2e9]">栄養値が未入力の食事は、合計やPFC内訳に含まれません。</p>}
+      {(dayCalories.missingMeals > 0 || dayMacros.incompleteMeals > 0) && <p className="mt-5 text-xs leading-5 text-[var(--muted)]">栄養値が未入力の食事は、合計やPFC内訳に含まれません。</p>}
     </header>
     <section aria-label="選択日の食事" className="mt-6 space-y-3">
       {mealTypes.map(([type, label]) => {
