@@ -22,7 +22,10 @@ export function MuscleActivityMap({ workouts, today, loading, unavailable }: { w
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <p className="text-xs font-semibold tracking-widest text-[var(--sage-deep)]">TRAINING MAP</p>
-        <h2 id="muscle-activity-title" className="section-title mt-1">筋トレ部位マップ</h2>
+        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <h2 id="muscle-activity-title" className="section-title">筋トレ部位マップ</h2>
+          <Link href="/workouts#daily-burn-title" className="text-link">消費カロリーを記録する<Icon name="arrow-right" className="size-3.5" /></Link>
+        </div>
         <p className="mt-2 text-xs leading-5 text-[var(--muted)]">今日を含む直近14日間の記録日数</p>
       </div>
       <Link href="/workouts" className="text-link">筋トレを記録<Icon name="arrow-right" className="size-3.5" /></Link>
