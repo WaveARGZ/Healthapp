@@ -49,7 +49,7 @@ export function AuthPage({ mode }: AuthPageProps) {
     <div className="setup-heading"><p className="setup-step">身体づくりの記録帳</p><h1 className="setup-title">{isLogin ? "ログイン" : "新規登録"}</h1><p className="mt-3 text-sm leading-6 text-[var(--muted)]">{isLogin ? "いつものアカウントで、今日の記録を。" : "アカウントを作って、身体づくりをはじめましょう。"}</p></div>
     <div className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-5 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-6">
     {cloudConfig.googleSignInEnabled ? <>
-      <Button type="button" variant="secondary" className="relative min-h-13 w-full border-[var(--field-border)] bg-white px-12 text-[var(--ink)] hover:bg-[var(--sage-soft)]" onClick={() => void beginCloudSignIn(false, isLogin ? rememberLogin : true, "Google").catch((error) => setAuthError(error instanceof Error ? error.message : "Googleログインを開始できませんでした。"))}><GoogleMark />Googleで続ける</Button>
+      <Button type="button" variant="secondary" className="relative min-h-13 w-full border-[#c9d0cc] bg-white px-12 text-[var(--ink)] hover:bg-[#f8faf8]" onClick={() => void beginCloudSignIn(false, isLogin ? rememberLogin : true, "Google").catch((error) => setAuthError(error instanceof Error ? error.message : "Googleログインを開始できませんでした。"))}><GoogleMark />Googleで続ける</Button>
       <div className="my-5 flex items-center gap-3 text-xs font-medium text-[var(--muted)]"><span className="h-px flex-1 bg-[var(--line)]" />または<span className="h-px flex-1 bg-[var(--line)]" /></div>
     </> : null}
     <Button type="button" className="min-h-13 w-full" onClick={() => void beginCloudSignIn(!isLogin, isLogin ? rememberLogin : true).catch((error) => setAuthError(error instanceof Error ? error.message : "ログインを開始できませんでした。"))}>{isLogin ? "メールアドレスでログイン" : "メールアドレスで新規登録"}</Button>
@@ -84,14 +84,14 @@ export function AuthPage({ mode }: AuthPageProps) {
           <div>
             <FieldLabel htmlFor="email">メールアドレス</FieldLabel>
             <div className="relative">
-              <Icon name="mail" className="pointer-events-none absolute left-3.5 top-3.5 size-5 text-[var(--muted)]" />
+              <Icon name="mail" className="pointer-events-none absolute left-3.5 top-3.5 size-5 text-[#9aa19e]" />
               <TextInput id="email" name="email" type="email" placeholder="you@example.com" autoComplete="email" className="pl-11" required />
             </div>
           </div>
           <div>
             <FieldLabel htmlFor="password">パスワード</FieldLabel>
             <div className="relative">
-              <Icon name="lock" className="pointer-events-none absolute left-3.5 top-3.5 size-5 text-[var(--muted)]" />
+              <Icon name="lock" className="pointer-events-none absolute left-3.5 top-3.5 size-5 text-[#9aa19e]" />
               <TextInput id="password" name="password" type="password" placeholder="8文字以上" autoComplete={isLogin ? "current-password" : "new-password"} className="pl-11" required minLength={8} />
             </div>
           </div>

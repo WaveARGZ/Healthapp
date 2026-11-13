@@ -27,22 +27,22 @@ export function LandingPage() {
     if (isCloudConfigured ? hasCloudSession() : hasDemoSession()) router.replace("/dashboard");
   }, [router]);
 
-  return <main className="min-h-dvh bg-[var(--canvas)]">
+  return <main className="min-h-dvh bg-[var(--sand)]">
     <header className="safe-top border-b border-[var(--line)] bg-white">
       <div className="mx-auto flex min-h-20 max-w-6xl items-center justify-between gap-3 safe-gutters">
         <Logo /><Link href="/login" className="text-link shrink-0 text-[var(--ink)]">ログイン<Icon name="arrow-right" className="size-4" /></Link>
       </div>
     </header>
     <section className="safe-gutters mx-auto max-w-6xl pt-5 sm:pt-8">
-    <div className="grid gap-8 rounded-[28px] bg-[var(--navy)] px-5 py-10 text-white shadow-[0_20px_44px_rgba(25,24,47,.14)] sm:gap-10 sm:px-10 sm:py-14 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-14 lg:px-14">
+    <div className="grid gap-8 rounded-[28px] bg-[#19182f] px-5 py-10 text-white shadow-[0_20px_44px_rgba(25,24,47,.14)] sm:gap-10 sm:px-10 sm:py-14 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-14 lg:px-14">
       <div className="min-w-0">
-        <p className="mb-4 text-xs font-bold tracking-[.18em] text-[var(--navy-label)]">BODYMAKE · 毎日の記録</p>
+        <p className="mb-4 text-xs font-bold tracking-[.18em] text-[#c1bde4]">BODYMAKE · 毎日の記録</p>
         <h1 className="text-[clamp(2rem,6.5vw,3.5rem)] font-bold leading-[1.35] tracking-[-0.05em]">理想の身体を、<br />見える目標に。</h1>
-        <p className="mt-5 max-w-md text-sm leading-7 text-[var(--navy-copy)] sm:leading-8">食事・筋トレ・体重・身体写真。毎日の記録をまとめて、変化を振り返れます。</p>
-        <Link href="/signup" className="mt-7 inline-flex min-h-14 w-full max-w-64 items-center justify-center gap-3 rounded-xl bg-[var(--sage-deep)] px-6 text-base font-bold text-white hover:bg-[var(--sage-hover)]">はじめる<Icon name="arrow-right" className="size-5" /></Link>
-        <p className="mt-3 text-xs leading-6 text-[var(--navy-copy)]">筋トレ・食事・体重・写真をまとめて記録</p>
+        <p className="mt-5 max-w-md text-sm leading-7 text-[#d5d2e9] sm:leading-8">食事・筋トレ・体重・身体写真。毎日の記録をまとめて、変化を振り返れます。</p>
+        <Link href="/signup" className="mt-7 inline-flex min-h-14 w-full max-w-64 items-center justify-center gap-3 rounded-xl bg-[var(--sage-deep)] px-6 text-base font-bold text-white hover:bg-[#24432e]">はじめる<Icon name="arrow-right" className="size-5" /></Link>
+        <p className="mt-3 text-xs leading-6 text-[#d5d2e9]">筋トレ・食事・体重・写真をまとめて記録</p>
         <Link href="/food-photo" className="mt-5 flex min-h-12 max-w-64 items-center justify-center rounded-xl border border-white/50 px-4 text-center text-sm font-semibold text-white hover:bg-white/10">食事写真AIを無料で試す</Link>
-        <p className="mt-2 max-w-80 text-xs leading-6 text-[var(--navy-copy)]">{isSharedTestEnvironment ? "写真の解析はログイン不要。テスト環境では学習共有を行いません。" : "写真の解析はログイン不要。正解の共有は任意です。"}</p>
+        <p className="mt-2 max-w-80 text-xs leading-6 text-[#d5d2e9]">{isSharedTestEnvironment ? "写真の解析はログイン不要。テスト環境では学習共有を行いません。" : "写真の解析はログイン不要。正解の共有は任意です。"}</p>
       </div>
       <div className="relative min-w-0 rounded-2xl bg-white p-5 text-[var(--ink)] shadow-[0_16px_36px_rgba(0,0,0,.12)] sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[var(--line)] pb-4"><p className="text-lg font-bold">わたしの記録</p><span className="text-xs text-[var(--muted)]">記録のイメージ</span></div>

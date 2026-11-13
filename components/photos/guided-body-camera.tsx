@@ -98,10 +98,10 @@ export function GuidedBodyCamera({ view, onClose, onCapture }: {
   }
 
   const inset = (100 - guideHeight) / 2;
-  return <div role="dialog" aria-modal="true" aria-label={`${view === "front" ? "正面" : "背面"}のガイド付き撮影`} className="fixed inset-0 z-[100] overflow-y-auto bg-[var(--navy)] text-white">
+  return <div role="dialog" aria-modal="true" aria-label={`${view === "front" ? "正面" : "背面"}のガイド付き撮影`} className="fixed inset-0 z-[100] overflow-y-auto bg-[#19182f] text-white">
     <div className="mx-auto flex min-h-full w-full max-w-xl flex-col px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between gap-4 pb-3">
-        <div><p className="text-xs text-[var(--navy-label)]">身体写真 · ガイド付き撮影</p><h2 className="mt-1 text-lg font-bold">{view === "front" ? "正面" : "背面"}を撮影</h2></div>
+        <div><p className="text-xs text-white/65">身体写真 · ガイド付き撮影</p><h2 className="mt-1 text-lg font-bold">{view === "front" ? "正面" : "背面"}を撮影</h2></div>
         <button type="button" onClick={onClose} disabled={busy} className="min-h-11 rounded-xl border border-white/40 px-4 text-sm font-semibold hover:bg-white/10">閉じる</button>
       </div>
       <div className="relative mx-auto w-full max-w-[390px] overflow-hidden rounded-2xl border border-white/30 bg-black aspect-[3/4]">
@@ -116,16 +116,16 @@ export function GuidedBodyCamera({ view, onClose, onCapture }: {
         </div>
         {!ready && <div className="absolute inset-0 grid place-items-center bg-black/70 p-6 text-center text-sm leading-6" role="status">{status}</div>}
       </div>
-      <p className="mt-3 text-center text-xs leading-5 text-[var(--navy-copy)]">頭と足元を線の内側に入れ、身体の中心を縦線に合わせてください。ガイド線は写真に写りません。</p>
+      <p className="mt-3 text-center text-xs leading-5 text-white/80">頭と足元を線の内側に入れ、身体の中心を縦線に合わせてください。ガイド線は写真に写りません。</p>
       <label className="mt-4 text-xs font-semibold" htmlFor="body-photo-guide-height">体格に合わせて枠の高さを調整</label>
-      <input id="body-photo-guide-height" type="range" min="68" max="86" value={guideHeight} onChange={(event) => changeGuideHeight(Number(event.target.value))} className="mt-2 w-full accent-[var(--cyan)]" />
-      <div className="mt-4 rounded-xl border border-white/20 bg-white/5 p-3 text-xs leading-6 text-[var(--navy-copy)]">
+      <input id="body-photo-guide-height" type="range" min="68" max="86" value={guideHeight} onChange={(event) => changeGuideHeight(Number(event.target.value))} className="mt-2 w-full accent-[#a9c9aa]" />
+      <div className="mt-4 rounded-xl border border-white/20 bg-white/5 p-3 text-xs leading-6 text-white/85">
         <p>① スマホを縦向き・おへその高さで固定。背面カメラの1倍を使い、広角・ズームは避ける。</p>
         <p>② 無地の背景から離れ、カメラから約2〜3m。全身に少し余白を残す。</p>
         <p>③ 正面・背面で、カメラ位置・立ち位置・明るさを変えない。腕は身体から少し離す。</p>
       </div>
-      {ready && status && <p role="alert" className="mt-3 text-center text-xs text-[var(--coral-on-navy)]">{status}</p>}
-      <button type="button" onClick={() => void takePhoto()} disabled={!ready || busy} className="mt-4 min-h-13 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[var(--navy)] disabled:opacity-50">{busy ? "写真を準備中…" : "この位置で撮影"}</button>
+      {ready && status && <p role="alert" className="mt-3 text-center text-xs text-[#ffd3c3]">{status}</p>}
+      <button type="button" onClick={() => void takePhoto()} disabled={!ready || busy} className="mt-4 min-h-13 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#19182f] disabled:opacity-50">{busy ? "写真を準備中…" : "この位置で撮影"}</button>
     </div>
   </div>;
 }

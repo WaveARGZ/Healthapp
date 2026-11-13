@@ -46,7 +46,7 @@ export function LandmarkAdjuster({ source, view, initial, automatic, onCommit }:
   }
 
   return <div className="mt-3">
-    <p className="text-xs leading-5 text-[var(--muted)]">{automatic ? "輪郭点を自動推定しました。" : "背景から輪郭を判断できなかったため、中央配置を仮定しています。"} 水色の6点を肩・ウエスト・腰の左右に合わせてください。指を離すと再生成します。</p>
+    <p className="text-xs leading-5 text-[var(--muted)]">{automatic ? "輪郭点を自動推定しました。" : "背景から輪郭を判断できなかったため、中央配置を仮定しています。"} 青い6点を肩・ウエスト・腰の左右に合わせてください。指を離すと再生成します。</p>
     <div className="relative mt-2 overflow-hidden rounded-xl bg-[var(--sand)]">
       <img src={source} alt={`${bodyPhotoViewLabels[view]}の輪郭点調整`} className="block w-full" />
       <div className="absolute inset-0">
@@ -61,7 +61,7 @@ export function LandmarkAdjuster({ source, view, initial, automatic, onCommit }:
             onPointerCancel={(event) => finish(event, level, side)}
             style={{ left: `${points[level][side].x * 100}%`, top: `${points[level][side].y * 100}%`, touchAction: "none" }}
             className="absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full"
-          ><span className="grid size-7 place-items-center rounded-full border-2 border-white bg-[var(--cyan)] text-[9px] font-bold text-[var(--navy)] shadow-lg">{levelLabels[level][0]}</span></button>))}
+          ><span className="grid size-7 place-items-center rounded-full border-2 border-white bg-[#2997e7] text-[9px] font-bold text-white shadow-lg">{levelLabels[level][0]}</span></button>))}
       </div>
     </div>
   </div>;

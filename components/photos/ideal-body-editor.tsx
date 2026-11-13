@@ -85,7 +85,7 @@ export function IdealBodyEditor({ source, view, onReady }: { source: string; vie
               <figcaption className="mt-2 text-center text-xs text-[var(--muted)]">編集後</figcaption>
             </figure>
           </div>
-          <a href={current} download={`BodyMake-${view}-${selected}.jpg`} className="mt-4 flex min-h-12 items-center justify-center rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] px-3 py-3 text-center text-sm font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft-hover)]">この画像を保存</a>
+          <a href={current} download={`BodyMake-${view}-${selected}.jpg`} className="mt-4 flex min-h-12 items-center justify-center rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] px-3 py-3 text-center text-sm font-semibold text-[var(--sage-deep)] hover:bg-[#dce9da]">この画像を保存</a>
         </div>
       )}
 
