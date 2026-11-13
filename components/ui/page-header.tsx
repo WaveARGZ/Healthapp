@@ -9,10 +9,10 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, compact = false }: PageHeaderProps) {
   return (
-    <header className={`rounded-[24px] bg-[var(--navy)] px-5 text-white shadow-[0_18px_40px_rgba(25,24,47,.12)] sm:px-7 ${compact ? "mb-5 py-5" : "mb-6 py-6 sm:mb-8 sm:py-7"}`}>
-      <p className="text-[11px] font-semibold tracking-[.18em] text-[#b8b4db]">BODYMAKE</p>
-      <h1 className="mt-2 text-[26px] font-bold leading-snug tracking-[-0.025em] text-balance sm:text-[30px]">{title}</h1>
-      {description ? <p className="mt-2 text-sm leading-6 text-[#d5d2e9]">{description}</p> : null}
+    <header className={`rounded-[24px] border border-[var(--line)] border-l-[5px] border-l-[var(--sage-deep)] bg-white px-5 text-[var(--ink)] shadow-[0_12px_30px_rgba(34,71,44,.07)] sm:px-7 ${compact ? "mb-5 py-5" : "mb-6 py-6 sm:mb-8 sm:py-7"}`}>
+      <p className="text-[11px] font-semibold tracking-[.18em] text-[var(--sage-deep)]">BODYMAKE</p>
+      <h1 className="mt-2 text-[26px] font-bold leading-snug tracking-[-0.025em] text-balance text-[var(--sage-deep)] sm:text-[30px]">{title}</h1>
+      {description ? <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{description}</p> : null}
     </header>
   );
 }
