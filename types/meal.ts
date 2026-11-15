@@ -18,6 +18,8 @@ export interface MealFoodItem {
   sourceFdcId?: number;
   /** The Japanese Standard Tables of Food Composition food number. */
   sourceFoodCode?: string;
+  /** Open Food Facts barcode used for a packaged product lookup. */
+  sourceBarcode?: string;
   /** Weight used for the initial nutrient calculation; the user can edit it before adding. */
   portionGrams?: number;
   /** Entered serving, kept separate from the estimated edible weight. */
