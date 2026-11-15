@@ -16,7 +16,7 @@ for (const category of exerciseCatalog) {
   }
 }
 
-function groupsForExercise(name: string): MuscleGroup[] {
+export function groupsForExercise(name: string): MuscleGroup[] {
   const trimmed = name.trim();
   const catalogGroups = groupsByExercise.get(trimmed);
   if (catalogGroups) return catalogGroups;

@@ -25,6 +25,7 @@
     "test:mobile-viewport": "node scripts/test-mobile-viewport.mjs",
     "test:workout-split": "node --experimental-strip-types --test scripts/test-workout-split.mjs",
     "test:muscle-activity": "node --experimental-strip-types --test scripts/test-muscle-activity.mjs",
+    "test:weekly-workout-advice": "node --experimental-strip-types --test scripts/test-weekly-workout-advice.mjs",
     "test:exercise-shorts": "node --experimental-strip-types --test scripts/test-exercise-short-videos.mjs",
     "test:environment-build": "node scripts/test-environment-build.mjs",
     "test:team-runtime": "node --test scripts/test-team-runtime.mjs",
