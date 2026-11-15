@@ -22,7 +22,7 @@ interface PhotoMealAnalyzerProps {
 
 type AnalyzeStatus = "idle" | "analyzing" | "complete" | "error";
 type NutritionValues = { calories: number; proteinG: number; fatG: number; carbsG: number };
-const emptyNutrition: NutritionValues = { calories: 0, proteinG: 0, fatG: 0, carbsG: 0 };
+const emptyNutrition: Partial<NutritionValues> = {};
 const library = libraryJson as FoodLibraryDataset;
 
 function normalizeName(value: string): string {
@@ -43,7 +43,7 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
   const [candidates, setCandidates] = useState<FoodPhotoCandidate[]>([]);
   const [selectedFoodId, setSelectedFoodId] = useState("");
   const [confirmedFoodName, setConfirmedFoodName] = useState("");
-  const [nutrition, setNutrition] = useState<NutritionValues>(emptyNutrition);
+  const [nutrition, setNutrition] = useState<Partial<NutritionValues>>(emptyNutrition);
   const [amountUnit, setAmountUnit] = useState<FoodPortionUnit>("g");
   const [amountQuantity, setAmountQuantity] = useState(100);
   const [gramsPerPiece, setGramsPerPiece] = useState(100);
@@ -147,12 +147,27 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
     setNutritionDrafts({});
   }
 
+  function clearNutrition() {
+    setSelectedFoodId("");
+    setNutrition({});
+    setNutritionDrafts({});
+    setStatusText("カロリーとPFCを空欄にしました。分かる数値だけ入力して保存できます。");
+  }
+
   async function addConfirmedFood(shareTrainingData: boolean) {
     if (shareTrainingData && isSharedTestEnvironment) return;
     const name = confirmedFoodName.trim();
     if (!file || !name || isSaving || !validPortion(amountQuantity, amountUnit, gramsPerPiece)) return;
     if (shareTrainingData && (!shareConsent || !connection.ready)) return;
-    if (Object.values(nutrition).some((value) => !Number.isFinite(value) || value < 0 || value > 10000)) {
+    const completeNutrition = nutrition.calories !== undefined && nutrition.proteinG !== undefined
+      && nutrition.fatG !== undefined && nutrition.carbsG !== undefined
+      ? { calories: nutrition.calories, proteinG: nutrition.proteinG, fatG: nutrition.fatG, carbsG: nutrition.carbsG }
+      : null;
+    if (shareTrainingData && !completeNutrition) {
+      setStatusText("学習データを共有する場合はカロリーとPFCの4項目を入力してください。食事だけなら空欄のまま保存できます。");
+      return;
+    }
+    if (Object.values(nutrition).some((value) => value !== undefined && (!Number.isFinite(value) || value < 0 || value > 10000))) {
       setStatusText("栄養値は0以上10,000以下の数値で入力してください。");
       return;
     }
@@ -172,9 +187,9 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
       if (shareTrainingData) accessToken = await requestGoogleAccountToken(driveClientId);
 
       let saveStatus = "学習用の写真・正解データは端末へ保存しません。";
-      if (shareTrainingData && accessToken) {
+      if (shareTrainingData && accessToken && completeNutrition) {
         try {
-          const receipt = await submitFoodCorrectionToSharedDrive({ endpoint: trainingEndpoint, accessToken, id, image: file, predictedFoodIds: candidates.map((candidate) => candidate.id), confirmedFoodId, confirmedFoodName: name, nutrition, createdAt, consent: true, onProgress: setStatusText });
+          const receipt = await submitFoodCorrectionToSharedDrive({ endpoint: trainingEndpoint, accessToken, id, image: file, predictedFoodIds: candidates.map((candidate) => candidate.id), confirmedFoodId, confirmedFoodName: name, nutrition: completeNutrition, createdAt, consent: true, onProgress: setStatusText });
           driveSaved = true;
           saveStatus = `foodDBへの写真と正解の保存完了を確認しました。削除依頼用受付番号：${receipt.id}（学習・精度向上の確認はこれからです）`;
         } catch (error) {
@@ -226,10 +241,10 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
       {candidates.length ? <div className="mt-2 space-y-2">{candidates.map((candidate) => { const estimate = applyPhotoNutritionUplift(candidate.food); return <button key={candidate.id} type="button" onClick={() => selectCandidate(candidate)} aria-pressed={selectedFoodId === candidate.id} className={`flex min-h-14 w-full items-start gap-3 rounded-xl border p-3 text-left transition ${selectedFoodId === candidate.id ? "border-[var(--sage-deep)] bg-[var(--sage-soft)]" : "border-[var(--line)] bg-white"}`}><span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border ${selectedFoodId === candidate.id ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[#cdd3cf]"}`}>{selectedFoodId === candidate.id ? <Icon name="check" className="size-3.5" /> : null}</span><span className="min-w-0 flex-1"><span className="block break-words text-sm font-bold leading-6 text-[var(--ink)]">{candidate.food.name}</span><span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span className="font-semibold text-[var(--ink)]">{estimate.calories} kcal</span><span>推定 {(candidate.modelScore * 100).toFixed(0)}%</span></span><span className="metric mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span>P {estimate.proteinG}g</span><span>F {estimate.fatG}g</span><span>C {estimate.carbsG}g</span></span></span></button>; })}</div> : <p className="mt-2 text-xs text-[var(--muted)]">候補なし。料理名を入力して登録できます。</p>}
       <label className="mt-4 block text-xs font-bold text-[var(--ink)]">正しい料理名<input value={confirmedFoodName} onChange={(event) => setConfirmedFoodName(event.target.value)} placeholder="例：鶏むね肉の照り焼き" className="mt-2 h-12 w-full rounded border border-[var(--line)] bg-white px-3 text-base font-medium outline-none focus:border-[var(--sage-deep)]" /></label>
       <div className="mt-4"><p className="text-xs font-bold text-[var(--ink)]">食べた量</p><div className="mt-2 flex gap-2" role="group" aria-label="写真から登録する量の単位">{(["g", "個"] as const).map((value) => <button key={value} type="button" aria-pressed={amountUnit === value} onClick={() => changePortion(value, value === "g" ? portionGrams(amountQuantity, amountUnit, gramsPerPiece) : 1, gramsPerPiece)} className={`min-h-11 min-w-16 rounded border px-3 text-sm font-bold ${amountUnit === value ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] bg-white text-[var(--muted)]"}`}>{value}</button>)}</div><div className="mt-2 flex items-center gap-2"><input aria-label="写真から登録する食べた量" type="number" min="1" max={amountUnit === "g" ? "3000" : "100"} step="1" inputMode="numeric" value={amountQuantity || ""} onChange={(event) => changePortion(amountUnit, event.target.value === "" ? 0 : Number(event.target.value), gramsPerPiece)} className="form-input max-w-40" /><span className="text-sm text-[var(--muted)]">{amountUnit}</span></div>{amountUnit === "個" && <label className="mt-3 block text-xs font-medium text-[var(--ink)]">1個あたりの可食部（目安・変更可）<span className="mt-2 flex items-center gap-2"><input aria-label="写真の食品1個あたりの重さ" type="number" min="1" max="3000" step="1" inputMode="numeric" value={gramsPerPiece || ""} onChange={(event) => changePortion(amountUnit, amountQuantity, event.target.value === "" ? 0 : Number(event.target.value))} className="form-input max-w-40" /><span>g</span></span></label>}<p className="mt-2 text-xs text-[var(--muted)]">{amountUnit === "個" ? `${amountQuantity}個 ≒ ${portionGrams(amountQuantity, amountUnit, gramsPerPiece)}g。個体差があるため目安です。` : "量を変更すると初期推定値を再計算します。最後に栄養値を確認してください。"}</p>{!validPortion(amountQuantity, amountUnit, gramsPerPiece) && <p className="mt-2 text-xs text-[var(--coral)]">量と1個あたりの重さを確認してください（合計3,000gまで）。</p>}</div>
-      <fieldset className="mt-4"><legend className="text-xs font-bold leading-6 text-[var(--ink)]">食事に記録する栄養値（修正できます）</legend><div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="min-w-0 text-xs font-medium text-[var(--muted)]">{label}（{unit}）<input type="number" min="0" step="1" inputMode="decimal" placeholder="0" value={nutritionDrafts[key] ?? (nutrition[key] === 0 ? "" : nutrition[key])} onChange={(event) => { const draft = event.target.value; setNutritionDrafts((current) => ({ ...current, [key]: draft })); setNutrition((current) => ({ ...current, [key]: draft === "" ? 0 : Number(draft) })); }} className="mt-2 h-12 w-full min-w-0 rounded border border-[var(--line)] bg-white px-3 text-base font-medium text-[var(--ink)] outline-none focus:border-[var(--sage-deep)]" /></label>)}</div></fieldset>
+      <fieldset className="mt-4"><legend className="text-xs font-bold leading-6 text-[var(--ink)]">食事に記録する栄養値（修正できます）</legend><div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="min-w-0 text-xs font-medium text-[var(--muted)]">{label}（{unit}）<input type="number" min="0" step="1" inputMode="decimal" placeholder="未入力" value={nutritionDrafts[key] ?? nutrition[key] ?? ""} onChange={(event) => { const draft = event.target.value; setNutritionDrafts((current) => ({ ...current, [key]: draft })); setNutrition((current) => ({ ...current, [key]: draft === "" ? undefined : Number(draft) })); setStatusText(""); }} className="mt-2 h-12 w-full min-w-0 rounded border border-[var(--line)] bg-white px-3 text-base font-medium text-[var(--ink)] outline-none focus:border-[var(--sage-deep)]" /></label>)}</div><button type="button" onClick={clearNutrition} disabled={isSaving} className="mt-3 min-h-11 rounded-xl border border-[var(--line)] bg-white px-4 text-xs font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)] disabled:opacity-50">カロリー・PFCを一括クリア</button><p className="mt-1 text-xs leading-5 text-[var(--muted)]">空欄は未入力として保存し、合計には含めません。</p></fieldset>
       {isSharedTestEnvironment ? <p className="mt-5 rounded-md bg-[var(--sand)] p-3 text-xs leading-6">テスト環境では学習データの共有を行いません。食事の内容はテスト用アカウントに保存できます。</p> : <div className="mt-5 rounded-md border border-[var(--line)] bg-[var(--sand)] p-3 sm:p-4">
         <label className="flex min-h-11 cursor-pointer items-start gap-3 text-xs leading-6 text-[var(--ink-soft)]"><input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-[var(--sage-deep)]" checked={shareConsent} disabled={isSaving} onChange={(event) => setShareConsent(event.target.checked)} /><span>学習データへの提供に同意します。写真（位置情報等のEXIFを除去したもの）、AI候補、修正した料理名・栄養値がBodyMake共通Driveに保存され、今後の認識モデル改善用データとして利用されます。氏名・メールアドレスは学習データに保存しません。</span></label>
-        <Button type="button" className="mt-3 w-full px-3 py-3 leading-6" onClick={() => void addConfirmedFood(true)} disabled={!confirmedFoodName.trim() || isSaving || !validPortion(amountQuantity, amountUnit, gramsPerPiece) || !shareConsent || !connection.ready}>{isSaving ? "処理中…" : connection.checking ? "共有先を確認中…" : "食事に保存してGoogleで正解データを共有"}</Button>
+        <Button type="button" className="mt-3 w-full px-3 py-3 leading-6" onClick={() => void addConfirmedFood(true)} disabled={!confirmedFoodName.trim() || isSaving || !validPortion(amountQuantity, amountUnit, gramsPerPiece) || !shareConsent || !connection.ready || nutritionFields.some(([key]) => nutrition[key] === undefined)}>{isSaving ? "処理中…" : connection.checking ? "共有先を確認中…" : "食事に保存してGoogleで正解データを共有"}</Button>
         {connection.error && <div className="mt-3 text-xs leading-6 text-[var(--coral)]"><p>{connection.error}</p><Button type="button" variant="secondary" className="mt-2 w-full" disabled={isSaving} onClick={connection.retry}>再接続</Button></div>}
       </div>}
       <Button type="button" variant="secondary" className="mt-2 w-full" onClick={() => void addConfirmedFood(false)} disabled={!confirmedFoodName.trim() || isSaving || !validPortion(amountQuantity, amountUnit, gramsPerPiece)}>{isSaving ? "処理中…" : isSharedTestEnvironment ? "テスト用の食事に追加して保存" : "共有せず食事に追加して保存"}</Button>
