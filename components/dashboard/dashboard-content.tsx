@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/icon";
 import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
 import { MuscleActivityMap } from "@/components/dashboard/muscle-activity-map";
 import { DailyCalorieRings } from "@/components/dashboard/daily-calorie-rings";
+import { MobileDashboard } from "@/components/dashboard/mobile-dashboard";
 import { bodyMakeClient } from "@/lib/api/client";
 import { loadWorkoutPreferences } from "@/lib/api/workout-preferences-client";
 import { formatToday, toDateInputValue } from "@/lib/utils/date";
@@ -140,6 +141,8 @@ export function DashboardContent() {
       ? `${dailyCalories.mealCount}件のうち、カロリー入力済み分の合計です。未入力の料理・食事は含みません。`
       : null;
   return <>
+    <div className="sm:hidden"><MobileDashboard today={today} doneCount={doneCount} weight={summary.currentWeight ?? null} goal={data.profile ? fitnessGoalLabels[data.profile.goal] : "目標未設定"} macros={dailyMacros} intake={recordedCalories} consumed={consumedForDifference} burned={burnedCalories} calorieGoal={calorieGoal} workouts={data.workouts} feedback={dailyFeedback} loading={loading} mealUnavailable={mealLoadFailed} burnUnavailable={burnLoadFailed} workoutUnavailable={workoutLoadFailed} error={error} /></div>
+    <div className="hidden sm:block">
     <header className="rounded-[24px] border border-[var(--line)] border-l-[5px] border-l-[var(--sage-deep)] bg-white px-5 py-6 text-[var(--ink)] shadow-[0_12px_30px_rgba(34,71,44,.07)] sm:px-7 sm:py-7">
       <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold tracking-[.12em] text-[var(--sage-deep)]">{formatToday()}</p><h1 className="mt-2 text-[27px] font-bold tracking-tight text-[var(--sage-deep)]">今日の記録</h1><p className="mt-2 text-xs text-[var(--muted)]">毎日の積み重ねを、ここで確認</p></div>
         <Link href="/onboarding" className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] px-3 text-xs font-semibold text-[var(--sage-deep)] hover:bg-[var(--peach)]"><Icon name="user" className="size-4 shrink-0" /><span className="max-w-32 truncate">{data.profile?.name ? `${data.profile.name}さん` : "プロフィール設定"}</span></Link></div>
@@ -195,5 +198,6 @@ export function DashboardContent() {
       </div>
       <p className="mt-3 text-xs leading-5 text-[var(--muted)]">記録のない食事や運動は含みません。栄養・運動の良し悪しや健康状態の診断ではありません。</p>
     </section>
+    </div>
   </>;
 }

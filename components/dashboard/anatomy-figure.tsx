@@ -20,22 +20,26 @@ const regionMasks: Record<MuscleGroup, { src: string; key: string }> = {
   "脚": { src: legsMask.src, key: "legs" },
 };
 
-export function AnatomyFigure({ view, activity }: { view: "front" | "back"; activity: MuscleActivity }) {
+export function AnatomyFigure({ view, activity, compact = false }: { view: "front" | "back"; activity: MuscleActivity; compact?: boolean }) {
   const viewBox = view === "front" ? "0 0 600 1312" : "600 0 599 1312";
+  const maskPrefix = `muscle-${view}-${compact ? "compact" : "full"}`;
 
-  return <div className="rounded-xl border border-[#b7c8bb] bg-white px-2 pb-4 pt-4 text-center">
-    <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
-    <svg viewBox={viewBox} aria-hidden="true" className="mx-auto mt-2 block w-full max-w-[240px]">
+  const figure = <svg viewBox={viewBox} aria-hidden="true" className={compact ? "anatomy-compact block h-[112px] w-auto max-w-full" : "mx-auto mt-2 block w-full max-w-[240px]"}>
       <defs>
-        {Object.values(regionMasks).map(({ src, key }) => <mask key={key} id={`muscle-${view}-${key}-mask`} maskUnits="userSpaceOnUse" x="0" y="0" width={imageWidth} height={imageHeight} style={{ maskType: "alpha" }}>
+        {Object.values(regionMasks).map(({ src, key }) => <mask key={key} id={`${maskPrefix}-${key}-mask`} maskUnits="userSpaceOnUse" x="0" y="0" width={imageWidth} height={imageHeight} style={{ maskType: "alpha" }}>
           <image href={src} width={imageWidth} height={imageHeight} />
         </mask>)}
       </defs>
       {Object.entries(regionMasks).map(([group, { key }]) => {
         const tint = activityTint(activity[group as MuscleGroup]);
-        return tint.opacity > 0 ? <rect key={group} width={imageWidth} height={imageHeight} fill={tint.color} mask={`url(#muscle-${view}-${key}-mask)`} /> : null;
+        return tint.opacity > 0 ? <rect key={group} width={imageWidth} height={imageHeight} fill={tint.color} mask={`url(#${maskPrefix}-${key}-mask)`} /> : null;
       })}
       <image href={anatomyOutline.src} width={imageWidth} height={imageHeight} />
-    </svg>
+    </svg>;
+
+  if (compact) return figure;
+  return <div className="rounded-xl border border-[#b7c8bb] bg-white px-2 pb-4 pt-4 text-center">
+    <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
+    {figure}
   </div>;
 }

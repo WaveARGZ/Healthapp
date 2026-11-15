@@ -71,6 +71,12 @@ html { scroll-padding-bottom: 180px; }
   .app-content {
     padding: 24px max(var(--page-gutter), env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) max(var(--page-gutter), env(safe-area-inset-left));
   }
+  @media (max-width: 639px) {
+    .app-content:has(.mobile-dashboard) {
+      padding-top: 12px;
+      padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+  }
   .app-content[data-recording="true"] { padding-bottom: calc(220px + env(safe-area-inset-bottom)); }
   .mobile-nav { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
   .record-actions {
@@ -126,6 +132,20 @@ html { scroll-padding-bottom: 180px; }
     .record-actions { position: static; margin-top: 24px; border: 0; padding: 0; }
     .exercise-dialog-panel { max-height: min(740px, 88dvh); }
   }
+}
+
+@media (max-width: 639px) {
+  body:has(.mobile-dashboard) > .min-h-dvh {
+    min-height: 0;
+    flex: 1;
+  }
+}
+
+@media (max-width: 639px) and (max-height: 760px) {
+  .app-content:has(.mobile-dashboard) { padding-top: 8px; }
+  .mobile-dashboard > * + * { margin-top: 6px; }
+  .mobile-dashboard > header, .mobile-dashboard > section, .mobile-dashboard > a { padding-top: 8px; padding-bottom: 8px; }
+  .mobile-dashboard .anatomy-compact { height: 90px; }
 }
 
 @keyframes workout-guide-enter {
