@@ -14,6 +14,7 @@ if (process.argv.includes("--shared")) {
   assert.ok(bundle.includes("bodymake-test-14a3f.firebaseapp.com"), "shared test uses its own Firebase login host");
   assert.ok(bundle.includes("1:282829370973:web:cc1dd833014fe13f043fb4"), "shared test uses its own Firebase app");
   assert.ok(!bundle.includes("healthapp-14a3f.firebaseapp.com"), "production Firebase auth config is absent");
+  assert.ok(!bundle.includes("bodymake-recommendation-api.ajimo023.workers.dev"), "production recommendation API destination is absent");
   assert.ok(!bundle.includes("https://script.google.com/macros/s/"), "production training endpoint is absent");
   assert.ok(!bundle.includes("production-should-not-be-used.invalid"), "production settings are absent");
   const manifest = JSON.parse(await readFile(".next-test/food-photo.webmanifest", "utf8"));

@@ -48,6 +48,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Cloudflare local runtime/build state and server-only secrets
+.wrangler/
+.dev.vars*
+
 # Private food photos, labels, model caches, and evaluation reports
 /training-data/
 /ml/artifacts/

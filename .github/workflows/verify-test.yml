@@ -63,6 +63,9 @@ jobs:
       - name: Verify workout plans
         run: npm run test:workout-split
 
+      - name: Verify recommendations with synthetic data and mocked API only
+        run: npm run test:recommendations
+
       - name: Verify muscle activity window and region mapping
         run: npm run test:muscle-activity
 
