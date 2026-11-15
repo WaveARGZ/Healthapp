@@ -8,10 +8,13 @@ import { RecordActions } from "@/components/ui/record-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExercisePicker } from "@/components/workouts/exercise-picker";
 import { DailyBurnRecorder } from "@/components/workouts/daily-burn-recorder";
+import { AnatomyFigure } from "@/components/dashboard/anatomy-figure";
+import { activityTint, inactiveOutlineColor } from "@/components/dashboard/activity-color";
 import { WorkoutPlanSetup } from "@/components/workouts/workout-plan-setup";
 import { bodyMakeClient } from "@/lib/api/client";
 import { formatDate, toDateInputValue, toTimeInputValue } from "@/lib/utils/date";
 import { createId } from "@/lib/utils/id";
+import { summarizeMuscleActivity } from "@/lib/workouts/muscle-activity";
 import type { WorkoutEntry, WorkoutExercise, WorkoutSet } from "@/types/workout";
 
 function newSet(): WorkoutSet {
@@ -37,6 +40,20 @@ function volumeFor(exercise: WorkoutExercise): number {
 }
 
 const calendarWeekdays = ["月", "火", "水", "木", "金", "土", "日"];
+
+function WorkoutCalendarMuscleMap({ history }: { history: WorkoutEntry[] }) {
+  const activity = summarizeMuscleActivity(history, toDateInputValue());
+  return <section aria-labelledby="workout-calendar-map-title" className="mt-5 rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5">
+    <h3 id="workout-calendar-map-title" className="text-sm font-bold">筋トレ部位マップ</h3>
+    <p className="mt-1 text-xs text-[var(--muted)]">今日を含む直近14日間の記録で色が変わります</p>
+    <div className="mt-4 grid grid-cols-2 gap-3"><AnatomyFigure view="front" activity={activity} /><AnatomyFigure view="back" activity={activity} /></div>
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-[var(--muted)]" aria-label="0日は緑の輪郭、1日は薄い赤、2日以上は濃い赤">
+      <span className="size-3 rounded-full border-2 bg-white" style={{ borderColor: inactiveOutlineColor }} />0日
+      <span className="size-3 rounded-full" style={{ backgroundColor: activityTint(1).color }} />1日
+      <span className="size-3 rounded-full" style={{ backgroundColor: activityTint(2).color }} />2日以上
+    </div>
+  </section>;
+}
 
 function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, onDateSelect, onDelete, children }: {
   history: WorkoutEntry[];
@@ -105,8 +122,9 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
           })}</div>
         </div>
       </div>
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">色の付いた日には記録があります。日付を押すと種目の登録画面が開きます。</p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">色の付いた日には筋トレ記録があります。日付を押すと種目と消費カロリーを登録できます。</p>
     </div>
+    <WorkoutCalendarMuscleMap history={history} />
     </div>
     {selectedDate && <div id="workout-selected-date">
       <button id="workout-calendar-back" type="button" onClick={() => {
@@ -114,7 +132,7 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
         requestAnimationFrame(() => document.getElementById(`workout-day-${selectedDate}`)?.focus());
       }} className="mb-5 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← カレンダーへ戻る</button>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-[var(--sage-soft)] p-4">
-        <div><p className="text-xs font-bold text-[var(--sage-deep)]">選択した日</p><h2 id="workout-selected-date-title" className="mt-1 text-base font-bold text-[var(--ink)]">{formatDate(selectedDate, { year: "numeric" })}の種目登録</h2></div>
+        <div><p className="text-xs font-bold text-[var(--sage-deep)]">選択した日</p><h2 id="workout-selected-date-title" className="mt-1 text-base font-bold text-[var(--ink)]">{formatDate(selectedDate, { year: "numeric" })}の記録</h2></div>
         {selectedEntries.length > 0 && <a href="#workout-selected-records" className="inline-flex min-h-11 items-center text-xs font-semibold text-[var(--sage-deep)] underline underline-offset-2">この日の記録 {selectedEntries.length}件を見る</a>}
       </div>
       {children}
@@ -157,6 +175,25 @@ export function WorkoutRecorder() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  useEffect(() => {
+    function openBurnFromHash() {
+      if (window.location.hash !== "#daily-burn-title") return;
+      const day = toDateInputValue();
+      setActiveTab("record");
+      setCalendarMonth(day.slice(0, 7));
+      setSelectedDate(day);
+      setPerformedAt(day);
+    }
+    openBurnFromHash();
+    window.addEventListener("hashchange", openBurnFromHash);
+    return () => window.removeEventListener("hashchange", openBurnFromHash);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "record" || !selectedDate || window.location.hash !== "#daily-burn-title") return;
+    requestAnimationFrame(() => document.getElementById("daily-burn-title")?.scrollIntoView({ block: "start" }));
+  }, [activeTab, selectedDate]);
+
   async function loadHistory() { setHistory(await bodyMakeClient.getWorkouts()); }
   function updateExercise(id: string, patch: Partial<WorkoutExercise>) { setExercises((current) => current.map((exercise) => exercise.id === id ? { ...exercise, ...patch } : exercise)); }
   function updateSet(exerciseId: string, setId: string, patch: Partial<WorkoutSet>) {
@@ -189,7 +226,6 @@ export function WorkoutRecorder() {
 
   return <>
     <PageHeader title="筋トレ" description="カレンダーで日付を選んで、種目を記録。" />
-    <DailyBurnRecorder />
     <div role="tablist" aria-label="筋トレの表示切り替え" className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-[var(--line)] bg-white p-1 shadow-[0_6px_18px_rgba(32,38,34,.04)]">
       {([{ id: "record", label: "筋トレ記録" }, { id: "plan", label: "週間メニュー" }] as const).map((tab) => <button
         key={tab.id}
@@ -216,6 +252,7 @@ export function WorkoutRecorder() {
     </div>
     <div id="workout-record-panel" role="tabpanel" aria-labelledby="workout-record-tab" hidden={activeTab !== "record"}>
     <WorkoutHistoryCalendar history={history} month={calendarMonth} selectedDate={selectedDate} onMonthChange={(month) => { setCalendarMonth(month); setSelectedDate(null); }} onDateSelect={(date) => { setSelectedDate(date); if (date) setPerformedAt(date); setNotice(""); }} onDelete={(id) => { void deleteEntry(id); }}>
+    {selectedDate && <DailyBurnRecorder day={selectedDate} />}
     <form onSubmit={handleSubmit}>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div className="w-full min-w-0 sm:max-w-[180px]"><FieldLabel htmlFor="workout-time">時刻</FieldLabel><TextInput id="workout-time" type="time" step="60" value={performedTime} onChange={(event) => setPerformedTime(event.target.value)} required /></div>

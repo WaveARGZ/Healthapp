@@ -96,7 +96,7 @@ export function DailyCalorieRings({ macros, burned, consumed, calorieGoal, loadi
     {statuses.length > 0 && <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{statuses.join(" ")}</p>}
     <div className="flex flex-wrap gap-x-5">
       {macrosReady && macros.mealCount === 0 && <Link href="/meals" className="text-link">食事を記録する</Link>}
-      {!loading && !burnLoadFailed && burned === null && <Link href="/workouts" className="text-link">消費カロリーを記録する</Link>}
+      {!loading && !burnLoadFailed && burned === null && <Link href="/workouts#daily-burn-title" className="text-link">消費カロリーを記録する</Link>}
     </div>
   </div>;
 }
