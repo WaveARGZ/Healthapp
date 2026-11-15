@@ -47,7 +47,7 @@ export function AuthPage({ mode }: AuthPageProps) {
   if (isCloudConfigured) return <main className="setup-page"><div className="setup-content">
     <Logo />
     <div className="setup-heading"><p className="setup-step">身体づくりの記録帳</p><h1 className="setup-title">{isLogin ? "ログイン" : "新規登録"}</h1><p className="mt-3 text-sm leading-6 text-[var(--muted)]">{isLogin ? "いつものアカウントで、今日の記録を。" : "アカウントを作って、身体づくりをはじめましょう。"}</p></div>
-    <div className="mt-8">
+    <div className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-5 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-6">
     {cloudConfig.googleSignInEnabled ? <>
       <Button type="button" variant="secondary" className="relative min-h-13 w-full border-[#c9d0cc] bg-white px-12 text-[var(--ink)] hover:bg-[#f8faf8]" onClick={() => void beginCloudSignIn(false, isLogin ? rememberLogin : true, "Google").catch((error) => setAuthError(error instanceof Error ? error.message : "Googleログインを開始できませんでした。"))}><GoogleMark />Googleで続ける</Button>
       <div className="my-5 flex items-center gap-3 text-xs font-medium text-[var(--muted)]"><span className="h-px flex-1 bg-[var(--line)]" />または<span className="h-px flex-1 bg-[var(--line)]" /></div>
@@ -57,7 +57,7 @@ export function AuthPage({ mode }: AuthPageProps) {
     </div>
     {authError ? <p role="alert" className="mt-4 break-words rounded-md bg-[var(--coral-soft)] p-3 text-sm leading-6 text-[var(--coral)]">{authError}</p> : null}
     <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{isLogin ? "記録はあなたのアカウントに保存されます。" : "登録後に名前と目標を設定します。記録はあなたのアカウントに保存されます。"}</p>
-    <div className="mt-7 border-t border-[var(--line)] pt-5 text-center text-sm text-[var(--muted)]"><p>{isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"}</p><Link href={isLogin ? "/signup" : "/login"} className="inline-flex min-h-11 items-center px-3 font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">{isLogin ? "新規登録" : "ログイン"}</Link></div>
+    <div className="mt-5 text-center text-sm text-[var(--muted)]"><p>{isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"}</p><Link href={isLogin ? "/signup" : "/login"} className="inline-flex min-h-11 items-center px-3 font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">{isLogin ? "新規登録" : "ログイン"}</Link></div>
   </div></main>;
 
   return (
@@ -74,7 +74,7 @@ export function AuthPage({ mode }: AuthPageProps) {
           </p>
         </div>
 
-        <form className="mt-9 space-y-5" onSubmit={handleSubmit}>
+        <form className="mt-6 space-y-5 rounded-2xl border border-[var(--line)] bg-white p-5 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-6" onSubmit={handleSubmit}>
           {!isLogin ? (
             <div>
               <FieldLabel htmlFor="name">名前</FieldLabel>
@@ -107,7 +107,7 @@ export function AuthPage({ mode }: AuthPageProps) {
           </Button>
         </form>
 
-        <p className="mt-4 border-l-2 border-[var(--line)] pl-3 text-xs leading-6 text-[var(--muted)]">現在は認証未接続のデモ版です。パスワードは送信・保存されません。チェックを付けると、この端末にログイン状態を記憶します。</p>
+        <p className="mt-4 rounded-xl bg-white p-4 text-xs leading-6 text-[var(--muted)]">現在は認証未接続のデモ版です。パスワードは送信・保存されません。チェックを付けると、この端末にログイン状態を記憶します。</p>
         <p className="mt-7 text-center text-sm leading-7 text-[var(--muted)]">
           {isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"}{" "}
           <Link href={isLogin ? "/signup" : "/login"} className="inline-flex min-h-11 items-center px-2 font-bold text-[var(--sage-deep)] underline-offset-4 hover:underline">

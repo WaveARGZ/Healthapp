@@ -1,9 +1,10 @@
 import type { BodyMakeClient } from "@/lib/api/bodymake-client";
 import { readStorage, writeStorage } from "@/lib/storage/local-storage";
+import { splitWorkoutRecords } from "@/lib/utils/daily-burn";
 import type { MealEntry } from "@/types/meal";
 import type { BodyPhotoEntry, WeightEntry } from "@/types/progress";
 import type { UserProfile } from "@/types/user";
-import type { WorkoutEntry } from "@/types/workout";
+import type { DailyBurnEntry, WorkoutEntry } from "@/types/workout";
 
 const keys = {
   profile: "bodymake.profile.v1",
@@ -37,7 +38,21 @@ export class LocalBodyMakeClient implements BodyMakeClient {
   }
 
   async getWorkouts() {
-    return sortByNewest(readStorage<WorkoutEntry[]>(keys.workouts, []));
+    return splitWorkoutRecords(sortByNewest(readStorage<WorkoutEntry[]>(keys.workouts, []))).workouts;
+  }
+
+  async getDailyBurnEntries() {
+    return splitWorkoutRecords(sortByNewest(readStorage<WorkoutEntry[]>(keys.workouts, []))).burns;
+  }
+
+  async saveDailyBurnEntry(entry: DailyBurnEntry) {
+    const entries = upsert(readStorage<WorkoutEntry[]>(keys.workouts, []), entry);
+    writeStorage(keys.workouts, entries);
+    return entry;
+  }
+
+  async deleteDailyBurnEntry(id: string) {
+    writeStorage(keys.workouts, readStorage<WorkoutEntry[]>(keys.workouts, []).filter((entry) => entry.id !== id));
   }
 
   async saveWorkout(entry: WorkoutEntry) {

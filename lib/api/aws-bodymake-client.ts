@@ -1,8 +1,9 @@
 import type { BodyMakeClient } from "@/lib/api/bodymake-client";
+import { splitWorkoutRecords } from "@/lib/utils/daily-burn";
 import type { MealEntry } from "@/types/meal";
 import type { BodyPhotoEntry, WeightEntry } from "@/types/progress";
 import type { UserProfile } from "@/types/user";
-import type { WorkoutEntry } from "@/types/workout";
+import type { DailyBurnEntry, WorkoutEntry } from "@/types/workout";
 import { cloudConfig } from "@/lib/cloud/config";
 import { getCloudAccessToken } from "@/lib/auth/cognito-session";
 
@@ -45,9 +46,12 @@ async function uploadPhoto(entry: BodyPhotoEntry): Promise<BodyPhotoEntry> {
 export class AwsBodyMakeClient implements BodyMakeClient {
   getProfile() { return get<UserProfile | null>("profile"); }
   saveProfile(profile: UserProfile) { return put<UserProfile>("profile", "main", profile); }
-  getWorkouts() { return get<WorkoutEntry[]>("workouts"); }
+  async getWorkouts() { return splitWorkoutRecords(await get<WorkoutEntry[]>("workouts")).workouts; }
   saveWorkout(entry: WorkoutEntry) { return put<WorkoutEntry>("workouts", entry.id, entry); }
   deleteWorkout(id: string) { return remove("workouts", id); }
+  async getDailyBurnEntries() { return splitWorkoutRecords(await get<WorkoutEntry[]>("workouts")).burns; }
+  saveDailyBurnEntry(entry: DailyBurnEntry) { return put<DailyBurnEntry>("workouts", entry.id, entry); }
+  deleteDailyBurnEntry(id: string) { return remove("workouts", id); }
   getMeals() { return get<MealEntry[]>("meals"); }
   saveMeal(entry: MealEntry) { return put<MealEntry>("meals", entry.id, entry); }
   deleteMeal(id: string) { return remove("meals", id); }

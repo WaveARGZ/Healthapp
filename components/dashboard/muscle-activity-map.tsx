@@ -10,19 +10,22 @@ const muscleLabels: Record<MuscleGroup, string> = {
 };
 
 const activityStages = [
-  { days: 0, label: "外枠のみ" },
+  { days: 0, label: "緑の線のみ" },
   { days: 1, label: "薄い赤" },
-  { days: 2, label: "元の赤" },
+  { days: 2, label: "濃い赤" },
 ] as const;
 
 export function MuscleActivityMap({ workouts, today, loading, unavailable }: { workouts: WorkoutEntry[]; today: string; loading: boolean; unavailable: boolean }) {
   const activity = summarizeMuscleActivity(workouts, today);
 
-  return <section aria-labelledby="muscle-activity-title" aria-busy={loading} className="mt-8 rounded-2xl border border-[var(--line)] bg-[var(--sand)] p-4 sm:p-6">
+  return <section aria-labelledby="muscle-activity-title" aria-busy={loading} className="panel mt-7 sm:p-6">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <p className="text-xs font-semibold tracking-widest text-[var(--sage-deep)]">TRAINING MAP</p>
-        <h2 id="muscle-activity-title" className="section-title mt-1">筋トレ部位マップ</h2>
+        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <h2 id="muscle-activity-title" className="section-title">筋トレ部位マップ</h2>
+          <Link href="/workouts#daily-burn-title" className="text-link">消費カロリーを記録する<Icon name="arrow-right" className="size-3.5" /></Link>
+        </div>
         <p className="mt-2 text-xs leading-5 text-[var(--muted)]">今日を含む直近14日間の記録日数</p>
       </div>
       <Link href="/workouts" className="text-link">筋トレを記録<Icon name="arrow-right" className="size-3.5" /></Link>
@@ -60,7 +63,7 @@ export function MuscleActivityMap({ workouts, today, loading, unavailable }: { w
           </div>
         </div>
       </div>
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は、各部位につき1日として数えます。今日を含む14日間に記録がなければ0日に戻ります。頭は記録がある間、元の色で表示します。部位を判定できない種目は対象外です。</p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">同じ日の複数セット・種目は、各部位につき1日として数えます。今日を含む14日間に記録がなければ0日に戻ります。頭は常に緑の輪郭線のみです。部位を判定できない種目は対象外です。</p>
     </>}
   </section>;
 }

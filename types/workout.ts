@@ -24,3 +24,10 @@ export interface WorkoutEntry {
   exercises: WorkoutExercise[];
   createdAt: string;
 }
+
+/** A daily total stored alongside workouts for compatibility with the existing record API. */
+export interface DailyBurnEntry extends WorkoutEntry {
+  recordType: "daily-burn";
+  caloriesBurned: number;
+  exercises: [];
+}

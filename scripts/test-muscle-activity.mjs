@@ -40,6 +40,16 @@ test("shared catalog names credit each listed region and unrecognized names do n
   assert.equal(activity["胸"], 0);
 });
 
+test("common free-text exercise names update the map for recent saved dates", () => {
+  const activity = summarizeMuscleActivity([
+    workout("2026-11-02", "ベンチプレス"),
+    workout("2026-11-03", "腕立て伏せ", "スクワット"),
+  ], "2026-11-04");
+  assert.equal(activity["胸"], 2);
+  assert.equal(activity["脚"], 1);
+  assert.equal(activity["腕"], 0);
+});
+
 test("year rollover and malformed calendar dates are handled", () => {
   const activity = summarizeMuscleActivity([
     workout("2025-12-18", "レッグプレス"),

@@ -51,18 +51,18 @@ export function IdealBodyEditor({ source, view, onReady }: { source: string; vie
 
   const current = results[selected];
   return (
-    <section className="mt-5 rounded-md border border-[var(--line)] bg-white p-3 sm:p-5">
+    <section className="mt-5 rounded-2xl border border-[var(--line)] bg-white p-4 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-[var(--ink)]">{bodyPhotoViewLabels[view]}：理想の身体プレビュー</h3>
           <p className="mt-1 text-xs leading-5 text-[var(--muted)]">同じ写真から3段階を自動生成します。実際の将来の姿を保証するものではありません。</p>
         </div>
-        <span className="shrink-0 rounded bg-[var(--sand)] px-2 py-1 text-xs font-medium text-[var(--muted)]">端末内で処理</span>
+        <span className="shrink-0 rounded-full bg-[var(--sage-soft)] px-3 py-1 text-xs font-medium text-[var(--sage-deep)]">端末内で処理</span>
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
         {bodyPatterns.map((pattern) => (
-          <button key={pattern.id} type="button" aria-pressed={selected === pattern.id} onClick={() => setSelected(pattern.id)} className={`overflow-hidden rounded border text-left ${selected === pattern.id ? "border-[var(--sage-deep)] ring-1 ring-[var(--sage-deep)]" : "border-[var(--line)]"}`}>
+          <button key={pattern.id} type="button" aria-pressed={selected === pattern.id} onClick={() => setSelected(pattern.id)} className={`overflow-hidden rounded-xl border bg-white text-left ${selected === pattern.id ? "border-[var(--sage-deep)] ring-1 ring-[var(--sage-deep)]" : "border-[var(--line)]"}`}>
             <span className="block aspect-[3/4] bg-[var(--sand)]">
               {results[pattern.id] ? <img src={results[pattern.id]} alt={`${bodyPhotoViewLabels[view]} ${pattern.label}`} className="h-full w-full object-contain" /> : null}
             </span>
@@ -77,15 +77,15 @@ export function IdealBodyEditor({ source, view, onReady }: { source: string; vie
           <p className="text-sm font-semibold leading-6 text-[var(--ink)]">{bodyPatterns.find((pattern) => pattern.id === selected)?.description}</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <figure>
-              <img src={source} alt={`${bodyPhotoViewLabels[view]}の元写真`} className="aspect-[3/4] w-full rounded bg-[var(--sand)] object-contain" />
+              <img src={source} alt={`${bodyPhotoViewLabels[view]}の元写真`} className="aspect-[3/4] w-full rounded-xl bg-[var(--sand)] object-contain" />
               <figcaption className="mt-2 text-center text-xs text-[var(--muted)]">元写真</figcaption>
             </figure>
             <figure>
-              <img src={current} alt={`${bodyPhotoViewLabels[view]}の編集後プレビュー`} className="aspect-[3/4] w-full rounded bg-[var(--sand)] object-contain" />
+              <img src={current} alt={`${bodyPhotoViewLabels[view]}の編集後プレビュー`} className="aspect-[3/4] w-full rounded-xl bg-[var(--sand)] object-contain" />
               <figcaption className="mt-2 text-center text-xs text-[var(--muted)]">編集後</figcaption>
             </figure>
           </div>
-          <a href={current} download={`BodyMake-${view}-${selected}.jpg`} className="mt-4 flex min-h-12 items-center justify-center rounded border border-[var(--line)] px-3 py-3 text-center text-sm font-semibold text-[var(--sage-deep)]">この画像を保存</a>
+          <a href={current} download={`BodyMake-${view}-${selected}.jpg`} className="mt-4 flex min-h-12 items-center justify-center rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] px-3 py-3 text-center text-sm font-semibold text-[var(--sage-deep)] hover:bg-[#dce9da]">この画像を保存</a>
         </div>
       )}
 

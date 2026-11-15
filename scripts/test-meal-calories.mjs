@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { summarizeDailyCalories } from "../lib/utils/meal-calories.ts";
+import { summarizeDailyMacros } from "../lib/utils/meal-macros.ts";
 
 const day = "2026-10-13";
 const meal = (id, recordedAt, calories, items) => ({ id, recordedAt, calories, items });
@@ -27,4 +28,18 @@ test("食事記録がない日は合計0件、異常値は除外する", () => {
 
 test("料理の一部だけカロリー入力済みなら概算ではなく入力済み分として扱う", () => {
   assert.deepEqual(summarizeDailyCalories([meal("partial", day, 210, [{ calories: 210 }, {}])], day), { calories: 210, mealCount: 1, countedMeals: 1, missingMeals: 0, partiallyCountedMeals: 1 });
+});
+
+test("今日のPFCは食事の合計値を優先し、過去の記録は含めない", () => {
+  assert.deepEqual(summarizeDailyMacros([
+    { recordedAt: day, proteinG: 25, fatG: 10, carbsG: 40, items: [{ proteinG: 15, fatG: 7, carbsG: 20 }, { proteinG: 10, fatG: 3, carbsG: 20 }] },
+    { recordedAt: "2026-10-12", proteinG: 99, fatG: 99, carbsG: 99 },
+  ], day), { proteinG: 25, fatG: 10, carbsG: 40, knownCounts: { proteinG: 1, fatG: 1, carbsG: 1 }, mealCount: 1, incompleteMeals: 0 });
+});
+
+test("旧記録の料理内訳を使い、欠損と異常値を0gと誤認しない", () => {
+  assert.deepEqual(summarizeDailyMacros([
+    { recordedAt: day, items: [{ proteinG: 3, fatG: 2, carbsG: 10 }, { proteinG: 5, fatG: 1, carbsG: 15 }] },
+    { recordedAt: day, proteinG: 7, fatG: Number.NaN, carbsG: -2 },
+  ], day), { proteinG: 15, fatG: 3, carbsG: 25, knownCounts: { proteinG: 2, fatG: 1, carbsG: 1 }, mealCount: 2, incompleteMeals: 1 });
 });
