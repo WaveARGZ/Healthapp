@@ -16,6 +16,7 @@ test("shared build overrides both production and test connections without mutati
   assert.equal(env.NEXT_PUBLIC_BODYMAKE_SHARED_TEST, "true");
   assert.equal(env.BODYMAKE_HOSTING_TARGET, "firebase");
   assert.equal(env.NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_AUTH_DOMAIN, `${sharedTestProject}.firebaseapp.com`);
+  assert.equal(env.NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_STANDALONE_AUTH_DOMAIN, `${sharedTestProject}.web.app`);
 });
 test("shared commands are portable and cannot dispatch arbitrary operations", () => {
   assert.equal(sharedTestCommand("dev", {}).options.shell, false);

@@ -12,7 +12,7 @@ export function sharedTestEnvironment(environment = process.env) {
   const env = { ...environment };
   const names = ["BACKEND", "AUTH_DOMAIN", "CLIENT_ID", "API_URL", "CALLBACK_URL", "LOGOUT_URL",
     "GOOGLE_SIGN_IN_ENABLED", "FIREBASE_API_KEY", "FIREBASE_AUTH_DOMAIN", "FIREBASE_MOBILE_AUTH_DOMAIN",
-    "FIREBASE_PROJECT_ID", "FIREBASE_APP_ID", "TRAINING_ENDPOINT", "GOOGLE_DRIVE_CLIENT_ID"];
+    "FIREBASE_PROJECT_ID", "FIREBASE_APP_ID", "FIREBASE_STANDALONE_AUTH_DOMAIN", "TRAINING_ENDPOINT", "GOOGLE_DRIVE_CLIENT_ID"];
   // Explicit empty values also prevent Next.js from filling these from .env.local.
   for (const name of names) {
     env[`NEXT_PUBLIC_BODYMAKE_${name}`] = "";
@@ -28,6 +28,7 @@ export function sharedTestEnvironment(environment = process.env) {
     NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_API_KEY: "AIzaSyBpp3fKw7YIeawwKAjFXRCUn8VxGyxtlDs",
     NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_APP_ID: "1:282829370973:web:cc1dd833014fe13f043fb4",
     NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_AUTH_DOMAIN: `${sharedTestProject}.firebaseapp.com`,
+    NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_STANDALONE_AUTH_DOMAIN: `${sharedTestProject}.web.app`,
     NEXT_TELEMETRY_DISABLED: "1",
   };
 }
