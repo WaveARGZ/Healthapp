@@ -8,7 +8,6 @@ import { MuscleActivityMap } from "@/components/dashboard/muscle-activity-map";
 import { DailyCalorieRings } from "@/components/dashboard/daily-calorie-rings";
 import { MobileDashboard } from "@/components/dashboard/mobile-dashboard";
 import { bodyMakeClient } from "@/lib/api/client";
-import { loadWorkoutPreferences } from "@/lib/api/workout-preferences-client";
 import { formatToday, toDateInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
 import { summarizeDailyMacros } from "@/lib/utils/meal-macros";
@@ -37,7 +36,6 @@ export function DashboardContent() {
   const [mealLoadFailed, setMealLoadFailed] = useState(false);
   const [workoutLoadFailed, setWorkoutLoadFailed] = useState(false);
   const [burnLoadFailed, setBurnLoadFailed] = useState(false);
-  const [hasFacilityEquipment, setHasFacilityEquipment] = useState<boolean | null>(null);
   const [today, setToday] = useState(toDateInputValue);
   useEffect(() => {
     let midnightTimer: ReturnType<typeof setTimeout>;
@@ -68,8 +66,8 @@ export function DashboardContent() {
         if (active) setWorkoutLoadFailed(true);
       }).finally(() => { refreshingWorkouts = false; });
     }
-    void Promise.allSettled([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), loadWorkoutPreferences(), bodyMakeClient.getDailyBurnEntries()])
-      .then(([profile, workouts, meals, weights, preferences, burns]) => {
+    void Promise.allSettled([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), bodyMakeClient.getDailyBurnEntries()])
+      .then(([profile, workouts, meals, weights, burns]) => {
         if (!active) return;
         setData({
           profile: profile.status === "fulfilled" ? profile.value : null,
@@ -82,10 +80,7 @@ export function DashboardContent() {
         setMealLoadFailed(meals.status === "rejected");
         setWorkoutLoadFailed(workouts.status === "rejected");
         setBurnLoadFailed(burns.status === "rejected");
-        if (preferences.status === "fulfilled") {
-          setHasFacilityEquipment(preferences.value.facilityEquipment.length + preferences.value.customEquipment.length > 0);
-        }
-        if ([profile, workouts, meals, weights, preferences, burns].some((result) => result.status === "rejected")) {
+        if ([profile, workouts, meals, weights, burns].some((result) => result.status === "rejected")) {
           setError("一部の記録を読み込めませんでした。保存済みの記録は表示しています。ページを再読み込みしてください。");
         }
       })
@@ -176,11 +171,6 @@ export function DashboardContent() {
       <Link href="/weight" className="min-w-0 rounded-xl p-1 hover:bg-[var(--sand)] sm:pr-5"><p className="text-xs text-[var(--muted)]">現在の体重</p><p className="metric mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[34px] font-medium leading-none sm:text-[48px]"><span>{loading ? "—" : summary.currentWeight ?? "—"}</span><span className="text-sm font-normal tracking-normal text-[var(--muted)]">kg</span></p><p className="mt-3 text-xs font-semibold text-[var(--sage-deep)]">体重を記録する ↗</p></Link>
       <div className="flex flex-col justify-center border-t border-[var(--line)] pt-5 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0"><p className="text-xs text-[var(--muted)]">いまの目標</p><p className="mt-2 text-sm font-bold leading-6 sm:text-base">{loading ? "読み込み中…" : profileLoadFailed ? "読み込めませんでした" : data.profile ? fitnessGoalLabels[data.profile.goal] : "目標を設定しましょう"}</p><Link href="/onboarding" className="text-link mt-1">{data.profile ? "目標を変更" : "プロフィールへ"}<Icon name="arrow-right" className="size-3.5" /></Link></div>
     </section>
-    {hasFacilityEquipment === false && <section className="mt-6 grid grid-cols-[32px_minmax(0,1fr)] items-start gap-x-3 gap-y-3 rounded-2xl border border-[var(--line)] bg-white p-4 sm:grid-cols-[40px_minmax(0,1fr)_auto] sm:items-center" aria-label="ジムの器具を登録">
-      <span className="grid size-8 place-items-center rounded-full bg-white text-[var(--sage-deep)] sm:size-10"><Icon name="dumbbell" className="size-4 sm:size-5" /></span>
-      <div className="min-w-0"><h2 className="text-sm font-bold leading-6">ジムの器具を登録しましょう</h2><p className="mt-1 text-[13px] leading-6 text-[var(--muted)]">使えるマシン・器具に合わせて、筋トレのおすすめを表示します。</p></div>
-      <Link href="/workouts?setup=equipment" className="col-start-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--sage-deep)] px-4 text-[13px] font-bold text-white sm:col-start-auto">器具を登録<Icon name="arrow-right" className="size-4" /></Link>
-    </section>}
     <section className="mt-9" aria-label="食事と筋トレのふり返り" aria-busy={loading}>
       <h2 className="section-title">食事と筋トレのふり返り</h2>
       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">入力された記録から作る自動コメントです。写真やフォームをAIが判定した結果ではありません。</p>

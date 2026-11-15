@@ -164,7 +164,7 @@ export function WorkoutRecorder() {
   }, []);
 
   function handlePlanSave() {
-    setNotice("週間メニューを保存しました。種目のおすすめに反映されます。");
+    setNotice("週間メニューと器具を保存しました。種目のおすすめに反映されます。");
     setActiveTab("record");
     document.getElementById("workout-record-tab")?.focus();
   }

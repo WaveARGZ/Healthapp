@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { beginnerExerciseCatalog, beginnerExerciseCount } from "@/lib/data/beginner-exercise-catalog";
 import { getExerciseShortEmbedUrl } from "@/lib/data/exercise-short-videos";
 import { groupExercisesByEquipment } from "@/lib/data/exercise-catalog";
+import { facilityEquipmentOptions } from "@/lib/data/facility-equipment-options";
 import { detectMuscleFocus, recommendExercises, usesRegisteredEquipment } from "@/lib/workouts/workout-recommender";
 import { getWorkoutDayPlan, getWorkoutWeek, weekdayLabels } from "@/lib/workouts/workout-split";
 import { getWorkoutPreferences } from "@/lib/storage/workout-preferences";
@@ -29,7 +30,6 @@ interface ExercisePickerProps {
   startWithEquipmentSetup?: boolean;
 }
 
-const facilityEquipmentOptions = ["バーベル", "ダンベル", "スミスマシン", "ケーブルマシン", "ウェイトマシン", "ベンチ", "懸垂バー", "ディップスバー", "トレッドミル", "エアロバイク", "クロストレーナー", "ローイングマシン", "スキーエルゴ", "縄跳び", "TRX"];
 const primaryMuscleCategories = ["胸", "背中", "腕", "肩", "腹筋・体幹", "脚"];
 const categoryDisplayName = (category: string) => category === "腹筋・体幹" ? "腹筋" : category;
 type TutorialStage = "equipment" | "favorite" | "recommendation" | null;
