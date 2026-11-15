@@ -164,7 +164,7 @@ export function MealRecorder() {
         ["manual", "plus", "手入力"],
       ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-12 items-center justify-center gap-2 rounded-md border px-2 text-sm font-semibold ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
       <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} /></div>
-      <div hidden={inputMode !== "photo"}><PhotoMealAnalyzer onAddFood={saveFood} /></div>
+      {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} />}
       {inputMode === "photo" && <p role="status" aria-live="polite" className="mt-4 text-sm text-[var(--sage-deep)]">{notice}</p>}
       {inputMode === "manual" && <>
       <p className="mt-4 text-xs leading-6 text-[var(--muted)]">料理名・食べた量・栄養値を入力してください。不明な栄養値は空欄でも保存できます。</p>
