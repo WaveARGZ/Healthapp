@@ -57,6 +57,29 @@ test("test Firebase cannot select the production project even without production
   assert.throws(() => configured("healthapp-14a3f").assertFirebaseConfigured(), /別プロジェクト/);
 });
 
+test("installed test app uses same-origin Google redirect without changing browser login", () => {
+  const environment = {
+    ...sharedEnvironment,
+    NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_AUTH_DOMAIN: "bodymake-test-14a3f.firebaseapp.com",
+    NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_STANDALONE_AUTH_DOMAIN: "bodymake-test-14a3f.web.app",
+  };
+  function authDomain(hostname, { standalone = false, ios = false, mobile = true } = {}) {
+    const window = {
+      location: { hostname },
+      matchMedia(query) {
+        return { matches: query === "(pointer: coarse)" ? mobile : query === "(display-mode: standalone)" && standalone };
+      },
+    };
+    const navigator = { userAgent: ios ? "iPhone" : mobile ? "Android" : "Desktop", standalone: ios && standalone };
+    return load("lib/firebase/config.ts", environment, { "@/lib/cloud/config": runtime(environment) }, { window, navigator }).firebaseConfig.authDomain;
+  }
+  assert.equal(authDomain("bodymake-test-14a3f.web.app", { standalone: true }), "bodymake-test-14a3f.web.app");
+  assert.equal(authDomain("bodymake-test-14a3f.web.app", { standalone: true, ios: true }), "bodymake-test-14a3f.web.app");
+  assert.equal(authDomain("bodymake-test-14a3f.web.app"), "bodymake-test-14a3f.firebaseapp.com");
+  assert.equal(authDomain("bodymake-test-14a3f.firebaseapp.com", { standalone: true }), "bodymake-test-14a3f.firebaseapp.com");
+  assert.equal(authDomain("localhost", { standalone: true }), "bodymake-test-14a3f.firebaseapp.com");
+});
+
 test("shared testing cannot enable training uploads with either endpoint override", () => {
   const environment = { ...sharedEnvironment,
     NEXT_PUBLIC_BODYMAKE_TRAINING_ENDPOINT: "https://production.example.invalid",
