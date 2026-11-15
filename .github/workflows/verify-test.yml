@@ -72,6 +72,9 @@ jobs:
       - name: Verify weekly workout advice from recorded facts
         run: npm run test:weekly-workout-advice
 
+      - name: Verify dashboard partial nutrition totals in memory
+        run: npm run test:dashboard-nutrition
+
       - name: Build without production AWS settings
         env:
           NEXT_PUBLIC_BODYMAKE_AUTH_DOMAIN: https://production-should-not-be-used.invalid
