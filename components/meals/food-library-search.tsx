@@ -81,11 +81,15 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
 
   const showPopular = !query.trim() && category === "すべて" && !expandedResults;
   const results = useMemo<ReturnType<typeof searchFoodGroups>>(
-    () => searchEngaged || expandedResults ? searchFoodGroups(showPopular ? popularFoods : allFoods, showPopular ? "" : query, category) : { groups: [], matchingRecords: 0, usedFuzzy: false },
+    () => searchEngaged || expandedResults ? searchFoodGroups(showPopular ? popularFoods : allFoods, showPopular ? "" : query, category) : { groups: [], matchingRecords: 0, usedFuzzy: false, usedRelated: false, relatedTerms: [] },
     [searchEngaged, expandedResults, showPopular, allFoods, query, category],
   );
   const shownGroups = results.groups.slice(0, visibleCount);
   const previewGroups = results.groups.slice(0, 5);
+  const hasMatchesInAllCategories = useMemo(
+    () => category !== "すべて" && Boolean(query.trim()) && results.groups.length === 0 && searchFoodGroups(allFoods, query, "すべて").groups.length > 0,
+    [allFoods, category, query, results.groups.length],
+  );
   const variantResults = useMemo(() => {
     if (!activeGroup) return [];
     const needle = variantQuery.trim().toLocaleLowerCase();
@@ -154,14 +158,19 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     {searchEngaged && !expandedResults && <div className="absolute inset-x-0 top-full z-30 max-h-[min(28rem,65dvh)] overflow-y-auto overscroll-contain rounded-b-xl border border-t-0 border-[var(--line)] bg-white shadow-[0_18px_35px_rgba(32,38,34,.16)]" role="region" aria-label="食品の検索候補">
       <div className="flex items-center gap-2 border-b border-[var(--line)] px-3 py-2"><p className="min-w-0 flex-1 text-xs font-semibold text-[var(--ink)]">{showPopular ? "検索候補" : `検索結果 ${results.groups.length.toLocaleString()}品目`}</p><select aria-label="食品のカテゴリ" value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} className="min-h-10 max-w-[55%] rounded-md border border-[var(--line)] bg-white px-2 text-xs text-[var(--ink)]">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
       {results.usedFuzzy && <p className="px-3 py-2 text-xs text-[var(--sage-deep)]">入力に近い候補です。品目を確認してください。</p>}
+      {results.usedRelated && <p className="px-3 py-2 text-xs text-[var(--sage-deep)]">完全に一致する食品がないため、関連する候補を表示しています。</p>}
+      {results.relatedTerms.length > 0 && <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--line)] px-3 py-2"><span className="mr-1 text-xs text-[var(--muted)]">関連ワード</span>{results.relatedTerms.map((term) => <button key={term} type="button" onClick={() => { setQuery(term); setVisibleCount(30); clearSelection(); setSearchEngaged(true); searchInput.current?.focus(); }} className="min-h-9 rounded-full border border-[var(--line)] bg-[var(--sage-soft)] px-3 text-xs font-semibold text-[var(--sage-deep)]">{term}</button>)}</div>}
       {previewGroups.length ? previewGroups.map(renderGroup) : <p className="px-3 py-4 text-xs text-[var(--muted)]">{catalogStatus === "loading" ? "食品データを読み込み中…" : "見つかりませんでした。別名や短い名前でお試しください。"}</p>}
+      {hasMatchesInAllCategories && <button type="button" onClick={() => setCategory("すべて")} className="min-h-11 w-full border-t border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)]">すべてのカテゴリから探す</button>}
       {results.groups.length > previewGroups.length && <button type="button" onClick={() => { setExpandedResults(true); setSearchEngaged(false); setVisibleCount(30); }} className="min-h-11 w-full border-t border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)]">{showPopular ? "全食品の一覧を見る" : `残り${(results.groups.length - previewGroups.length).toLocaleString()}品目を見る`}</button>}
       {catalogStatus === "error" && <button type="button" onClick={loadExtendedCatalog} className="text-link px-3">詳細データを再読み込み</button>}
     </div>}
     </div>
     {expandedResults && <div className="mt-4 rounded-xl border border-[var(--line)] bg-white" role="region" aria-label="食品の検索結果一覧">
       <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2"><p className="text-sm font-semibold">検索結果 {results.groups.length.toLocaleString()}品目</p><button type="button" onClick={() => setExpandedResults(false)} className="text-link">閉じる</button></div>
+      {results.usedRelated && <p className="px-3 py-2 text-xs text-[var(--sage-deep)]">完全に一致する食品がないため、関連する候補を表示しています。</p>}
       {shownGroups.length ? shownGroups.map(renderGroup) : <p className="p-3 text-xs text-[var(--muted)]">該当する食品はありません。</p>}
+      {hasMatchesInAllCategories && <button type="button" onClick={() => setCategory("すべて")} className="min-h-11 w-full border-t border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--sage-deep)]">すべてのカテゴリから探す</button>}
       {results.groups.length > shownGroups.length && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="min-h-11 w-full border-t border-[var(--line)] text-sm font-semibold text-[var(--sage-deep)]">さらに30品目表示</button>}
     </div>}
     {activeGroup && <div className="mt-4 rounded-xl border border-[var(--sage-deep)] bg-white p-3 sm:p-4">
