@@ -77,8 +77,7 @@ test("fully entered meals display complete totals without partial-total warnings
   const html = renderDashboard([known]);
   assert.match(html, /摂取 500 kcal/);
   assert.match(html, /消費から摂取を引いた収支 \+1,500 kcal。消費が多い/);
-  assert.match(html, /PFC内訳 · カロリー比/);
-  assert.match(html, /たんぱく質のカロリー比 16%/);
+  assert.match(html, /PFC · カロリー比/);
   assert.match(html, /20g · 16%/);
   assert.ok(!html.includes(partialNotice));
   assert.ok(!html.includes(macroNotice));
