@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
+import { FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
@@ -155,13 +155,9 @@ export function WorkoutRecorder() {
   const [history, setHistory] = useState<WorkoutEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState("");
-  const [activeTab, setActiveTab] = useState<"record" | "plan" | null>(null);
+  const [activeTab, setActiveTab] = useState<"record" | "plan">("record");
   const [calendarMonth, setCalendarMonth] = useState(toDateInputValue().slice(0, 7));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
-  const handlePlanLoad = useCallback((hasPlan: boolean) => {
-    setActiveTab((current) => current ?? (hasPlan ? "record" : "plan"));
-  }, []);
 
   function handlePlanSave() {
     setNotice("週間メニューと器具を保存しました。種目のおすすめに反映されます。");
@@ -234,7 +230,7 @@ export function WorkoutRecorder() {
         role="tab"
         aria-selected={activeTab === tab.id}
         aria-controls={`workout-${tab.id}-panel`}
-        tabIndex={activeTab === tab.id || (activeTab === null && tab.id === "record") ? 0 : -1}
+        tabIndex={activeTab === tab.id ? 0 : -1}
         onClick={() => setActiveTab(tab.id)}
         onKeyDown={(event) => {
           if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -246,9 +242,8 @@ export function WorkoutRecorder() {
         className={`min-h-12 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "bg-[#19182f] text-white" : "text-[var(--muted)] hover:bg-[var(--sand)] hover:text-[var(--ink)]"}`}
       >{tab.label}</button>)}
     </div>
-    {activeTab === null && <p role="status" className="mb-6 text-sm text-[var(--muted)]">週間メニューを確認中…</p>}
     <div id="workout-plan-panel" role="tabpanel" aria-labelledby="workout-plan-tab" hidden={activeTab !== "plan"}>
-      <WorkoutPlanSetup date={performedAt} onLoad={handlePlanLoad} onSave={handlePlanSave} />
+      <WorkoutPlanSetup date={performedAt} onSave={handlePlanSave} />
     </div>
     <div id="workout-record-panel" role="tabpanel" aria-labelledby="workout-record-tab" hidden={activeTab !== "record"}>
     <WorkoutHistoryCalendar history={history} month={calendarMonth} selectedDate={selectedDate} onMonthChange={(month) => { setCalendarMonth(month); setSelectedDate(null); }} onDateSelect={(date) => { setSelectedDate(date); if (date) setPerformedAt(date); setNotice(""); }} onDelete={(id) => { void deleteEntry(id); }}>
