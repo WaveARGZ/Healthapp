@@ -8,7 +8,6 @@ import { toDateInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
 import { summarizeDailyMacros } from "@/lib/utils/meal-macros";
 import { summarizeDailyFeedback } from "@/lib/utils/daily-feedback";
-import { estimateDailyCalorieGuide } from "@/lib/utils/daily-calorie-guide";
 import { fitnessGoalLabels, type UserProfile } from "@/types/user";
 import type { MealEntry } from "@/types/meal";
 import type { WeightEntry } from "@/types/progress";
@@ -108,14 +107,6 @@ export function DashboardContent() {
   const dailyCalories = useMemo(() => summarizeDailyCalories(data.meals, today), [data.meals, today]);
   const dailyMacros = useMemo(() => summarizeDailyMacros(data.meals, today), [data.meals, today]);
   const dailyFeedback = useMemo(() => summarizeDailyFeedback(dailyCalories, data.workouts, today), [dailyCalories, data.workouts, today]);
-  const calorieGuide = useMemo(() => data.profile ? estimateDailyCalorieGuide({
-    age: data.profile.age,
-    gender: data.profile.gender,
-    heightCm: data.profile.heightCm,
-    weightKg: summary.currentWeight,
-    goal: data.profile.goal,
-  }) : null, [data.profile, summary.currentWeight]);
-  const calorieGoal = calorieGuide?.status === "ready" ? calorieGuide.maxKcal : null;
   const recordedCalories = loading || mealLoadFailed || (dailyCalories.mealCount > 0 && dailyCalories.countedMeals === 0)
     ? null : Math.round(dailyCalories.calories);
   const burnedCalories = loading || burnLoadFailed ? null : data.burns.find((entry) => entry.performedAt === today)?.caloriesBurned ?? null;
@@ -130,7 +121,6 @@ export function DashboardContent() {
       intake={recordedCalories}
       consumed={consumedForDifference}
       burned={burnedCalories}
-      calorieGoal={calorieGoal}
       incompleteCalories={dailyCalories.missingMeals > 0 || dailyCalories.partiallyCountedMeals > 0}
       workouts={data.workouts}
       feedback={dailyFeedback}

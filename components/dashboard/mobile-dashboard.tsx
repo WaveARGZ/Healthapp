@@ -13,11 +13,11 @@ function amount(value: number | null) {
 }
 
 function grams(macros: DailyMacros, key: "proteinG" | "fatG" | "carbsG", loading: boolean) {
-  return loading || (macros.mealCount > 0 && macros.knownCounts[key] === 0)
+  return loading || macros.mealCount === 0 || macros.knownCounts[key] === 0
     ? "—" : Math.round(macros[key]).toLocaleString("ja-JP");
 }
 
-export function MobileDashboard({ today, doneCount, weight, goal, macros, intake, consumed, burned, calorieGoal, incompleteCalories, workouts, feedback, loading, mealUnavailable, burnUnavailable, workoutUnavailable, error }: {
+export function MobileDashboard({ today, doneCount, weight, goal, macros, intake, consumed, burned, incompleteCalories, workouts, feedback, loading, mealUnavailable, burnUnavailable, workoutUnavailable, error }: {
   today: string;
   doneCount: number;
   weight: number | null;
@@ -26,7 +26,6 @@ export function MobileDashboard({ today, doneCount, weight, goal, macros, intake
   intake: number | null;
   consumed: number | null;
   burned: number | null;
-  calorieGoal: number | null;
   incompleteCalories: boolean;
   workouts: WorkoutEntry[];
   feedback: { meal: DailyFeedbackItem; workout: DailyFeedbackItem };
@@ -37,15 +36,21 @@ export function MobileDashboard({ today, doneCount, weight, goal, macros, intake
   error: string;
 }) {
   const macroEnergy = macros.proteinG * 4 + macros.fatG * 9 + macros.carbsG * 4;
-  const proteinEnd = macroEnergy > 0 ? (macros.proteinG * 4 / macroEnergy) * 100 : 0;
-  const fatEnd = macroEnergy > 0 ? proteinEnd + (macros.fatG * 9 / macroEnergy) * 100 : 0;
-  const intakeRing = loading || mealUnavailable || macroEnergy === 0 ? "var(--sage-soft)"
-    : `conic-gradient(#e989db 0 ${proteinEnd}%, #ffd16d ${proteinEnd}% ${fatEnd}%, #aa91ff ${fatEnd}% 100%)`;
-  const burnProgress = burned === null ? 0 : Math.min(100, burned / Math.max(calorieGoal ?? 0, burned, 1) * 100);
-  const burnRing = `conic-gradient(var(--sage-deep) 0 ${burnProgress}%, var(--sage-soft) ${burnProgress}% 100%)`;
+  const macroUnavailable = loading || mealUnavailable;
+  const macroRows = ([
+    { key: "proteinG", label: "P", name: "たんぱく質", energy: macros.proteinG * 4, color: "#e989db" },
+    { key: "fatG", label: "F", name: "脂質", energy: macros.fatG * 9, color: "#ffd16d" },
+    { key: "carbsG", label: "C", name: "炭水化物", energy: macros.carbsG * 4, color: "#aa91ff" },
+  ] as const).map((row) => ({
+    ...row,
+    amount: grams(macros, row.key, macroUnavailable),
+    percentage: !macroUnavailable && macros.knownCounts[row.key] > 0 ? (macroEnergy > 0 ? Math.round(row.energy / macroEnergy * 100) : 0) : null,
+  }));
   const difference = burnMinusIntake(burned, consumed);
   const activity = summarizeMuscleActivity(workouts, today);
   const differenceText = difference === null ? "—" : `${difference > 0 ? "+" : ""}${difference.toLocaleString("ja-JP")}`;
+  const differenceStatus = difference === null ? "収支は未計算" : difference > 0 ? "消費が多い" : difference < 0 ? "摂取が多い" : "消費と摂取が同じ";
+  const differenceColor = difference === null || difference === 0 ? "var(--ink)" : difference > 0 ? "var(--sage-deep)" : "var(--coral)";
   const calorieStatus = loading || mealUnavailable ? null
     : macros.mealCount === 0 ? "まだ食事の記録はありません。"
     : intake === null ? "食事は記録済みですが、カロリーは未入力です。収支は計算できません。"
@@ -68,15 +73,24 @@ export function MobileDashboard({ today, doneCount, weight, goal, macros, intake
     <section aria-labelledby="mobile-calories-title" className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2.5 sm:px-6 sm:py-5">
       <h2 id="mobile-calories-title" className="text-sm font-bold sm:text-lg">今日の栄養とカロリー</h2>
       <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-6">
-        <Link href="/meals" className="flex min-h-28 min-w-0 flex-col items-center justify-center gap-1 rounded-xl hover:bg-[var(--sage-soft)] sm:min-h-44 sm:gap-2" aria-describedby={intakeDescription} aria-label={`食事を開く。摂取 ${amount(intake)} kcal。PFCの記録を見る`}>
-          <span className="grid size-[76px] place-items-center rounded-full p-[9px] sm:size-[124px] sm:p-[12px]" style={{ background: intakeRing }}><span className="flex size-full flex-col items-center justify-center rounded-full bg-white text-center"><strong className="metric text-sm leading-none sm:text-xl">{amount(intake)}</strong><small className="mt-0.5 text-[11px] text-[var(--muted)]">kcal</small></span></span>
-          <span className="text-xs font-bold sm:text-sm">摂取・PFC</span>
-          <span className="metric whitespace-nowrap text-[11px] text-[var(--muted)] sm:text-xs">P{grams(macros, "proteinG", loading)} · F{grams(macros, "fatG", loading)} · C{grams(macros, "carbsG", loading)}g</span>
+        <Link href="/meals" className="flex min-w-0 flex-col rounded-xl border border-[var(--line)] p-2.5 hover:bg-[var(--sage-soft)] sm:p-4" aria-describedby={intakeDescription} aria-label={`食事を開く。摂取 ${amount(intake)} kcal。PFC：${macroRows.map((row) => `${row.name} ${row.amount === "—" ? "未計算" : `${row.amount}g、${row.percentage}%`}`).join("、")}`}>
+          <span className="text-[11px] font-bold text-[var(--muted)] sm:text-sm">摂取カロリー</span>
+          <strong className="metric mt-0.5 text-lg leading-tight text-[var(--ink)] sm:text-2xl">{amount(intake)} <small className="text-[11px] font-normal sm:text-sm">kcal</small></strong>
+          <span className="mt-2 border-t border-[var(--line)] pt-1.5 text-[10px] font-bold text-[var(--muted)] sm:text-xs">PFC内訳 · カロリー比</span>
+          <dl className="mt-1 space-y-1" aria-label="PFCの内訳">
+            {macroRows.map((row) => <div key={row.key} className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 text-[10px] sm:text-xs">
+              <dt className="font-bold" aria-label={row.name}>{row.label}</dt>
+              <dd className="h-1.5 min-w-0 overflow-hidden rounded-full bg-[var(--sage-soft)]" aria-label={`${row.name}のカロリー比 ${row.percentage === null ? "未計算" : `${row.percentage}%`}`}><span className="block h-full rounded-full" style={{ width: `${row.percentage ?? 0}%`, backgroundColor: row.color }} /></dd>
+              <dd className="metric whitespace-nowrap text-right text-[var(--ink)]">{row.amount === "—" ? "—" : `${row.amount}g · ${row.percentage}%`}</dd>
+            </div>)}
+          </dl>
         </Link>
-        <Link href="/progress" className="flex min-h-28 min-w-0 flex-col items-center justify-center gap-1 rounded-xl hover:bg-[var(--sage-soft)] sm:min-h-44 sm:gap-2" aria-describedby={calorieDescription} aria-label={`進捗を開く。消費 ${amount(burned)} kcal。消費から摂取を引いた差 ${differenceText} kcal`}>
-          <span className="grid size-[76px] place-items-center rounded-full p-[9px] sm:size-[124px] sm:p-[12px]" style={{ background: burnRing }}><span className="flex size-full flex-col items-center justify-center rounded-full bg-white text-center"><strong className="metric text-sm leading-none sm:text-xl">{amount(burned)}</strong><small className="mt-0.5 text-[11px] text-[var(--muted)]">kcal</small></span></span>
-          <span className="text-xs font-bold sm:text-sm">消費・収支</span>
-          <span className="metric whitespace-nowrap text-[11px] text-[var(--muted)] sm:text-xs">消費 − 摂取 {differenceText} kcal</span>
+        <Link href="/progress" className="flex min-w-0 flex-col rounded-xl border border-[var(--line)] p-2.5 hover:bg-[var(--sage-soft)] sm:p-4" aria-describedby={calorieDescription} aria-label={`進捗を開く。消費 ${amount(burned)} kcal。消費から摂取を引いた収支 ${differenceText} kcal。${differenceStatus}`}>
+          <span className="text-[11px] font-bold text-[var(--muted)] sm:text-sm">消費カロリー</span>
+          <strong className="metric mt-0.5 text-lg leading-tight text-[var(--ink)] sm:text-2xl">{amount(burned)} <small className="text-[11px] font-normal sm:text-sm">kcal</small></strong>
+          <span className="mt-2 border-t border-[var(--line)] pt-1.5 text-[10px] font-bold text-[var(--muted)] sm:text-xs">収支 · 消費 − 摂取</span>
+          <strong className="metric mt-1 text-lg leading-tight sm:text-2xl" style={{ color: differenceColor }}>{differenceText} <small className="text-[11px] font-normal sm:text-sm">kcal</small></strong>
+          <span className="mt-0.5 text-[10px] font-semibold sm:text-xs" style={{ color: differenceColor }}>{differenceStatus}</span>
         </Link>
       </div>
       {calorieStatus && <p id="mobile-calorie-status" className="mt-1 text-xs leading-5 text-[var(--muted)]">{calorieStatus}</p>}
