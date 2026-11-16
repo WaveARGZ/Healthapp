@@ -7,6 +7,8 @@ import type { DailyFeedbackItem } from "@/lib/utils/daily-feedback";
 import type { WorkoutEntry } from "@/types/workout";
 
 type DailyMacros = ReturnType<typeof summarizeDailyMacros>;
+const positiveBalanceColor = "#b9343a";
+const negativeBalanceColor = "#2563a8";
 
 function amount(value: number | null) {
   return value === null ? "—" : Math.round(value).toLocaleString("ja-JP");
@@ -50,15 +52,12 @@ export function MobileDashboard({ today, doneCount, weight, goal, macros, intake
   const activity = summarizeMuscleActivity(workouts, today);
   const differenceText = difference === null ? "—" : `${difference > 0 ? "+" : ""}${difference.toLocaleString("ja-JP")}`;
   const differenceStatus = difference === null ? "収支は未計算" : difference > 0 ? "消費が多い" : difference < 0 ? "摂取が多い" : "消費と摂取が同じ";
-  const differenceColor = difference === null || difference === 0 ? "var(--ink)" : difference > 0 ? "var(--sage-deep)" : "var(--coral)";
+  const differenceColor = difference === null || difference === 0 ? "var(--ink)" : difference > 0 ? positiveBalanceColor : negativeBalanceColor;
   const proteinEnd = macroEnergy > 0 ? (macros.proteinG * 4 / macroEnergy) * 100 : 0;
   const fatEnd = macroEnergy > 0 ? proteinEnd + (macros.fatG * 9 / macroEnergy) * 100 : 0;
   const intakeRing = macroUnavailable || macroEnergy === 0 ? "var(--sage-soft)"
     : `conic-gradient(#e989db 0 ${proteinEnd}%, #ffd16d ${proteinEnd}% ${fatEnd}%, #aa91ff ${fatEnd}% 100%)`;
-  const comparedCalories = difference === null ? 0 : Math.max(0, burned ?? 0) + Math.max(0, consumed ?? 0);
-  const burnShare = comparedCalories > 0 ? Math.max(0, burned ?? 0) / comparedCalories * 100 : 0;
-  const balanceRing = comparedCalories === 0 ? "var(--sage-soft)"
-    : `conic-gradient(var(--sage-deep) 0 ${burnShare}%, var(--coral) ${burnShare}% 100%)`;
+  const balanceRing = difference === null || difference === 0 ? "var(--sage-soft)" : differenceColor;
   const calorieStatus = loading || mealUnavailable ? null
     : macros.mealCount === 0 ? "まだ食事の記録はありません。"
     : intake === null ? "食事は記録済みですが、カロリーは未入力です。収支は計算できません。"
@@ -88,10 +87,10 @@ export function MobileDashboard({ today, doneCount, weight, goal, macros, intake
           <span className="mt-0.5 w-full space-y-0.5" aria-label="PFCの内訳">{macroRows.map((row) => <span key={row.key} className="flex items-center gap-1 text-[10px] sm:text-xs"><span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: row.color }} /><span className="font-bold">{row.label}</span><span className="metric ml-auto whitespace-nowrap">{row.amount === "—" ? "—" : `${row.amount}g · ${row.percentage}%`}</span></span>)}</span>
         </Link>
         <Link href="/progress" className="flex min-w-0 flex-col items-center rounded-xl border border-[var(--line)] p-2.5 hover:bg-[var(--sage-soft)] sm:p-4" aria-describedby={calorieDescription} aria-label={`進捗を開く。消費 ${amount(burned)} kcal。消費から摂取を引いた収支 ${differenceText} kcal。${differenceStatus}`}>
-          <span className="text-[11px] font-bold sm:text-sm">消費・収支</span>
+          <span className="text-[11px] font-bold sm:text-sm">収支</span>
           <span className="mt-1 grid size-[76px] shrink-0 place-items-center rounded-full p-[9px] sm:size-[124px] sm:p-[12px]" style={{ background: balanceRing }}><span className="flex size-full flex-col items-center justify-center rounded-full bg-white text-center"><strong className="metric text-xs leading-none sm:text-lg" style={{ color: differenceColor }}>{differenceText}</strong><small className="mt-0.5 text-[10px] text-[var(--muted)]">収支 kcal</small></span></span>
           <span className="mt-1 text-center text-[10px] font-semibold sm:text-xs" style={{ color: differenceColor }}>{differenceStatus}</span>
-          <span className="mt-0.5 w-full space-y-0.5 text-[10px] sm:text-xs"><span className="flex items-center gap-1"><span className="size-2 shrink-0 rounded-full bg-[var(--sage-deep)]" />消費<span className="metric ml-auto whitespace-nowrap">{amount(burned)} kcal</span></span><span className="flex items-center gap-1"><span className="size-2 shrink-0 rounded-full bg-[var(--coral)]" />摂取<span className="metric ml-auto whitespace-nowrap">{amount(consumed)} kcal</span></span></span>
+          <span className="mt-0.5 w-full space-y-0.5 text-[10px] sm:text-xs"><span className="flex items-center justify-between gap-1">消費<span className="metric whitespace-nowrap">{amount(burned)} kcal</span></span><span className="flex items-center justify-between gap-1">摂取<span className="metric whitespace-nowrap">{amount(consumed)} kcal</span></span></span>
         </Link>
       </div>
       {calorieStatus && <p id="mobile-calorie-status" className="mt-1 text-xs leading-5 text-[var(--muted)]">{calorieStatus}</p>}
