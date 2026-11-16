@@ -2,6 +2,7 @@ import type { SVGProps } from "react";
 
 export type IconName =
   | "arrow-right"
+  | "barcode"
   | "camera"
   | "check"
   | "chevron-right"
@@ -39,6 +40,7 @@ export function Icon({ name, className, ...props }: IconProps) {
 
   const paths: Record<IconName, React.ReactNode> = {
     "arrow-right": <path d="M5 12h14m-6-6 6 6-6 6" />,
+    barcode: <><path d="M3 5v14m3-14v14m3-14v14m2-14v14m3-14v14m3-14v14m3-14v14" strokeWidth="1.3" /><path d="M2 20h20" /></>,
     camera: <><path d="M4 7h3l1.5-2h7L17 7h3v12H4z" /><circle cx="12" cy="13" r="3.4" /></>,
     check: <path d="m5 12 4.2 4.2L19 6.8" />,
     "chevron-right": <path d="m9 18 6-6-6-6" />,
