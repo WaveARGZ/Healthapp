@@ -1,15 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@/components/ui/icon";
-import { WeightTrendChart } from "@/components/progress/weight-trend-chart";
-import { MuscleActivityMap } from "@/components/dashboard/muscle-activity-map";
-import { DailyCalorieRings } from "@/components/dashboard/daily-calorie-rings";
 import { MobileDashboard } from "@/components/dashboard/mobile-dashboard";
 import { WeeklyWorkoutAdvice } from "@/components/dashboard/weekly-workout-advice";
 import { bodyMakeClient } from "@/lib/api/client";
-import { formatToday, toDateInputValue } from "@/lib/utils/date";
+import { toDateInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
 import { summarizeDailyMacros } from "@/lib/utils/meal-macros";
 import { summarizeDailyFeedback } from "@/lib/utils/daily-feedback";
@@ -125,71 +120,28 @@ export function DashboardContent() {
     ? null : Math.round(dailyCalories.calories);
   const burnedCalories = loading || burnLoadFailed ? null : data.burns.find((entry) => entry.performedAt === today)?.caloriesBurned ?? null;
   const consumedForDifference = dailyCalories.countedMeals > 0 ? recordedCalories : null;
-  const calorieProgress = calorieGoal !== null && recordedCalories !== null
-    ? Math.min(100, (recordedCalories / calorieGoal) * 100) : 0;
-  const calorieExcess = calorieGoal !== null && recordedCalories !== null && recordedCalories > calorieGoal
-    ? recordedCalories - calorieGoal : 0;
-  const mealStatus = loading ? "食事記録を読み込み中…"
-    : mealLoadFailed ? "合計を表示できません"
-    : dailyCalories.mealCount === 0 ? "まだ食事の記録はありません"
-    : dailyCalories.countedMeals === 0 ? "食事は記録済みですが、カロリーは未入力です"
-    : dailyCalories.missingMeals > 0 || dailyCalories.partiallyCountedMeals > 0
-      ? `${dailyCalories.mealCount}件のうち、カロリー入力済み分の合計です。未入力の料理・食事は含みません。`
-      : null;
-  return <>
-    <div className="sm:hidden"><MobileDashboard today={today} doneCount={doneCount} weight={summary.currentWeight ?? null} goal={data.profile ? fitnessGoalLabels[data.profile.goal] : "目標未設定"} macros={dailyMacros} intake={recordedCalories} consumed={consumedForDifference} burned={burnedCalories} calorieGoal={calorieGoal} workouts={data.workouts} feedback={dailyFeedback} loading={loading} mealUnavailable={mealLoadFailed} burnUnavailable={burnLoadFailed} workoutUnavailable={workoutLoadFailed} error={error} /></div>
+  return <div className="dashboard-unified">
+    <MobileDashboard
+      today={today}
+      doneCount={doneCount}
+      weight={summary.currentWeight ?? null}
+      goal={data.profile ? fitnessGoalLabels[data.profile.goal] : "目標未設定"}
+      macros={dailyMacros}
+      intake={recordedCalories}
+      consumed={consumedForDifference}
+      burned={burnedCalories}
+      calorieGoal={calorieGoal}
+      incompleteCalories={dailyCalories.missingMeals > 0 || dailyCalories.partiallyCountedMeals > 0}
+      workouts={data.workouts}
+      feedback={dailyFeedback}
+      loading={loading}
+      mealUnavailable={mealLoadFailed}
+      burnUnavailable={burnLoadFailed}
+      workoutUnavailable={workoutLoadFailed}
+      error={error}
+    />
     <div className="hidden sm:block">
-    <header className="rounded-[24px] border border-[var(--line)] border-l-[5px] border-l-[var(--sage-deep)] bg-white px-5 py-6 text-[var(--ink)] shadow-[0_12px_30px_rgba(34,71,44,.07)] sm:px-7 sm:py-7">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold tracking-[.12em] text-[var(--sage-deep)]">{formatToday()}</p><h1 className="mt-2 text-[27px] font-bold tracking-tight text-[var(--sage-deep)]">今日の記録</h1><p className="mt-2 text-xs text-[var(--muted)]">毎日の積み重ねを、ここで確認</p></div>
-        <Link href="/onboarding" className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] px-3 text-xs font-semibold text-[var(--sage-deep)] hover:bg-[var(--peach)]"><Icon name="user" className="size-4 shrink-0" /><span className="max-w-32 truncate">{data.profile?.name ? `${data.profile.name}さん` : "プロフィール設定"}</span></Link></div>
-      <p className="mt-6 border-t border-[var(--line)] pt-4 text-sm text-[var(--muted)]">今日の記録 <strong className="metric ml-1 text-xl text-[var(--sage-deep)]">{loading ? "—" : doneCount} / 3</strong></p>
-    </header>
-    {error && <p role="alert" className="mt-4 text-xs text-[var(--coral)]">{error}</p>}
-    <section aria-label="一日の摂取カロリーの目安" aria-busy={loading} className="panel mt-5 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><h2 className="section-title">一日の摂取カロリーの目安</h2>{data.profile && <span className="text-xs text-[var(--muted)]">{fitnessGoalLabels[data.profile.goal]}</span>}</div>
-      {loading ? <p className="mt-5 text-sm text-[var(--muted)]">計算中…</p>
-        : profileLoadFailed ? <p className="mt-5 text-sm text-[var(--muted)]">プロフィールを読み込めないため目安を表示できません。</p>
-        : calorieGuide?.status === "ready" ? <p className="metric mt-5 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[24px] font-semibold leading-tight sm:text-[28px]"><span>約 {calorieGuide.minKcal.toLocaleString("ja-JP")}〜{calorieGuide.maxKcal.toLocaleString("ja-JP")}</span><span className="text-base font-normal tracking-normal text-[var(--ink-soft)]">kcal / 日</span></p>
-        : <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{calorieGuide?.status === "outside-adult-range" ? "この計算式は20〜78歳向けです。個別の目安は専門家に相談してください。" : calorieGuide?.status === "underweight" ? "現在の身長・体重からは減量用の目安を表示しません。体型については専門家に相談してください。" : calorieGuide?.status === "low-estimate" ? "計算結果が低すぎるため、数値を表示しません。専門家に相談してください。" : "年齢・身長・体重を設定すると目安を表示できます。"}</p>}
-      {!loading && !profileLoadFailed && calorieGuide?.status !== "ready" && <Link href="/onboarding" className="text-link mt-2">プロフィールを確認<Icon name="arrow-right" className="size-3.5" /></Link>}
-      <div className="mt-5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm font-bold">
-        <h3>今日の摂取量</h3>
-        <p className="metric">{recordedCalories === null ? "—" : recordedCalories.toLocaleString("ja-JP")}{calorieGoal !== null && ` / ${calorieGoal.toLocaleString("ja-JP")}`} kcal</p>
-      </div>
-      <div role={calorieGoal !== null && recordedCalories !== null ? "progressbar" : undefined} aria-label={calorieGoal !== null && recordedCalories !== null ? "今日の摂取カロリー" : undefined} aria-valuemin={calorieGoal !== null && recordedCalories !== null ? 0 : undefined} aria-valuemax={calorieGoal ?? undefined} aria-valuenow={calorieGoal !== null && recordedCalories !== null ? Math.min(recordedCalories, calorieGoal) : undefined} aria-valuetext={calorieGoal !== null && recordedCalories !== null ? `${recordedCalories.toLocaleString("ja-JP")} / ${calorieGoal.toLocaleString("ja-JP")} kcal` : undefined} className="mt-4 h-5 overflow-hidden rounded-full bg-[var(--sage-soft)]">
-        <div className="h-full rounded-full bg-[var(--sage-deep)] transition-[width]" style={{ width: `${calorieProgress}%` }} />
-      </div>
-      <div className="metric mt-3 flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm text-[var(--muted)]"><span>0 kcal</span><span>目安上限 {calorieGoal === null ? "—" : calorieGoal.toLocaleString("ja-JP")} kcal</span></div>
-      {calorieExcess > 0 && <p className="mt-2 text-xs font-semibold text-[var(--coral)]">目安上限を {calorieExcess.toLocaleString("ja-JP")} kcal 超えています。</p>}
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">濃い緑色＝登録した食事の摂取カロリー</p>
-      {mealStatus && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{mealStatus}</p>}
-      <DailyCalorieRings macros={dailyMacros} burned={burnedCalories} consumed={consumedForDifference} calorieGoal={calorieGoal} loading={loading} burnLoadFailed={burnLoadFailed} mealLoadFailed={mealLoadFailed} incompleteMeals={dailyCalories.missingMeals > 0 || dailyCalories.partiallyCountedMeals > 0} />
-    </section>
-    <details className="mt-1 px-2 text-xs leading-5 text-[var(--muted)]"><summary className="min-h-11 cursor-pointer content-center">計算方法と注意点</summary><p className="pb-2">{calorieGuide?.status === "ready" && `身長${data.profile?.heightCm}cm・体重${summary.currentWeight}kg・年齢と目標から計算。活動量は低め〜標準を仮定${calorieGuide.broadRange ? "し、性別を計算に用いない設定のため幅を広げています" : "しています"}。今日の記録との差はノルマではありません。`}成人のMifflin-St Jeor式を使用し、活動量を1.4〜1.6倍で概算しています。目標による補正（筋肉を増やす +5%、体脂肪を減らす -10%）はアプリ独自の控えめな仮定です。妊娠・授乳中や持病のある方には適用せず、必要に応じて医療・栄養の専門家に相談してください。<a className="underline underline-offset-2" href="https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner" target="_blank" rel="noopener noreferrer">参考：米国NIH</a></p></details>
-    <WeeklyWorkoutAdvice workouts={data.workouts} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} profileUnavailable={profileLoadFailed} />
-    <MuscleActivityMap workouts={data.workouts} today={today} loading={loading} unavailable={workoutLoadFailed} />
-    <WeightTrendChart entries={data.weights.filter((entry) => entry.measuredOn <= today)} loading={loading} />
-    <section aria-label="現在の身体と目標" className="panel mt-7 grid gap-5 sm:grid-cols-2 sm:gap-0">
-      <Link href="/weight" className="min-w-0 rounded-xl p-1 hover:bg-[var(--sand)] sm:pr-5"><p className="text-xs text-[var(--muted)]">現在の体重</p><p className="metric mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[34px] font-medium leading-none sm:text-[48px]"><span>{loading ? "—" : summary.currentWeight ?? "—"}</span><span className="text-sm font-normal tracking-normal text-[var(--muted)]">kg</span></p><p className="mt-3 text-xs font-semibold text-[var(--sage-deep)]">体重を記録する ↗</p></Link>
-      <div className="flex flex-col justify-center border-t border-[var(--line)] pt-5 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0"><p className="text-xs text-[var(--muted)]">いまの目標</p><p className="mt-2 text-sm font-bold leading-6 sm:text-base">{loading ? "読み込み中…" : profileLoadFailed ? "読み込めませんでした" : data.profile ? fitnessGoalLabels[data.profile.goal] : "目標を設定しましょう"}</p><Link href="/onboarding" className="text-link mt-1">{data.profile ? "目標を変更" : "プロフィールへ"}<Icon name="arrow-right" className="size-3.5" /></Link></div>
-    </section>
-    <section className="mt-9" aria-label="食事と筋トレのふり返り" aria-busy={loading}>
-      <h2 className="section-title">食事と筋トレのふり返り</h2>
-      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">入力された記録から作る自動コメントです。写真やフォームをAIが判定した結果ではありません。</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {(["meal", "workout"] as const).map((kind) => {
-          const item = dailyFeedback[kind];
-          const unavailable = kind === "meal" ? mealLoadFailed : workoutLoadFailed;
-          return <article key={kind} className="rounded-2xl border border-[var(--line)] bg-white p-4 shadow-[0_6px_18px_rgba(25,24,47,.035)]">
-            <p className="text-xs font-semibold text-[var(--sage-deep)]">{kind === "meal" ? "食事" : "筋トレ"}</p>
-            <h3 className="mt-2 text-sm font-bold leading-6">{loading ? "記録を読み込み中…" : unavailable ? "記録を読み込めませんでした" : item.title}</h3>
-            <p className="mt-2 text-xs leading-6 text-[var(--muted)]">{loading ? "" : unavailable ? "再読み込みしてから確認してください。" : item.detail}</p>
-            <Link href={item.href} className="text-link mt-3">記録を見る<Icon name="arrow-right" className="size-3.5" /></Link>
-          </article>;
-        })}
-      </div>
-      <p className="mt-3 text-xs leading-5 text-[var(--muted)]">記録のない食事や運動は含みません。栄養・運動の良し悪しや健康状態の診断ではありません。</p>
-    </section>
+      <WeeklyWorkoutAdvice workouts={data.workouts} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} profileUnavailable={profileLoadFailed} />
     </div>
-  </>;
+  </div>;
 }
