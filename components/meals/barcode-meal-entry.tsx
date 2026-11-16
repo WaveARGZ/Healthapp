@@ -9,6 +9,8 @@ import type { MealFoodItem } from "@/types/meal";
 
 interface BarcodeMealEntryProps {
   onAddFood: (food: Omit<MealFoodItem, "id">) => Promise<void>;
+  barcode: string;
+  onBarcodeChange: (value: string) => void;
 }
 
 type NutritionKey = keyof BarcodeNutrition;
@@ -34,8 +36,7 @@ function validAmount(value: string): boolean {
   return value.trim() !== "" && Number.isFinite(amount) && amount > 0 && amount <= 3000;
 }
 
-export function BarcodeMealEntry({ onAddFood }: BarcodeMealEntryProps) {
-  const [barcode, setBarcode] = useState("");
+export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange }: BarcodeMealEntryProps) {
   const [scanning, setScanning] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [product, setProduct] = useState<BarcodeProduct | null>(null);
@@ -60,7 +61,7 @@ export function BarcodeMealEntry({ onAddFood }: BarcodeMealEntryProps) {
     }
     const controller = new AbortController();
     lookupAbort.current = controller;
-    setBarcode(code);
+    onBarcodeChange(code);
     setIsLookingUp(true);
     setNotice("商品を検索しています…");
     try {
@@ -81,7 +82,7 @@ export function BarcodeMealEntry({ onAddFood }: BarcodeMealEntryProps) {
     } finally {
       if (!controller.signal.aborted) setIsLookingUp(false);
     }
-  }, []);
+  }, [onBarcodeChange]);
 
   useEffect(() => () => lookupAbort.current?.abort(), []);
 
@@ -145,7 +146,6 @@ export function BarcodeMealEntry({ onAddFood }: BarcodeMealEntryProps) {
         ...(unit === "g" ? { portionGrams: quantity, portionUnit: unit, portionQuantity: quantity } : {}),
       });
       setProduct(null);
-      setBarcode("");
       setScanning(false);
       setNotice(`${name.trim()}を食事に保存しました。`);
     } catch {
@@ -164,7 +164,7 @@ export function BarcodeMealEntry({ onAddFood }: BarcodeMealEntryProps) {
     </Button>
     {scanning && <div className="mt-3 overflow-hidden rounded-xl bg-black"><video ref={videoRef} autoPlay muted playsInline aria-label="バーコード読み取りカメラ" className="aspect-[4/3] w-full object-cover" /><p className="bg-[var(--ink)] px-3 py-2 text-center text-xs text-white">商品の線状バーコードを画面中央に合わせてください</p></div>}
     <label className="mt-4 block text-xs font-bold text-[var(--ink)]">バーコード番号を入力
-      <input value={barcode} onChange={(event) => { lookupAbort.current?.abort(); setIsLookingUp(false); setBarcode(event.target.value); setProduct(null); setNotice(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); setScanning(false); void searchBarcode(barcode); } }} inputMode="numeric" autoComplete="off" placeholder="例：3017620422003" className="form-input mt-2" />
+      <input value={barcode} onChange={(event) => { lookupAbort.current?.abort(); setIsLookingUp(false); onBarcodeChange(event.target.value); setProduct(null); setNotice(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); setScanning(false); void searchBarcode(barcode); } }} inputMode="numeric" autoComplete="off" placeholder="例：3017620422003" className="form-input mt-2" />
     </label>
     <Button type="button" className="mt-3 w-full" onClick={() => { setScanning(false); void searchBarcode(barcode); }} disabled={isLookingUp || isSaving || !normalizeBarcode(barcode)}>{isLookingUp ? "検索中…" : "商品を検索"}</Button>
     {product && <div className="mt-5 rounded-xl border border-[var(--line)] bg-white p-4">
