@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { FoodLibrarySearch } from "@/components/meals/food-library-search";
@@ -43,6 +43,26 @@ function recordedCalories(entry: MealEntry): number | undefined {
 }
 
 const mealTypes = Object.entries(mealTypeLabels) as Array<[MealType, string]>;
+const barcodeDraftKey = "bodymake:meal-barcode-draft:v1";
+const barcodeDraftEvent = "bodymake:meal-barcode-draft-change";
+let memoryBarcodeDraft = "";
+
+function readBarcodeDraft(): string {
+  if (typeof window === "undefined") return "";
+  try { return window.sessionStorage.getItem(barcodeDraftKey) ?? memoryBarcodeDraft; }
+  catch { return memoryBarcodeDraft; }
+}
+
+function subscribeBarcodeDraft(onChange: () => void): () => void {
+  window.addEventListener(barcodeDraftEvent, onChange);
+  return () => window.removeEventListener(barcodeDraftEvent, onChange);
+}
+
+function updateBarcodeDraft(value: string) {
+  memoryBarcodeDraft = value;
+  try { window.sessionStorage.setItem(barcodeDraftKey, value); } catch { /* Keep the draft in memory if storage is unavailable. */ }
+  window.dispatchEvent(new Event(barcodeDraftEvent));
+}
 
 export function MealRecorder() {
   const [mealType, setMealType] = useState<MealType>("breakfast");
@@ -52,6 +72,7 @@ export function MealRecorder() {
   const [history, setHistory] = useState<MealEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [inputMode, setInputMode] = useState<"search" | "photo" | "manual" | "barcode">("search");
+  const barcodeDraft = useSyncExternalStore(subscribeBarcodeDraft, readBarcodeDraft, () => "");
   const [composerOpen, setComposerOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const composerRef = useRef<HTMLDivElement>(null);
@@ -175,7 +196,7 @@ export function MealRecorder() {
       ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-md border px-1 text-[11px] font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
       <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} /></div>
       {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} />}
-      {inputMode === "barcode" && <BarcodeMealEntry onAddFood={saveFood} />}
+      {inputMode === "barcode" && <BarcodeMealEntry onAddFood={saveFood} barcode={barcodeDraft} onBarcodeChange={updateBarcodeDraft} />}
       {inputMode === "photo" && <p role="status" aria-live="polite" className="mt-4 text-sm text-[var(--sage-deep)]">{notice}</p>}
       {inputMode === "manual" && <>
       <p className="mt-4 text-xs leading-6 text-[var(--muted)]">料理名・食べた量・栄養値を入力してください。不明な栄養値は空欄でも保存できます。</p>
