@@ -76,16 +76,23 @@ function renderDashboard(meals, { loading = false, mealUnavailable = false, burn
 test("fully entered meals display complete totals without partial-total warnings", () => {
   const html = renderDashboard([known]);
   assert.match(html, /摂取 500 kcal/);
-  assert.match(html, /消費から摂取を引いた差 \+1,500 kcal/);
+  assert.match(html, /消費から摂取を引いた収支 \+1,500 kcal。消費が多い/);
+  assert.match(html, /PFC · カロリー比/);
+  assert.match(html, /20g · 16%/);
   assert.ok(!html.includes(partialNotice));
   assert.ok(!html.includes(macroNotice));
+});
+
+test("calorie balance shows the sign, amount, and which side is larger", () => {
+  assert.match(renderDashboard([{ ...known, calories: 2500 }]), /消費から摂取を引いた収支 -500 kcal。摂取が多い/);
+  assert.match(renderDashboard([{ ...known, calories: 2000 }]), /消費から摂取を引いた収支 0 kcal。消費と摂取が同じ/);
 });
 
 test("missing meal calories are explained beside the subtotal and balance, including for screen readers", () => {
   // Complete PFC does not imply complete calories.
   const html = renderDashboard([known, { ...known, calories: undefined }]);
   assert.match(html, /摂取 500 kcal/);
-  assert.match(html, /消費から摂取を引いた差 \+1,500 kcal/);
+  assert.match(html, /消費から摂取を引いた収支 \+1,500 kcal。消費が多い/);
   assert.ok(html.includes(partialNotice));
   assert.ok(!html.includes(macroNotice));
   assert.equal((html.match(/aria-describedby="mobile-calorie-status"/g) ?? []).length, 2);
@@ -100,7 +107,7 @@ test("partially entered dishes within a meal retain the calorie warning", () => 
 test("all unknown calories and PFC remain unknown, not zero or a complete balance", () => {
   const html = renderDashboard([empty]);
   assert.match(html, /摂取 — kcal/);
-  assert.match(html, /消費から摂取を引いた差 — kcal/);
+  assert.match(html, /消費から摂取を引いた収支 — kcal。収支は未計算/);
   assert.match(html, /カロリーは未入力です。収支は計算できません。/);
   assert.match(html, /PFCは未入力です。/);
   assert.ok(!html.includes(partialNotice));
@@ -109,14 +116,14 @@ test("all unknown calories and PFC remain unknown, not zero or a complete balanc
 test("explicit zero is a known value and is not described as missing", () => {
   const html = renderDashboard([{ ...known, calories: 0, proteinG: 0, fatG: 0, carbsG: 0 }]);
   assert.match(html, /摂取 0 kcal/);
-  assert.match(html, /消費から摂取を引いた差 \+2,000 kcal/);
+  assert.match(html, /消費から摂取を引いた収支 \+2,000 kcal。消費が多い/);
   assert.ok(!html.includes("未入力"));
 });
 
 test("no meals differs from recorded meals with unknown calories", () => {
   const html = renderDashboard([]);
   assert.match(html, /まだ食事の記録はありません。/);
-  assert.match(html, /消費から摂取を引いた差 — kcal/);
+  assert.match(html, /消費から摂取を引いた収支 — kcal。収支は未計算/);
   assert.ok(!html.includes("カロリーは未入力"));
 });
 
@@ -140,5 +147,5 @@ test("loading and failed meal requests do not misreport missing user input", () 
 test("unavailable burn records do not hide the partial-intake warning or invent a balance", () => {
   const html = renderDashboard([known, empty], { burnUnavailable: true });
   assert.ok(html.includes(partialNotice));
-  assert.match(html, /消費から摂取を引いた差 — kcal/);
+  assert.match(html, /消費から摂取を引いた収支 — kcal。収支は未計算/);
 });
