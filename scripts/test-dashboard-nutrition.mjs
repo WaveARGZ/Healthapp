@@ -85,8 +85,8 @@ test("fully entered meals display complete totals without partial-total warnings
   const html = renderDashboard([known]);
   assert.match(html, /摂取 500 kcal/);
   assert.match(html, /消費から摂取を引いた収支 \+1,500 kcal。消費が多い/);
-  assert.match(html, /PFC・カロリー比/);
-  assert.match(html, /20g · 16%/);
+  assert.match(html, /PFCの摂取量とカロリー比/);
+  assert.match(html, /20g.*比率 16%/);
   assert.ok(!html.includes(partialNotice));
   assert.ok(!html.includes(macroNotice));
 });
@@ -168,6 +168,18 @@ test("actual intake and PFC appear beside daily targets; burn estimate is distin
   assert.match(html, /淡色：1日の目安/);
   assert.match(html, /role="meter"/);
   assert.doesNotMatch(html, /conic-gradient|size-\[80px\]/);
+});
+
+test("PFC markers follow recorded grams against the target grams, not the calorie ratio", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  const belowTarget = renderDashboard([known], { profile });
+  assert.match(belowTarget, /aria-label="たんぱく質の摂取量" aria-valuemin="0" aria-valuemax="135" aria-valuenow="20"/);
+  assert.match(belowTarget, /left:14\.814[0-9]*%;background-color:#4f7668/);
+
+  const aboveTarget = renderDashboard([{ ...known, proteinG: 200 }], { profile });
+  assert.match(aboveTarget, /aria-label="たんぱく質の摂取量" aria-valuemin="0" aria-valuemax="200" aria-valuenow="200"/);
+  assert.match(aboveTarget, /width:67\.5%;background-color:#dce8e2/);
+  assert.match(aboveTarget, /left:100%;background-color:#4f7668/);
 });
 
 test("calculation details retain resting and total expenditure estimates", () => {

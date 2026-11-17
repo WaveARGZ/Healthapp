@@ -21,9 +21,9 @@ function range(min: number, max: number) {
   return min === max ? min.toLocaleString("ja-JP") : `${min.toLocaleString("ja-JP")}～${max.toLocaleString("ja-JP")}`;
 }
 
-function grams(macros: DailyMacros, key: "proteinG" | "fatG" | "carbsG", loading: boolean) {
+function recordedGrams(macros: DailyMacros, key: "proteinG" | "fatG" | "carbsG", loading: boolean) {
   return loading || macros.mealCount === 0 || macros.knownCounts[key] === 0
-    ? "—" : Math.round(macros[key]).toLocaleString("ja-JP");
+    ? null : Math.round(macros[key]);
 }
 
 export function MobileDashboard({ today, doneCount, weight, goal, profile, macros, intake, consumed, burned, incompleteCalories, workouts, feedback, loading, profileUnavailable, mealUnavailable, burnUnavailable, workoutUnavailable, error }: {
@@ -59,11 +59,19 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
     { key: "proteinG", label: "P", name: "たんぱく質", energy: macros.proteinG * 4, target: macroGuide?.protein, color: "#4f7668", targetColor: "#dce8e2" },
     { key: "fatG", label: "F", name: "脂質", energy: macros.fatG * 9, target: macroGuide?.fat, color: "#947449", targetColor: "#eee3d1" },
     { key: "carbsG", label: "C", name: "炭水化物", energy: macros.carbsG * 4, target: macroGuide?.carbs, color: "#9f6257", targetColor: "#f0dfda" },
-  ] as const).map((row) => ({
-    ...row,
-    amount: grams(macros, row.key, macroUnavailable),
-    percentage: macroRatioReady ? Math.round(row.energy / macroEnergy * 100) : null,
-  }));
+  ] as const).map((row) => {
+    const recordedG = recordedGrams(macros, row.key, macroUnavailable);
+    const scaleG = Math.max(row.target?.maxG ?? 0, recordedG ?? 0, 1);
+    return {
+      ...row,
+      recordedG,
+      scaleG,
+      amount: recordedG === null ? "—" : recordedG.toLocaleString("ja-JP"),
+      percentage: macroRatioReady ? Math.round(row.energy / macroEnergy * 100) : null,
+      recordedWidth: recordedG === null ? 0 : recordedG / scaleG * 100,
+      targetWidth: row.target ? row.target.maxG / scaleG * 100 : 0,
+    };
+  });
   const difference = burnMinusIntake(burned, consumed);
   const activity = summarizeMuscleActivity(workouts, today);
   const differenceText = difference === null ? "—" : `${difference > 0 ? "+" : ""}${difference.toLocaleString("ja-JP")}`;
@@ -123,15 +131,15 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
         </Link>
       </div>
       <Link href="/meals" className="block border-t border-[var(--line)] py-4 transition-colors hover:bg-[var(--canvas)]">
-        <p className="text-base font-semibold text-[var(--ink-soft)]">PFC・カロリー比</p>
+        <p className="text-base font-semibold text-[var(--ink-soft)]">PFCの摂取量とカロリー比</p>
         <div className="mt-4 grid gap-5 sm:grid-cols-3" aria-label="PFCの記録と目安">{macroRows.map((row) => <div key={row.key} className="min-w-0">
-          <span className="flex items-baseline justify-between gap-2"><span className="text-sm font-semibold text-[var(--ink-soft)]">{row.label} {row.name}</span><strong className="metric whitespace-nowrap text-base text-[var(--ink)]">{row.amount === "—" ? "—" : `${row.amount}g · ${row.percentage === null ? "—" : `${row.percentage}%`}`}</strong></span>
-          <span className="relative mt-3 block h-3 w-full rounded-full bg-[var(--sage-soft)]" role="meter" aria-label={`${row.name}のカロリー比`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percentage ?? undefined} aria-valuetext={row.percentage === null ? "未計算" : `記録${row.percentage}%、目安${row.target ? `${row.target.percent}%` : "未設定"}`}>
-            <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.target?.percent ?? 0}%`, backgroundColor: row.targetColor }} aria-hidden="true" />
-            <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.percentage ?? 0}%`, backgroundColor: row.color }} aria-hidden="true" />
-            {row.target && <span className="absolute top-4 h-2 w-0.5 -translate-x-1/2 rounded-full bg-[var(--ink-soft)]" style={{ left: `${row.target.percent}%` }} aria-hidden="true" />}
-            {row.percentage !== null && <span className="absolute -top-[3px] z-10 size-[18px] -translate-x-1/2 rounded-full border-[3px] border-white" style={{ left: `${row.percentage}%`, backgroundColor: row.color }} aria-hidden="true" />}
-          </span>
+          <span className="flex items-baseline justify-between gap-2"><span className="text-sm font-semibold text-[var(--ink-soft)]">{row.label} {row.name}</span><strong className="metric whitespace-nowrap text-base text-[var(--ink)]">{row.amount === "—" ? "—" : `${row.amount}g`}<span className="ml-1 text-sm font-medium text-[var(--muted)]">比率 {row.percentage === null ? "—" : `${row.percentage}%`}</span></strong></span>
+          {row.target && <span className="relative mt-3 block h-3 w-full rounded-full bg-[var(--sage-soft)]" role="meter" aria-label={`${row.name}の摂取量`} aria-valuemin={0} aria-valuemax={row.scaleG} aria-valuenow={row.recordedG ?? undefined} aria-valuetext={row.recordedG === null ? `未入力。目安${range(row.target.minG, row.target.maxG)}g` : `記録${row.recordedG}g、目安${range(row.target.minG, row.target.maxG)}g`}>
+            <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.targetWidth}%`, backgroundColor: row.targetColor }} aria-hidden="true" />
+            <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.recordedWidth}%`, backgroundColor: row.color }} aria-hidden="true" />
+            <span className="absolute top-4 h-2 w-0.5 -translate-x-1/2 rounded-full bg-[var(--ink-soft)]" style={{ left: `${row.targetWidth}%` }} aria-hidden="true" />
+            {row.recordedG !== null && <span className="absolute -top-[3px] z-10 size-[18px] -translate-x-1/2 rounded-full border-[3px] border-white" style={{ left: `${row.recordedWidth}%`, backgroundColor: row.color }} aria-hidden="true" />}
+          </span>}
           <span className="metric mt-4 block text-[15px] font-semibold leading-6 text-[var(--ink-soft)]">目安：{row.target ? `${range(row.target.minG, row.target.maxG)} g（比率 ${row.target.percent}%）` : "—"}</span>
         </div>)}</div>
       </Link>
