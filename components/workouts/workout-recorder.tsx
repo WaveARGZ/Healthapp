@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { RecordActions } from "@/components/ui/record-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExercisePicker } from "@/components/workouts/exercise-picker";
+import { WorkoutSetNumberField } from "@/components/workouts/workout-set-number-field";
 import { DailyBurnRecorder } from "@/components/workouts/daily-burn-recorder";
 import { AnatomyFigure } from "@/components/dashboard/anatomy-figure";
 import { activityTint, inactiveOutlineColor } from "@/components/dashboard/activity-color";
@@ -279,8 +280,8 @@ export function WorkoutRecorder() {
               <div className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] gap-1.5 border-y border-[var(--line)] py-2 text-center text-xs font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>回数</span><span>完了</span><span className="sr-only">削除</span></div>
               <div className="mt-3 space-y-2">{sets.map((set, setIndex) => <div key={set.id} className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] items-center gap-1.5">
                 <span className="metric text-center text-xs text-[var(--muted)]">{setIndex + 1}</span>
-                <TextInput type="number" min="0" step="0.5" inputMode="decimal" aria-label={`${setIndex + 1}セット目の重量`} value={set.weightKg ?? ""} onChange={(event) => updateSet(exercise.id, set.id, { weightKg: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" className="metric h-12 appearance-none px-1 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                <TextInput type="number" min="0" inputMode="numeric" aria-label={`${setIndex + 1}セット目の回数`} value={set.reps ?? ""} onChange={(event) => updateSet(exercise.id, set.id, { reps: event.target.value ? Number(event.target.value) : undefined })} placeholder="0" className="metric h-12 appearance-none px-1 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                <WorkoutSetNumberField value={set.weightKg} onCommit={(weightKg) => updateSet(exercise.id, set.id, { weightKg })} previousValue={sets[setIndex - 1]?.weightKg} label={`${setIndex + 1}セット目の重量`} copyLabel={setIndex > 0 ? `${setIndex}セット目の重量を${setIndex + 1}セット目にコピー` : undefined} step="0.5" inputMode="decimal" />
+                <WorkoutSetNumberField value={set.reps} onCommit={(reps) => updateSet(exercise.id, set.id, { reps })} previousValue={sets[setIndex - 1]?.reps} label={`${setIndex + 1}セット目の回数`} copyLabel={setIndex > 0 ? `${setIndex}セット目の回数を${setIndex + 1}セット目にコピー` : undefined} step="1" inputMode="numeric" />
                 <button type="button" onClick={() => updateSet(exercise.id, set.id, { completed: !set.completed })} aria-pressed={set.completed} aria-label={`${setIndex + 1}セット目の完了`} className={`grid size-11 place-items-center rounded border ${set.completed ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name="check" className="size-5" /></button>
                 <button type="button" disabled={sets.length === 1} onClick={() => removeSet(exercise.id, set.id)} aria-label={`${setIndex + 1}セット目を削除`} className="grid size-11 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-3.5" /></button>
               </div>)}</div>

@@ -6,6 +6,7 @@ export type IconName =
   | "camera"
   | "check"
   | "chevron-right"
+  | "copy"
   | "dumbbell"
   | "home"
   | "leaf"
@@ -44,6 +45,7 @@ export function Icon({ name, className, ...props }: IconProps) {
     camera: <><path d="M4 7h3l1.5-2h7L17 7h3v12H4z" /><circle cx="12" cy="13" r="3.4" /></>,
     check: <path d="m5 12 4.2 4.2L19 6.8" />,
     "chevron-right": <path d="m9 18 6-6-6-6" />,
+    copy: <><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></>,
     dumbbell: <><path d="M6 8v8m12-8v8M3.5 10v4m17-4v4M6 12h12" /><path d="M8 9v6m8-6v6" /></>,
     home: <><path d="m3 10 9-7 9 7v10H3z" /><path d="M9 20v-6h6v6" /></>,
     leaf: <><path d="M20 4C12.4 4 5 7.4 5 14.2c0 3.2 2.5 5.8 5.7 5.8C17.5 20 20 11.6 20 4Z" /><path d="M4 21c2.5-4.5 6.2-7.7 11-10" /></>,

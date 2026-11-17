@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/ui/form-fields";
+import { WorkoutSetNumberField } from "@/components/workouts/workout-set-number-field";
 import { Icon } from "@/components/ui/icon";
 import { beginnerExerciseCatalog, beginnerExerciseCount } from "@/lib/data/beginner-exercise-catalog";
 import { getExerciseShortEmbedUrl } from "@/lib/data/exercise-short-videos";
@@ -256,7 +257,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
     setIsEditingSets(true);
     setTutorialStage(null);
     setQuery("");
-    requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLInputElement>('[data-set-weight="true"]')?.focus());
+    if (window.matchMedia("(min-width: 640px)").matches) requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLInputElement>('[data-set-weight="true"]')?.focus());
   }
 
   function selectCategory(category: string) {
@@ -297,11 +298,11 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
             <div className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-2 border-b border-[var(--line)] bg-[var(--sand)] px-3 py-3 text-center text-xs font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>レップ数</span><span className="sr-only">削除</span></div>
             <div className="divide-y divide-[var(--line)]">{sets.map((set, index) => <div key={set.id} className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-2 px-3 py-2">
               <span className="metric text-center text-xs font-semibold text-[var(--muted)]">{index + 1}</span>
-              <TextInput data-set-weight="true" type="number" min="0" step="0.5" inputMode="decimal" aria-label={`セット${index + 1}の重量 kg`} value={set.weightKg ?? ""} onChange={(event) => onUpdateSet(set.id, { weightKg: event.target.value ? Number(event.target.value) : undefined })} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} placeholder="0" className="metric h-12 px-1 text-center" />
-              <TextInput type="number" min="0" step="1" inputMode="numeric" aria-label={`セット${index + 1}のレップ数`} value={set.reps ?? ""} onChange={(event) => onUpdateSet(set.id, { reps: event.target.value ? Number(event.target.value) : undefined })} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} placeholder="0" className="metric h-12 px-1 text-center" />
+              <WorkoutSetNumberField autoFocusTarget value={set.weightKg} onCommit={(weightKg) => onUpdateSet(set.id, { weightKg })} previousValue={sets[index - 1]?.weightKg} label={`セット${index + 1}の重量 kg`} copyLabel={index > 0 ? `セット${index}の重量をセット${index + 1}にコピー` : undefined} step="0.5" inputMode="decimal" />
+              <WorkoutSetNumberField value={set.reps} onCommit={(reps) => onUpdateSet(set.id, { reps })} previousValue={sets[index - 1]?.reps} label={`セット${index + 1}のレップ数`} copyLabel={index > 0 ? `セット${index}のレップ数をセット${index + 1}にコピー` : undefined} step="1" inputMode="numeric" />
               <button type="button" disabled={sets.length === 1} onClick={() => onRemoveSet(set.id)} aria-label={`セット${index + 1}を削除`} className="grid size-10 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-4" /></button>
             </div>)}</div>
-            <div className="border-t border-[var(--line)] p-3"><Button type="button" variant="secondary" className="w-full text-[var(--sage-deep)]" onClick={() => { onAddSet(); requestAnimationFrame(() => { const inputs = dialogRef.current?.querySelectorAll<HTMLInputElement>('[data-set-weight="true"]'); inputs?.[inputs.length - 1]?.focus(); }); }}><Icon name="plus" className="size-4" />セットを1つ追加</Button></div>
+            <div className="border-t border-[var(--line)] p-3"><Button type="button" variant="secondary" className="w-full text-[var(--sage-deep)]" onClick={() => { onAddSet(); if (window.matchMedia("(min-width: 640px)").matches) requestAnimationFrame(() => { const inputs = dialogRef.current?.querySelectorAll<HTMLInputElement>('[data-set-weight="true"]'); inputs?.[inputs.length - 1]?.focus(); }); }}><Icon name="plus" className="size-4" />セットを1つ追加</Button></div>
           </div>
           <Button type="button" className="mt-5 w-full" onClick={closePicker}>記録画面へ戻る</Button>
         </section> : activeCategory === null ? <section aria-label="鍛える部位を選択" className="px-4 py-6 sm:px-5">

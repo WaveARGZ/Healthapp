@@ -135,6 +135,8 @@ html { scroll-padding-bottom: 180px; }
   }
 }
 
+.exercise-dialog input { scroll-margin-block: 8px 16px; }
+
 @media (max-width: 639px) {
   body:has(.mobile-dashboard) > .min-h-dvh {
     min-height: 0;
