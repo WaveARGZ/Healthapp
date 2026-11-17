@@ -1,7 +1,7 @@
 import type { FitnessGoal, Gender } from "@/types/user";
 
 export type DailyCalorieGuide =
-  | { status: "ready"; minKcal: number; maxKcal: number; minExpenditureKcal: number; maxExpenditureKcal: number; broadRange: boolean }
+  | { status: "ready"; minKcal: number; maxKcal: number; minExpenditureKcal: number; maxExpenditureKcal: number; minRestingKcal: number; maxRestingKcal: number; minNonRestingKcal: number; maxNonRestingKcal: number; broadRange: boolean }
   | { status: "missing-profile" | "outside-adult-range" | "underweight" | "low-estimate" };
 
 type ReadyGuide = Extract<DailyCalorieGuide, { status: "ready" }>;
@@ -68,8 +68,18 @@ export function estimateDailyCalorieGuide(input: DailyCalorieGuideInput): DailyC
   const max = maxExpenditure * goalFactor;
   if (min < 1200 || !Number.isFinite(max)) return { status: "low-estimate" };
 
+  // Subtract the same displayed resting estimate from each displayed total, so
+  // the numbers in the UI add back up at the shown 50 kcal precision.
+  const minRestingKcal = roundTo50(minRmr);
+  const maxRestingKcal = roundTo50(maxRmr);
+  const minExpenditureKcal = roundTo50(minExpenditure);
+  const maxExpenditureKcal = roundTo50(maxExpenditure);
+
   return {
     status: "ready", minKcal: roundTo50(min), maxKcal: roundTo50(max),
-    minExpenditureKcal: roundTo50(minExpenditure), maxExpenditureKcal: roundTo50(maxExpenditure), broadRange,
+    minExpenditureKcal, maxExpenditureKcal, minRestingKcal, maxRestingKcal,
+    minNonRestingKcal: minExpenditureKcal - minRestingKcal,
+    maxNonRestingKcal: maxExpenditureKcal - maxRestingKcal,
+    broadRange,
   };
 }

@@ -151,15 +151,19 @@ test("loading and failed meal requests do not misreport missing user input", () 
   }
 });
 
-test("personal guide distinguishes estimated total expenditure from workout burn and shows goal-based PFC", () => {
+test("personal guide shows intake, non-resting expenditure, resting estimate and goal-based PFC", () => {
   const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
   const html = renderToStaticMarkup(PersonalNutritionGuide({ profile, weightKg: 70, loading: false, unavailable: false }));
   assert.match(html, /摂取カロリーの目安/);
   assert.match(html, /2,400～2,700/);
-  assert.match(html, /総消費カロリーの推定/);
+  assert.match(html, /消費カロリーの目安/);
+  assert.match(html, /基礎代謝を除いた分/);
+  assert.match(html, /650～1,000/);
+  assert.match(html, /基礎代謝の目安/);
+  assert.match(html, /1,600/);
   assert.match(html, /2,250～2,600/);
-  assert.match(html, /120～135g/);
-  assert.match(html, /筋トレで記録した消費カロリーとは別の数値/);
+  assert.match(html, /120～135 g/);
+  assert.match(html, /運動だけで消費すべき量ではなく/);
 });
 
 test("personal guide requests missing profile details instead of inventing calorie targets", () => {
