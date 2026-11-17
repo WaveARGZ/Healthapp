@@ -159,7 +159,7 @@ test("actual intake and PFC appear beside daily targets; burn estimate is distin
   assert.match(html, /500/);
   assert.match(html, /1日の目安/);
   assert.match(html, /2,400～2,700/);
-  assert.match(html, /目安 120～135 g/);
+  assert.match(html, /目安：120～135 g（比率 20%）/);
   assert.match(html, /記録した消費/);
   assert.match(html, /活動による消費の推定/);
   assert.match(html, /650～1,000/);

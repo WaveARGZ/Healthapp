@@ -126,12 +126,12 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
         <p className="text-base font-semibold text-[var(--ink-soft)]">PFC・カロリー比</p>
         <div className="mt-4 grid gap-5 sm:grid-cols-3" aria-label="PFCの記録と目安">{macroRows.map((row) => <div key={row.key} className="min-w-0">
           <span className="flex items-baseline justify-between gap-2"><span className="text-sm font-semibold text-[var(--ink-soft)]">{row.label} {row.name}</span><strong className="metric whitespace-nowrap text-base text-[var(--ink)]">{row.amount === "—" ? "—" : `${row.amount}g · ${row.percentage === null ? "—" : `${row.percentage}%`}`}</strong></span>
-          <span className="relative mt-2 block h-2.5 w-full overflow-hidden rounded-full bg-[var(--sage-soft)]" role="meter" aria-label={`${row.name}のカロリー比`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percentage ?? undefined} aria-valuetext={row.percentage === null ? "未計算" : `記録${row.percentage}%、目安${row.target ? `${row.target.percent}%` : "未設定"}`}>
-            <span className="absolute inset-y-0 left-0 block" style={{ width: `${row.target?.percent ?? 0}%`, backgroundColor: row.targetColor }} aria-hidden="true" />
+          <span className="relative mt-3 block h-3 w-full rounded-full bg-[var(--sage-soft)]" role="meter" aria-label={`${row.name}のカロリー比`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percentage ?? undefined} aria-valuetext={row.percentage === null ? "未計算" : `記録${row.percentage}%、目安${row.target ? `${row.target.percent}%` : "未設定"}`}>
+            <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.target?.percent ?? 0}%`, backgroundColor: row.targetColor }} aria-hidden="true" />
             <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.percentage ?? 0}%`, backgroundColor: row.color }} aria-hidden="true" />
-            {row.target && <span className="absolute inset-y-0 z-10 w-px" style={{ left: `${row.target.percent}%`, backgroundColor: row.color }} aria-hidden="true" />}
+            {row.target && <span className="absolute -top-[3px] z-10 size-[18px] -translate-x-1/2 rounded-full border-[3px] border-white" style={{ left: `${row.target.percent}%`, backgroundColor: row.color }} aria-hidden="true" />}
           </span>
-          <span className="metric mt-1.5 block text-sm font-semibold text-[#607960]">目安 {row.target ? `${range(row.target.minG, row.target.maxG)} g · ${row.target.percent}%` : "—"}</span>
+          <span className="metric mt-2 block text-[15px] font-semibold leading-6 text-[var(--ink-soft)]">目安：{row.target ? `${range(row.target.minG, row.target.maxG)} g（比率 ${row.target.percent}%）` : "—"}</span>
         </div>)}</div>
       </Link>
       {calorieStatus && <p id="mobile-calorie-status" className="mt-1 text-xs leading-5 text-[var(--muted)]">{calorieStatus}</p>}
