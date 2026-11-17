@@ -9,14 +9,14 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, compact = false }: PageHeaderProps) {
   return (
-    <header className={`rounded-[22px] border border-[var(--line)] bg-[var(--sage-soft)] px-5 text-[var(--ink)] sm:px-7 ${compact ? "mb-5 py-5" : "mb-6 py-6 sm:mb-8 sm:py-7"}`}>
-      <span aria-hidden="true" className="mb-3 block h-1 w-8 rounded-full bg-[var(--sage-deep)]" />
-      <h1 className="text-[26px] font-bold leading-snug tracking-[-0.035em] text-balance sm:text-[30px]">{title}</h1>
-      {description ? <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{description}</p> : null}
+    <header className={`border-b border-[var(--line)] text-[var(--ink)] ${compact ? "mb-7 pb-6" : "mb-9 pb-8 sm:mb-12 sm:pb-10"}`}>
+      <p className="mb-3 text-[11px] font-bold tracking-[.16em] text-[var(--sage-deep)]">BODYMAKE / JOURNAL</p>
+      <h1 className="text-[clamp(2rem,7vw,3rem)] font-bold leading-[1.15] tracking-[-0.045em] text-balance">{title}</h1>
+      {description ? <p className="mt-3 max-w-prose text-sm leading-7 text-[var(--muted)]">{description}</p> : null}
     </header>
   );
 }
 
 export function AppTopBar() {
-  return <header className="safe-top border-b border-[var(--line)] bg-white"><div className="safe-gutters mx-auto flex min-h-[68px] max-w-6xl items-center justify-between gap-3 sm:min-h-[76px]"><Logo href="/dashboard" /><span className={`shrink-0 rounded-full border px-3 py-1 text-xs ${isTestEnvironment ? "border-[var(--coral-soft)] bg-[var(--coral-soft)] font-bold text-[var(--coral)]" : "border-[var(--line)] bg-[var(--sage-soft)] text-[var(--sage-deep)]"}`}>{isTestEnvironment ? "テスト環境" : "身体の記録帳"}</span></div></header>;
+  return <header className="safe-top border-b border-[var(--line)] bg-white"><div className="safe-gutters mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-3 sm:min-h-[84px]"><Logo href="/dashboard" /><span className={`shrink-0 border-l border-[var(--line)] pl-3 text-[11px] font-medium tracking-wide ${isTestEnvironment ? "text-[var(--coral)]" : "text-[var(--muted)]"}`}>{isTestEnvironment ? "テスト環境" : "身体の記録帳"}</span></div></header>;
 }

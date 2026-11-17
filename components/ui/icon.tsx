@@ -33,7 +33,7 @@ export function Icon({ name, className, ...props }: IconProps) {
     stroke: "currentColor",
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
-    strokeWidth: 1.8,
+    strokeWidth: 1.5,
     viewBox: "0 0 24 24",
     ...props,
   };

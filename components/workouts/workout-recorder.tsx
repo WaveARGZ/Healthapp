@@ -90,7 +90,7 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
   return <section aria-labelledby={selectedDate ? "workout-selected-date-title" : "workout-history-title"}>
     <div hidden={selectedDate !== null}>
     <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 id="workout-history-title" className="section-title">筋トレカレンダー</h2><p className="mt-1 text-xs text-[var(--muted)]">日付を選んで記録を追加・確認</p></div><span className="metric rounded-full bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-bold text-[var(--sage-deep)]">今月 {recordedDaysThisMonth}日</span></div>
-    <div className="rounded-2xl border border-[var(--line)] bg-white p-3 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-5">
+    <div className="rounded-2xl border border-[var(--line)] bg-white p-3 sm:p-5">
       <div className="mb-5 flex items-center justify-between gap-2">
         <button type="button" aria-label="前の月" onClick={() => changeMonth(-1)} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--sand)]">‹</button>
         <div className="flex min-w-0 items-center justify-center gap-1.5">
@@ -224,7 +224,7 @@ export function WorkoutRecorder() {
 
   return <>
     <PageHeader title="筋トレ" description="カレンダーで日付を選んで、種目を記録。" />
-    <div role="tablist" aria-label="筋トレの表示切り替え" className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--sage-soft)] p-1">
+    <div role="tablist" aria-label="筋トレの表示切り替え" className="mb-10 flex gap-7 border-b border-[var(--line)]">
       {([{ id: "record", label: "筋トレ記録" }, { id: "plan", label: "週間メニュー" }] as const).map((tab) => <button
         key={tab.id}
         id={`workout-${tab.id}-tab`}
@@ -241,7 +241,7 @@ export function WorkoutRecorder() {
           setActiveTab(next);
           document.getElementById(`workout-${next}-tab`)?.focus();
         }}
-        className={`min-h-12 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "bg-[var(--sage-deep)] text-white" : "text-[var(--ink-soft)] hover:bg-white hover:text-[var(--sage-deep)]"}`}
+        className={`min-h-12 border-b-2 px-1 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "border-[var(--sage-deep)] text-[var(--ink)]" : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"}`}
       >{tab.label}</button>)}
     </div>
     <div id="workout-plan-panel" role="tabpanel" aria-labelledby="workout-plan-tab" hidden={activeTab !== "plan"}>
@@ -259,7 +259,7 @@ export function WorkoutRecorder() {
         {exercises.map((exercise, index) => {
           const sets = setsFor(exercise);
           const completedCount = sets.filter((set) => set.completed).length;
-          return <section key={exercise.id} className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-[0_6px_18px_rgba(32,38,34,.04)]">
+          return <section key={exercise.id} className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
             <div className="flex min-h-14 items-center justify-between border-b border-[var(--line)] bg-[var(--sand)] pl-4 pr-2">
               <h2 className="flex items-center gap-3 text-sm font-semibold"><span className="metric grid size-7 place-items-center rounded-lg bg-white text-xs font-bold text-[var(--sage-deep)]">{String(index + 1).padStart(2, "0")}</span>トレーニング</h2>
               {exercises.length > 1 && <button type="button" aria-label={`${index + 1}番目の種目を削除`} onClick={() => removeExercise(exercise.id)} className="delete-button"><Icon name="trash" className="size-4" /></button>}

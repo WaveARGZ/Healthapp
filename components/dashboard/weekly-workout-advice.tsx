@@ -21,8 +21,8 @@ function shortDate(date: string): string {
 
 export function WeeklyWorkoutAdvice({ workouts, today, goal, loading, workoutUnavailable, profileUnavailable }: WeeklyWorkoutAdviceProps) {
   const advice = summarizeWeeklyWorkoutAdvice(workouts, today, goal);
-  return <section aria-labelledby="weekly-workout-advice-title" aria-busy={loading} className="mt-2 overflow-hidden rounded-2xl border border-[var(--line)] bg-white sm:mt-8">
-    <div className="bg-[var(--sage-soft)] px-5 py-5 sm:px-6">
+  return <section aria-labelledby="weekly-workout-advice-title" aria-busy={loading} className="mt-6 overflow-hidden rounded-xl border border-[var(--line)] bg-white sm:mt-8">
+    <div className="bg-[var(--sand)] px-6 py-7 sm:px-8 sm:py-9">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-1.5 text-xs font-semibold tracking-widest text-[var(--sage-deep)]"><Icon name="sparkle" className="size-4" />WEEKLY REVIEW</p>
@@ -31,26 +31,26 @@ export function WeeklyWorkoutAdvice({ workouts, today, goal, loading, workoutUna
         </div>
         <span className="rounded-full border border-[#c8d8c7] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--sage-deep)]">端末内で自動分析</span>
       </div>
-      {!loading && !workoutUnavailable && <div className="mt-5 grid grid-cols-3 gap-2 sm:max-w-lg sm:gap-3">
+      {!loading && !workoutUnavailable && <div className="mt-7 flex flex-wrap gap-x-10 gap-y-5 border-t border-[var(--line)] pt-6">
         {[["記録した日", `${advice.trainingDays}日`], ["筋トレ", `${advice.strengthDays}日`], ["有酸素", `${advice.cardioDays}日`]].map(([label, value]) =>
-          <div key={label} className="rounded-lg bg-white px-2 py-3 text-center sm:px-4"><p className="text-[11px] text-[var(--muted)]">{label}</p><p className="metric mt-1 text-xl font-semibold text-[var(--sage-deep)]">{value}</p></div>) }
+          <div key={label}><p className="text-[11px] text-[var(--muted)]">{label}</p><p className="metric mt-1 text-2xl font-semibold text-[var(--ink)]">{value}</p></div>) }
       </div>}
     </div>
     {loading || workoutUnavailable ? <p className="px-5 py-6 text-sm text-[var(--muted)] sm:px-6">{loading ? "筋トレ記録を読み込み中…" : "筋トレ記録を読み込めませんでした。再読み込みしてお試しください。"}</p>
-      : <div className="px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
-        <div className="grid gap-4 lg:grid-cols-3">
+      : <div className="px-6 pb-7 pt-6 sm:px-8 sm:pb-9">
+        <div className="grid gap-7 lg:grid-cols-[1.15fr_.85fr]">
           <article className="border-b border-[var(--line)] pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
             <h3 className="text-sm font-bold text-[var(--ink)]">続ける力</h3>
             <p className="mt-2 text-sm leading-7 text-[var(--ink-soft)]">{advice.encouragement}</p>
           </article>
-          <article className="border-b border-[var(--line)] pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
+          <article className="border-b border-[var(--line)] pb-4 lg:border-b-0 lg:pb-0">
             <h3 className="text-sm font-bold text-[var(--ink)]">部位のバランス</h3>
             <p className="mt-2 text-sm leading-7 text-[var(--ink-soft)]">{advice.balance}</p>
             {advice.trainingDays > 0 && <div className="mt-3 flex flex-wrap gap-1.5" aria-label="部位ごとの記録日数">
               {muscleGroups.map((group) => <span key={group} className={`rounded-full px-2.5 py-1 text-[11px] ${advice.muscleDays[group] > 0 ? "bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "bg-[var(--sand)] text-[var(--muted)]"}`}>{group} {advice.muscleDays[group]}日</span>)}
             </div>}
           </article>
-          <article>
+          <article className="lg:col-span-2 lg:border-t lg:border-[var(--line)] lg:pt-6">
             <h3 className="text-sm font-bold text-[var(--ink)]">目標とのつながり</h3>
             <p className="mt-2 text-sm leading-7 text-[var(--ink-soft)]">{profileUnavailable ? "目標を読み込めなかったため、記録とのつながりは表示できません。" : advice.goal}</p>
             {!profileUnavailable && <p className="mt-3 rounded-lg bg-[var(--sand)] px-3 py-2.5 text-xs leading-6 text-[var(--ink-soft)]"><strong className="text-[var(--sage-deep)]">次の一歩：</strong>{advice.nextStep}</p>}

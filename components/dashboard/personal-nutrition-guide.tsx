@@ -30,9 +30,9 @@ export function PersonalNutritionGuide({ profile, weightKg, loading, unavailable
         ? "推定値が低いため、数値目安は表示しません。"
         : "年齢・身長・体重を登録すると、あなた向けの目安を表示できます。";
 
-  return <div className="mt-3 border-t border-[var(--line)] pt-3 sm:mt-5 sm:pt-5" aria-label="目標に合わせた1日の栄養目安">
+  return <div className="mt-8 border-t border-[var(--line)] pt-7 sm:mt-10 sm:pt-9" aria-label="目標に合わせた1日の栄養目安">
     <div className="flex items-center justify-between gap-2">
-      <h3 className="text-sm font-bold text-[var(--ink)] sm:text-base">あなたの1日の目安</h3>
+      <h3 className="text-lg font-bold tracking-[-.03em] text-[var(--ink)] sm:text-xl">あなたの1日の目安</h3>
       <Link href="/onboarding" className="text-link min-h-9 shrink-0 text-xs">プロフィールを編集</Link>
     </div>
     {loading ? <p className="mt-2 text-xs text-[var(--muted)]">目安を計算しています…</p>
@@ -41,29 +41,28 @@ export function PersonalNutritionGuide({ profile, weightKg, loading, unavailable
           : <>
             <p className="mt-1 text-xs font-semibold text-[var(--sage-deep)]">{fitnessGoalLabels[profile.goal]}</p>
             <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)] sm:text-xs">{profile.heightCm}cm · {weightKg}kg · {profile.age}歳 · {genderLabels[profile.gender ?? "prefer-not-to-say"]}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
-              <div className="rounded-xl bg-[var(--sage-soft)] p-3">
+            <div className="mt-5 grid grid-cols-[1.1fr_.9fr] gap-3 sm:gap-4">
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--canvas)] p-4 sm:p-6">
                 <p className="text-[11px] font-semibold text-[var(--ink-soft)] sm:text-xs">摂取カロリーの目安</p>
                 <p className="metric mt-1 text-[16px] font-bold leading-snug text-[var(--sage-deep)] sm:text-xl">{kcalRange(guide.minKcal, guide.maxKcal)}</p>
                 <p className="text-[10px] text-[var(--muted)]">kcal / 日</p>
               </div>
-              <div className="rounded-xl border border-[var(--line)] bg-[var(--sand)] p-3">
+              <div className="rounded-lg border border-[var(--line)] bg-white p-4 sm:p-6">
                 <p className="text-[11px] font-semibold text-[var(--ink-soft)] sm:text-xs">総消費カロリーの推定</p>
                 <p className="metric mt-1 text-[16px] font-bold leading-snug text-[var(--ink)] sm:text-xl">{kcalRange(guide.minExpenditureKcal, guide.maxExpenditureKcal)}</p>
                 <p className="text-[10px] text-[var(--muted)]">kcal / 日</p>
               </div>
             </div>
-            <div className="mt-3 rounded-xl border border-[var(--line)] p-3">
-              <h4 className="text-xs font-bold text-[var(--ink)]">PFCバランスの目安</h4>
-              <div className="mt-2 grid grid-cols-3 gap-2">
+            <div className="mt-4 rounded-lg border border-[var(--line)] p-4 sm:p-6">
+              <h4 className="text-sm font-bold text-[var(--ink)]">PFCバランスの目安</h4>
+              <div className="mt-3 divide-y divide-[var(--line)]">
                 {([
                   ["P", "たんぱく質", macros.protein],
                   ["F", "脂質", macros.fat],
                   ["C", "炭水化物", macros.carbs],
-                ] as const).map(([initial, label, macro]) => <div key={initial} className="min-w-0 rounded-lg bg-[var(--sand)] px-2 py-2">
-                  <p className="text-[11px] text-[var(--muted)]"><strong className="text-xs text-[var(--sage-deep)]">{initial}</strong> {label}</p>
-                  <p className="metric mt-1 text-sm font-bold text-[var(--ink)]">{kcalRange(macro.minG, macro.maxG)}g</p>
-                  <p className="text-[11px] text-[var(--muted)]">{macro.percent}%</p>
+                ] as const).map(([initial, label, macro]) => <div key={initial} className="flex min-w-0 items-baseline justify-between gap-2 py-3 first:pt-0 last:pb-0">
+                  <p className="text-xs text-[var(--muted)]"><strong className="mr-2 text-sm text-[var(--sage-deep)]">{initial}</strong>{label}</p>
+                  <p className="metric whitespace-nowrap text-sm font-bold text-[var(--ink)]">{kcalRange(macro.minG, macro.maxG)}g <span className="ml-1 text-[11px] font-normal text-[var(--muted)]">{macro.percent}%</span></p>
                 </div>)}
               </div>
             </div>

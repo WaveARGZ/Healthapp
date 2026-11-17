@@ -285,11 +285,11 @@ export function PublicFoodPhoto() {
         <a href="./?reload=food-photo-startup-v1" className="text-link mt-3 flex min-h-12 items-center text-sm font-bold">操作できないときは、ページを読み直す</a>
         <p className="mt-2 text-xs leading-6">読み直すと入力中の内容は消えます。改善しない場合はSafari／ChromeにこのページのURLを貼り付けて開いてください。JavaScriptが無効の場合は有効にする必要があります。</p>
       </section>}
-      <section className="rounded-[24px] bg-[var(--navy)] px-5 py-7 text-white shadow-[0_18px_40px_rgba(28,67,41,.14)] sm:px-7 sm:py-9">
-        <p className="text-xs font-bold tracking-[.16em] text-[#c1bde4]">BODYMAKE FOOD PHOTO</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">食事写真AIを試す</h1>
-        <p className="mt-4 text-sm leading-7 text-[#d5d2e9]">写真を選ぶと、端末上のAIが料理候補を表示します。初回は約200MBの無料モデルをダウンロードします。{isSharedTestEnvironment ? "本番と同じ認識モデルで、料理候補と修正画面を確認できます。" : "判定が違えば正しい料理名を教えてください。学習用の共有は任意で、Google認証と同意をした時だけ送信します。"}</p>
-        <p className="mt-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">無料 · 解析はアカウント不要</p>
+      <section className="border-b border-[var(--line)] pb-9 sm:pb-12">
+        <p className="text-[11px] font-bold tracking-[.16em] text-[var(--sage-deep)]">BODYMAKE / FOOD PHOTO</p>
+        <h1 className="mt-4 text-3xl font-bold tracking-[-.04em] sm:text-5xl">食事写真AIを試す</h1>
+        <p className="mt-5 max-w-prose text-sm leading-7 text-[var(--muted)]">写真を選ぶと、端末上のAIが料理候補を表示します。初回は約200MBの無料モデルをダウンロードします。{isSharedTestEnvironment ? "本番と同じ認識モデルで、料理候補と修正画面を確認できます。" : "判定が違えば正しい料理名を教えてください。学習用の共有は任意で、Google認証と同意をした時だけ送信します。"}</p>
+        <p className="mt-5 inline-flex rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs font-semibold text-[var(--muted)]">無料 · アカウント不要で解析</p>
       </section>
       <section className="mt-4 rounded-2xl border border-[var(--line)] bg-white p-4 text-xs leading-6 sm:p-5" aria-label="写真とデータの取り扱い"><p className="font-bold">写真の取り扱い</p><p className="mt-1 text-[var(--muted)]">{isSharedTestEnvironment ? "このテスト環境では学習データの共有を行いません。食事写真は端末内で解析し、共有Driveには送信しません。" : "解析だけなら食事写真は送信されません。共有する場合は写真の位置情報などを除去し、料理名・AI候補・入力した栄養値と一緒に非公開のfoodDBへ保存します。人物や個人情報が写った写真は選ばないでください。"}</p></section>
       {!isSharedTestEnvironment && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-6 text-[var(--muted)]" aria-label="共有先の接続状態">

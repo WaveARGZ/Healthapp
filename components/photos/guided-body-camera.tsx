@@ -98,7 +98,7 @@ export function GuidedBodyCamera({ view, onClose, onCapture }: {
   }
 
   const inset = (100 - guideHeight) / 2;
-  return <div role="dialog" aria-modal="true" aria-label={`${view === "front" ? "正面" : "背面"}のガイド付き撮影`} className="fixed inset-0 z-[100] overflow-y-auto bg-[#19182f] text-white">
+  return <div role="dialog" aria-modal="true" aria-label={`${view === "front" ? "正面" : "背面"}のガイド付き撮影`} className="fixed inset-0 z-[100] overflow-y-auto bg-[#18181b] text-white">
     <div className="mx-auto flex min-h-full w-full max-w-xl flex-col px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between gap-4 pb-3">
         <div><p className="text-xs text-white/65">身体写真 · ガイド付き撮影</p><h2 className="mt-1 text-lg font-bold">{view === "front" ? "正面" : "背面"}を撮影</h2></div>
@@ -125,7 +125,7 @@ export function GuidedBodyCamera({ view, onClose, onCapture }: {
         <p>③ 正面・背面で、カメラ位置・立ち位置・明るさを変えない。腕は身体から少し離す。</p>
       </div>
       {ready && status && <p role="alert" className="mt-3 text-center text-xs text-[#ffd3c3]">{status}</p>}
-      <button type="button" onClick={() => void takePhoto()} disabled={!ready || busy} className="mt-4 min-h-13 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#19182f] disabled:opacity-50">{busy ? "写真を準備中…" : "この位置で撮影"}</button>
+      <button type="button" onClick={() => void takePhoto()} disabled={!ready || busy} className="mt-4 min-h-13 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#18181b] disabled:opacity-50">{busy ? "写真を準備中…" : "この位置で撮影"}</button>
     </div>
   </div>;
 }

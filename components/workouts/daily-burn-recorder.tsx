@@ -63,7 +63,7 @@ export function DailyBurnRecorder({ day }: { day: string }) {
     } finally { setSaving(false); }
   }
 
-  return <section aria-labelledby="daily-burn-title" className="mb-6 rounded-2xl border border-[var(--line)] bg-white p-4 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-5">
+  return <section aria-labelledby="daily-burn-title" className="mb-6 rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5">
     <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 id="daily-burn-title" className="text-base font-bold">消費カロリー</h2><p className="mt-1 text-xs leading-5 text-[var(--muted)]">{formatDate(day, { year: "numeric" })}に使った合計を記録</p></div>{savedEntry && <span className="metric rounded-full bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-bold text-[var(--sage-deep)]">保存済み {savedEntry.caloriesBurned.toLocaleString("ja-JP")} kcal</span>}</div>
     <form onSubmit={save} className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,180px)_auto] sm:items-end">
       <div className="min-w-0"><FieldLabel htmlFor="burn-calories">消費カロリー（kcal）</FieldLabel><TextInput id="burn-calories" type="number" min="0" max="20000" step="1" inputMode="numeric" value={calories} onChange={(event) => { setDraft({ day, value: event.target.value }); setNotice(null); }} placeholder="例：2200" required disabled={loading || loadFailed || saving} /></div>

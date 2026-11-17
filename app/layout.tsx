@@ -16,7 +16,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
-  themeColor: "#f7faf6",
+  themeColor: "#fafafa",
   colorScheme: "light",
 };
 
@@ -24,7 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ja" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        {isTestEnvironment && <aside data-bodymake-environment="test" className="border-b border-[var(--coral)] bg-[var(--coral-soft)] px-4 py-2 text-center text-xs font-semibold leading-5 text-[var(--coral)]">{isSharedTestEnvironment ? "共有テスト環境 · 本番とは別の記録に保存します" : "テスト環境"}</aside>}
+        {isTestEnvironment && <aside data-bodymake-environment="test" className="border-b border-[var(--line)] bg-[var(--sand)] px-5 py-2 text-left text-xs font-semibold leading-5 text-[var(--ink-soft)]">{isSharedTestEnvironment ? "共有テスト環境 · 本番とは別の記録に保存します" : "テスト環境"}</aside>}
         {children}
       </body>
     </html>

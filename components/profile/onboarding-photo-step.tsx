@@ -89,11 +89,11 @@ export function OnboardingPhotoStep() {
         <p className="mt-4 text-xs leading-5 text-[var(--muted)]">カメラで撮るか、撮影済みの写真を選べます。撮影距離や補助線の調整は不要です。縦横比を保って縮小・圧縮します。{isCloudConfigured && !isFirebaseSelected ? "保存時には非公開のアカウント領域へ送ります。" : "写真はこの端末内だけに保存します。"}</p>
       </Card>
 
-      {processingCount > 0 && <p role="status" className="mt-3 text-center text-xs text-[var(--muted)]">写真を準備しています…</p>}
+      {processingCount > 0 && <p role="status" className="mt-3 text-left text-xs text-[var(--muted)]">写真を準備しています…</p>}
       {notice && <p role="alert" className="mt-4 break-words rounded-md bg-[var(--coral-soft)] p-3 text-sm leading-6 text-[var(--coral)]">{notice}</p>}
       <Button type="button" className="mt-8 w-full" onClick={() => void complete()} disabled={!completeReady || isSaving || processingCount > 0}>{isSaving ? "保存中..." : "写真を保存してホームへ"}</Button>
-      <Link href="/dashboard" className="mt-4 flex min-h-12 items-center justify-center text-center text-sm font-semibold text-[var(--muted)] underline underline-offset-4">写真はあとで登録する</Link>
-      <p className="mt-5 text-center text-xs leading-6 text-[var(--muted)]">身体写真は体型の自動判定に使いません。気になる場合はこの手順をスキップしてください。</p>
+      <Link href="/dashboard" className="mt-4 inline-flex min-h-12 items-center text-sm font-semibold text-[var(--muted)] underline underline-offset-4">写真はあとで登録する</Link>
+      <p className="mt-5 text-left text-xs leading-6 text-[var(--muted)]">身体写真は体型の自動判定に使いません。気になる場合はこの手順をスキップしてください。</p>
     </div>
   </main>;
 }
