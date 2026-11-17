@@ -132,6 +132,6 @@ export function DashboardContent() {
       workoutUnavailable={workoutLoadFailed}
       error={error}
     />
-    <WeeklyWorkoutAdvice workouts={data.workouts} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} profileUnavailable={profileLoadFailed} />
+    <WeeklyWorkoutAdvice workouts={data.workouts} meals={data.meals} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} mealUnavailable={mealLoadFailed} profileUnavailable={profileLoadFailed} />
   </div>;
 }

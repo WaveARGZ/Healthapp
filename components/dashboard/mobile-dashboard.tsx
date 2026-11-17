@@ -48,30 +48,27 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
 }) {
   const macroEnergy = macros.proteinG * 4 + macros.fatG * 9 + macros.carbsG * 4;
   const macroUnavailable = loading || mealUnavailable;
+  const macroRatioReady = !macroUnavailable && macros.mealCount > 0 && macros.incompleteMeals === 0
+    && Object.values(macros.knownCounts).every((count) => count === macros.mealCount) && macroEnergy > 0;
   const guide = profile && !profileUnavailable ? estimateDailyCalorieGuide({ age: profile.age, gender: profile.gender, heightCm: profile.heightCm, weightKg: weight ?? undefined, goal: profile.goal }) : { status: "missing-profile" as const };
   const macroGuide = guide.status === "ready" && profile ? estimateDailyMacroGuide(guide, profile.goal) : null;
   const intakeTarget = guide.status === "ready" ? range(guide.minKcal, guide.maxKcal) : null;
   const burnTarget = guide.status === "ready" ? range(guide.minNonRestingKcal, guide.maxNonRestingKcal) : null;
   const intakeProgress = guide.status === "ready" && intake !== null ? Math.min(100, Math.max(0, intake / guide.maxKcal * 100)) : 0;
   const macroRows = ([
-    { key: "proteinG", label: "P", name: "たんぱく質", energy: macros.proteinG * 4, color: "#52654f", target: macroGuide?.protein },
-    { key: "fatG", label: "F", name: "脂質", energy: macros.fatG * 9, color: "#718174", target: macroGuide?.fat },
-    { key: "carbsG", label: "C", name: "炭水化物", energy: macros.carbsG * 4, color: "#414b43", target: macroGuide?.carbs },
+    { key: "proteinG", label: "P", name: "たんぱく質", energy: macros.proteinG * 4, target: macroGuide?.protein },
+    { key: "fatG", label: "F", name: "脂質", energy: macros.fatG * 9, target: macroGuide?.fat },
+    { key: "carbsG", label: "C", name: "炭水化物", energy: macros.carbsG * 4, target: macroGuide?.carbs },
   ] as const).map((row) => ({
     ...row,
     amount: grams(macros, row.key, macroUnavailable),
-    percentage: !macroUnavailable && macros.knownCounts[row.key] > 0 ? (macroEnergy > 0 ? Math.round(row.energy / macroEnergy * 100) : 0) : null,
+    percentage: macroRatioReady ? Math.round(row.energy / macroEnergy * 100) : null,
   }));
   const difference = burnMinusIntake(burned, consumed);
   const activity = summarizeMuscleActivity(workouts, today);
   const differenceText = difference === null ? "—" : `${difference > 0 ? "+" : ""}${difference.toLocaleString("ja-JP")}`;
   const differenceStatus = difference === null ? "収支は未計算" : difference > 0 ? "消費が多い" : difference < 0 ? "摂取が多い" : "消費と摂取が同じ";
   const differenceColor = difference === null || difference === 0 ? "var(--ink)" : difference > 0 ? positiveBalanceColor : negativeBalanceColor;
-  const proteinEnd = macroEnergy > 0 ? (macros.proteinG * 4 / macroEnergy) * 100 : 0;
-  const fatEnd = macroEnergy > 0 ? proteinEnd + (macros.fatG * 9 / macroEnergy) * 100 : 0;
-  const intakeRing = macroUnavailable || macroEnergy === 0 ? "var(--sage-soft)"
-    : `conic-gradient(#52654f 0 ${proteinEnd}%, #718174 ${proteinEnd}% ${fatEnd}%, #414b43 ${fatEnd}% 100%)`;
-  const balanceRing = difference === null || difference === 0 ? "var(--sage-soft)" : differenceColor;
   const calorieStatus = loading || mealUnavailable ? null
     : macros.mealCount === 0 ? "まだ食事の記録はありません。"
     : intake === null ? "食事は記録済みですが、カロリーは未入力です。収支は計算できません。"
@@ -95,15 +92,14 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
     <section aria-labelledby="mobile-calories-title" className="rounded-xl border border-[var(--line)] bg-white p-5 sm:p-8 lg:col-span-2">
       <h2 id="mobile-calories-title" className="text-xl font-bold tracking-[-.03em] text-[var(--ink)] sm:text-2xl">今日の栄養とカロリー</h2>
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold">
-        <span className="inline-flex items-center gap-1.5 text-[var(--ink)]"><span className="size-2 rounded-full bg-[var(--ink)]" />濃色：今日の記録</span>
+        <span className="inline-flex items-center gap-1.5 text-[var(--sage-deep)]"><span className="size-2 rounded-full bg-[var(--sage-deep)]" />濃い緑：今日の記録</span>
         <span className="inline-flex items-center gap-1.5 text-[#607960]"><span className="size-2 rounded-full bg-[#dce8dc]" />薄色：1日の目安</span>
       </div>
       <div className="mt-5 grid grid-cols-2 border-t border-[var(--line)]">
-        <Link href="/meals" className="block min-w-0 border-r border-[var(--line)] py-5 pr-3 transition-colors hover:bg-[var(--canvas)] sm:py-8 sm:pr-8" aria-describedby={intakeDescription} aria-label={"食事を開く。摂取 " + amount(intake) + " kcal。PFC：" + macroRows.map((row) => row.name + " " + (row.amount === "—" ? "未計算" : row.amount + "g、" + row.percentage + "%")).join("、") + (intakeTarget ? "。1日の摂取目安 " + intakeTarget + " kcal" : "")}>
+        <Link href="/meals" className="block min-w-0 border-r border-[var(--line)] py-5 pr-3 transition-colors hover:bg-[var(--canvas)] sm:py-8 sm:pr-8" aria-describedby={intakeDescription} aria-label={"食事を開く。摂取 " + amount(intake) + " kcal。PFC：" + macroRows.map((row) => row.name + " " + (row.amount === "—" ? "未計算" : row.amount + "g、" + (row.percentage === null ? "カロリー比未計算" : row.percentage + "%"))).join("、") + (intakeTarget ? "。1日の摂取目安 " + intakeTarget + " kcal" : "")}>
           <span className="flex items-center justify-between text-sm font-bold text-[var(--ink)]">摂取・PFC <span aria-hidden="true" className="text-[var(--sage-deep)]">›</span></span>
-          <span className="mt-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <span className="grid size-[80px] shrink-0 place-items-center rounded-full p-[9px] sm:size-[112px] sm:p-[11px]" style={{ background: intakeRing }}><span className="flex size-full flex-col items-center justify-center rounded-full bg-white text-center"><strong className="metric text-base leading-none text-[var(--ink)] sm:text-xl">{amount(intake)}</strong><small className="mt-1 text-[9px] text-[var(--muted)]">摂取 kcal</small></span></span>
-            <span className="min-w-0">
+          <span className="mt-5 block">
+            <span className="block min-w-0">
               <span className="block text-[11px] font-semibold text-[var(--muted)]">今日の摂取</span>
               <strong className="metric block text-[clamp(1.3rem,5vw,2rem)] font-bold leading-tight text-[var(--ink)]">{amount(intake)} <small className="text-xs font-medium">kcal</small></strong>
               <span className="mt-2 block text-xs font-semibold text-[#607960]">1日の目安</span>
@@ -114,21 +110,28 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
         </Link>
         <Link href="/progress" className="block min-w-0 py-5 pl-3 transition-colors hover:bg-[var(--canvas)] sm:py-8 sm:pl-8" aria-describedby={calorieDescription} aria-label={"進捗を開く。消費 " + amount(burned) + " kcal。消費から摂取を引いた収支 " + differenceText + " kcal。" + differenceStatus + (burnTarget ? "。活動による消費の推定 " + burnTarget + " kcal" : "")}>
           <span className="flex items-center justify-between text-sm font-bold text-[var(--ink)]">収支 <span aria-hidden="true" className="text-[var(--sage-deep)]">›</span></span>
-          <span className="mt-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <span className="grid size-[80px] shrink-0 place-items-center rounded-full p-[9px] sm:size-[112px] sm:p-[11px]" style={{ background: balanceRing }}><span className="flex size-full flex-col items-center justify-center rounded-full bg-white text-center"><strong className="metric text-sm leading-none sm:text-base" style={{ color: differenceColor }}>{differenceText}</strong><small className="mt-1 text-[9px] text-[var(--muted)]">収支 kcal</small></span></span>
-            <span className="min-w-0">
-              <span className="block text-[11px] font-semibold text-[var(--muted)]">記録した消費</span>
-              <strong className="metric block text-[clamp(1.3rem,5vw,2rem)] font-bold leading-tight text-[var(--ink)]">{amount(burned)} <small className="text-xs font-medium">kcal</small></strong>
+          <span className="mt-5 block">
+            <span className="block min-w-0">
+              <span className="block text-[11px] font-semibold text-[var(--muted)]">消費 − 摂取</span>
+              <strong className="metric block text-[clamp(1.3rem,5vw,2rem)] font-bold leading-tight" style={{ color: differenceColor }}>{differenceText} <small className="text-xs font-medium">kcal</small></strong>
+              <span className="mt-2 block text-xs font-semibold text-[var(--ink-soft)]">記録した消費 {amount(burned)} kcal</span>
               <span className="mt-2 block text-xs font-semibold text-[#607960]">活動による消費の推定</span>
               <span className="metric block text-xs font-semibold text-[#607960] sm:text-sm">{burnTarget ?? "—"} kcal / 日</span>
             </span>
           </span>
-          <span className="mt-5 block border-t border-[var(--line)] pt-4 text-xs font-semibold" style={{ color: differenceColor }}>消費 − 摂取 = {differenceText} kcal · {differenceStatus}</span>
+          <span className="mt-5 block border-t border-[var(--line)] pt-4 text-xs font-semibold" style={{ color: differenceColor }}>{differenceStatus}</span>
         </Link>
       </div>
       <Link href="/meals" className="block border-t border-[var(--line)] py-4 transition-colors hover:bg-[var(--canvas)]">
-        <p className="text-xs font-semibold text-[var(--ink-soft)]">PFC · カロリー比 <span className="font-normal text-[var(--muted)]">今日の記録 / 1日の目安</span></p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3" aria-label="PFCの記録と目安">{macroRows.map((row) => <div key={row.key} className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs"><span className="inline-flex min-w-[5.5rem] items-center gap-1.5 font-semibold text-[var(--ink-soft)]"><span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />{row.label} {row.name}</span><strong className="metric ml-auto whitespace-nowrap text-sm text-[var(--ink)]">{row.amount === "—" ? "—" : `${row.amount}g · ${row.percentage}%`}</strong><span className="metric w-full text-right font-semibold text-[#607960]">目安 {row.target ? range(row.target.minG, row.target.maxG) + " g" : "—"}</span></div>)}</div>
+        <p className="text-xs font-semibold text-[var(--ink-soft)]">PFC · カロリー比 <span className="font-normal text-[var(--muted)]">帯の長さはカロリー比（0〜100%）</span></p>
+        <div className="mt-4 grid gap-5 sm:grid-cols-3" aria-label="PFCの記録と目安">{macroRows.map((row) => <div key={row.key} className="min-w-0 text-xs">
+          <span className="flex items-baseline justify-between gap-2"><span className="font-semibold text-[var(--ink-soft)]">{row.label} {row.name}</span><strong className="metric whitespace-nowrap text-sm text-[var(--ink)]">{row.amount === "—" ? "—" : `${row.amount}g · ${row.percentage === null ? "比率 —" : `${row.percentage}%`}`}</strong></span>
+          <span className="mt-2 grid gap-1" role="meter" aria-label={`${row.name}のカロリー比`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percentage ?? undefined} aria-valuetext={row.percentage === null ? "未計算" : `記録${row.percentage}%、目安${row.target ? `${row.target.percent}%` : "未設定"}`}>
+            <span className="block h-1.5 w-full overflow-hidden rounded-full bg-[var(--sage-soft)]" aria-hidden="true"><span className="block h-full rounded-full bg-[#dce8dc]" style={{ width: `${row.target?.percent ?? 0}%` }} /></span>
+            <span className="block h-1.5 w-full overflow-hidden rounded-full bg-[var(--sage-soft)]" aria-hidden="true"><span className="block h-full rounded-full bg-[var(--sage-deep)]" style={{ width: `${row.percentage ?? 0}%` }} /></span>
+          </span>
+          <span className="metric mt-1.5 block font-semibold text-[#607960]">目安 {row.target ? `${range(row.target.minG, row.target.maxG)} g · ${row.target.percent}%` : "—"}</span>
+        </div>)}</div>
       </Link>
       {calorieStatus && <p id="mobile-calorie-status" className="mt-1 text-xs leading-5 text-[var(--muted)]">{calorieStatus}</p>}
       {macroStatus && <p id="mobile-macro-status" className="mt-1 text-xs leading-5 text-[var(--muted)]">{macroStatus}</p>}
