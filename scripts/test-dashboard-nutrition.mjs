@@ -61,7 +61,7 @@ function renderDashboard(meals, { loading = false, mealUnavailable = false, burn
     "@/components/dashboard/muscle-activity-map": { MuscleActivityMap: () => null },
     "@/components/dashboard/daily-calorie-rings": { DailyCalorieRings: () => null },
     "@/components/dashboard/mobile-dashboard": { MobileDashboard },
-    "@/components/dashboard/weekly-workout-advice": { WeeklyWorkoutAdvice: () => null },
+    "@/components/dashboard/weekly-review": { WeeklyReview: () => null },
     "@/lib/api/client": { bodyMakeClient: {} },
     "@/lib/utils/date": { formatToday: () => day, toDateInputValue: () => day },
     "@/lib/utils/meal-calories": { summarizeDailyCalories },

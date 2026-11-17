@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { MobileDashboard } from "@/components/dashboard/mobile-dashboard";
-import { WeeklyWorkoutAdvice } from "@/components/dashboard/weekly-workout-advice";
+import { WeeklyReview } from "@/components/dashboard/weekly-review";
 import { bodyMakeClient } from "@/lib/api/client";
 import { toDateInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
@@ -132,6 +132,6 @@ export function DashboardContent() {
       workoutUnavailable={workoutLoadFailed}
       error={error}
     />
-    <WeeklyWorkoutAdvice workouts={data.workouts} meals={data.meals} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} mealUnavailable={mealLoadFailed} profileUnavailable={profileLoadFailed} />
+    <WeeklyReview workouts={data.workouts} meals={data.meals} burns={data.burns} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} mealUnavailable={mealLoadFailed} burnUnavailable={burnLoadFailed} profileUnavailable={profileLoadFailed} />
   </div>;
 }

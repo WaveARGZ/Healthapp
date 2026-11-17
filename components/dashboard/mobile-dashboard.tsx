@@ -126,9 +126,10 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
         <p className="text-xs font-semibold text-[var(--ink-soft)]">PFC · カロリー比 <span className="font-normal text-[var(--muted)]">帯の長さはカロリー比（0〜100%）</span></p>
         <div className="mt-4 grid gap-5 sm:grid-cols-3" aria-label="PFCの記録と目安">{macroRows.map((row) => <div key={row.key} className="min-w-0 text-xs">
           <span className="flex items-baseline justify-between gap-2"><span className="font-semibold text-[var(--ink-soft)]">{row.label} {row.name}</span><strong className="metric whitespace-nowrap text-sm text-[var(--ink)]">{row.amount === "—" ? "—" : `${row.amount}g · ${row.percentage === null ? "比率 —" : `${row.percentage}%`}`}</strong></span>
-          <span className="mt-2 grid gap-1" role="meter" aria-label={`${row.name}のカロリー比`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percentage ?? undefined} aria-valuetext={row.percentage === null ? "未計算" : `記録${row.percentage}%、目安${row.target ? `${row.target.percent}%` : "未設定"}`}>
-            <span className="block h-1.5 w-full overflow-hidden rounded-full bg-[var(--sage-soft)]" aria-hidden="true"><span className="block h-full rounded-full bg-[#dce8dc]" style={{ width: `${row.target?.percent ?? 0}%` }} /></span>
-            <span className="block h-1.5 w-full overflow-hidden rounded-full bg-[var(--sage-soft)]" aria-hidden="true"><span className="block h-full rounded-full bg-[var(--sage-deep)]" style={{ width: `${row.percentage ?? 0}%` }} /></span>
+          <span className="relative mt-2 block h-2.5 w-full overflow-hidden rounded-full bg-[var(--sage-soft)]" role="meter" aria-label={`${row.name}のカロリー比`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percentage ?? undefined} aria-valuetext={row.percentage === null ? "未計算" : `記録${row.percentage}%、目安${row.target ? `${row.target.percent}%` : "未設定"}`}>
+            <span className="absolute inset-y-0 left-0 block bg-[#dce8dc]" style={{ width: `${row.target?.percent ?? 0}%` }} aria-hidden="true" />
+            <span className="absolute inset-y-0 left-0 block rounded-full bg-[var(--sage-deep)]" style={{ width: `${row.percentage ?? 0}%` }} aria-hidden="true" />
+            {row.target && <span className="absolute inset-y-0 z-10 w-px bg-[#789277]" style={{ left: `${row.target.percent}%` }} aria-hidden="true" />}
           </span>
           <span className="metric mt-1.5 block font-semibold text-[#607960]">目安 {row.target ? `${range(row.target.minG, row.target.maxG)} g · ${row.target.percent}%` : "—"}</span>
         </div>)}</div>
