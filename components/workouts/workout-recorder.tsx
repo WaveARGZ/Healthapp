@@ -80,16 +80,23 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
   const currentYear = new Date().getFullYear();
   const recordedYears = history.map((entry) => entry.performedAt).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).map((date) => Number(date.slice(0, 4)));
   const firstYear = Math.min(currentYear - 5, year, ...recordedYears);
-  const lastYear = Math.max(currentYear + 1, year, ...recordedYears);
+  const lastYear = Math.max(2030, currentYear + 1, year, ...recordedYears);
 
   function changeMonth(offset: number) {
     const next = new Date(year, monthNumber - 1 + offset, 1);
     onMonthChange(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
   }
 
+  function registerToday() {
+    const today = toDateInputValue();
+    onMonthChange(today.slice(0, 7));
+    onDateSelect(today);
+    requestAnimationFrame(() => document.getElementById("workout-calendar-back")?.focus());
+  }
+
   return <section aria-labelledby={selectedDate ? "workout-selected-date-title" : "workout-history-title"}>
     <div hidden={selectedDate !== null}>
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 id="workout-history-title" className="section-title">筋トレカレンダー</h2><p className="mt-1 text-xs text-[var(--muted)]">日付を選んで記録を追加・確認</p></div><span className="metric rounded-full bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-bold text-[var(--sage-deep)]">今月 {recordedDaysThisMonth}日</span></div>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><div className="flex items-center gap-3"><h2 id="workout-history-title" className="section-title">筋トレカレンダー</h2><button type="button" onClick={registerToday} aria-label="今日の筋トレを登録" className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-[var(--sage-deep)] px-4 text-sm font-bold text-white transition-colors hover:bg-[#3e503b]">登録</button></div><p className="mt-1 text-xs text-[var(--muted)]">日付を選んで記録を追加・確認</p></div><span className="metric rounded-full bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-bold text-[var(--sage-deep)]">今月 {recordedDaysThisMonth}日</span></div>
     <div className="rounded-2xl border border-[var(--line)] bg-white p-3 sm:p-5">
       <div className="mb-5 flex items-center justify-between gap-2">
         <button type="button" aria-label="前の月" onClick={() => changeMonth(-1)} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--sand)]">‹</button>
@@ -105,7 +112,7 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[308px]">
-          <div className="grid grid-cols-7 border-b border-[var(--line)] pb-1 text-center text-xs font-semibold text-[var(--muted)]">{calendarWeekdays.map((day) => <span key={day} className="py-2">{day}</span>)}</div>
+          <div className="grid grid-cols-7 border-b border-[var(--line)] pb-1 text-center text-sm font-semibold text-[var(--muted)]">{calendarWeekdays.map((day) => <span key={day} className="py-2">{day}</span>)}</div>
           <div className="grid grid-cols-7 gap-y-1">{Array.from({ length: firstWeekday + daysInMonth }, (_, index) => {
             const day = index - firstWeekday + 1;
             if (day < 1) return <span key={`empty-${index}`} aria-hidden="true" />;
@@ -119,7 +126,7 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
                 onDateSelect(date);
                 requestAnimationFrame(() => document.getElementById("workout-calendar-back")?.focus());
               }}
-              className={`relative grid size-11 place-items-center rounded-full text-sm font-semibold ${selectedDate === date ? "bg-[var(--sage-deep)] text-white" : count ? "bg-[var(--sage-soft)] text-[var(--sage-deep)] hover:bg-[var(--sage-deep)] hover:text-white" : "text-[var(--muted)] hover:bg-[var(--sand)]"}`}
+              className={`relative grid size-11 place-items-center rounded-full text-lg font-semibold ${selectedDate === date ? "bg-[var(--ink)] text-white" : count ? "bg-[var(--sage-deep)] text-white hover:bg-[#3e503b]" : "text-[var(--ink-soft)] hover:bg-[var(--sand)]"}`}
             >{day}{count > 1 && <span className="absolute bottom-0.5 size-1 rounded-full bg-current" />}</button></div>;
           })}</div>
         </div>
