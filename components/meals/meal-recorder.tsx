@@ -21,9 +21,11 @@ function newFood(): MealFoodItem {
 function foodWithManualPortion(food: MealFoodItem): MealFoodItem {
   if (food.portionGrams !== undefined || !food.portionQuantity || food.portionQuantity <= 0) return food;
   const unit = food.portionUnit ?? "g";
+  const name = food.name.trim();
+  const portionLabel = `（${food.portionQuantity}${unit}）`;
   return {
     ...food,
-    name: `${food.name.trim()}（${food.portionQuantity}${unit}）`,
+    name: name.endsWith(portionLabel) ? name : `${name}${portionLabel}`,
     ...(unit === "g" ? { portionGrams: food.portionQuantity } : {}),
   };
 }
@@ -194,7 +196,7 @@ export function MealRecorder() {
         ["manual", "plus", "手入力"],
         ["barcode", "barcode", "バーコード"],
       ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-md border px-1 text-[11px] font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
-      <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} /></div>
+      <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} savedMeals={history} /></div>
       {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} />}
       {inputMode === "barcode" && <BarcodeMealEntry onAddFood={saveFood} barcode={barcodeDraft} onBarcodeChange={updateBarcodeDraft} />}
       {inputMode === "photo" && <p role="status" aria-live="polite" className="mt-4 text-sm text-[var(--sage-deep)]">{notice}</p>}

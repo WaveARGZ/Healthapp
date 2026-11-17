@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { searchFoodGroups } from "@/lib/food-catalog-groups.mjs";
 import { portionGrams, suggestedGramsPerPiece, validPortion, type FoodPortionUnit } from "@/lib/food-portions";
+import { searchSavedMealFoods, type SavedFoodSuggestion } from "@/lib/meals/saved-food-search";
+import { createId } from "@/lib/utils/id";
 import libraryJson from "@/lib/data/food-library.json";
 import { foodToMealItem, type FoodLibraryDataset, type FoodLibraryItem } from "@/types/food-database";
-import type { MealFoodItem } from "@/types/meal";
+import type { MealEntry, MealFoodItem } from "@/types/meal";
 
 interface FoodLibrarySearchProps {
-  onAddFood: (food: Omit<MealFoodItem, "id">) => Promise<void>;
+  onAddFood: (food: Omit<MealFoodItem, "id"> | MealFoodItem) => Promise<void>;
+  savedMeals: MealEntry[];
 }
 
 type FoodGroup = ReturnType<typeof searchFoodGroups>["groups"][number];
@@ -31,7 +34,7 @@ function detailLabel(food: FoodLibraryItem): string {
   return food.foodCode ? food.sourceDescription ?? food.name : food.name;
 }
 
-export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
+export function FoodLibrarySearch({ onAddFood, savedMeals }: FoodLibrarySearchProps) {
   const [query, setQuery] = useState("");
   const [searchEngaged, setSearchEngaged] = useState(false);
   const [expandedResults, setExpandedResults] = useState(false);
@@ -42,6 +45,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
   const [visibleCount, setVisibleCount] = useState(30);
   const [activeGroup, setActiveGroup] = useState<FoodGroup | null>(null);
   const [selectedFood, setSelectedFood] = useState<FoodLibraryItem | null>(null);
+  const [selectedSaved, setSelectedSaved] = useState<MealFoodItem | null>(null);
   const [variantQuery, setVariantQuery] = useState("");
   const [visibleVariants, setVisibleVariants] = useState(10);
   const [quantity, setQuantity] = useState(100);
@@ -75,6 +79,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
   function clearSelection() {
     setActiveGroup(null);
     setSelectedFood(null);
+    setSelectedSaved(null);
     setVariantQuery("");
     setVisibleVariants(10);
   }
@@ -84,6 +89,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     () => searchEngaged || expandedResults ? searchFoodGroups(showPopular ? popularFoods : allFoods, showPopular ? "" : query, category) : { groups: [], matchingRecords: 0, usedFuzzy: false },
     [searchEngaged, expandedResults, showPopular, allFoods, query, category],
   );
+  const savedResults = useMemo(() => category === "すべて" ? searchSavedMealFoods(savedMeals, query) : [], [savedMeals, query, category]);
   const shownGroups = results.groups.slice(0, visibleCount);
   const previewGroups = results.groups.slice(0, 5);
   const variantResults = useMemo(() => {
@@ -105,6 +111,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
 
   function chooseGroup(group: FoodGroup) {
     setActiveGroup(group);
+    setSelectedSaved(null);
     setSearchEngaged(false);
     setExpandedResults(false);
     setSaveNotice(null);
@@ -119,6 +126,28 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     setSelectedFood(food);
     setSaveNotice(null);
     setFoodPortion(food);
+  }
+
+  function chooseSaved(food: MealFoodItem) {
+    clearSelection();
+    setSelectedSaved(food);
+    setSearchEngaged(false);
+    setExpandedResults(false);
+    setSaveNotice(null);
+  }
+
+  async function addSavedFood() {
+    if (!selectedSaved || addingFood.current) return;
+    addingFood.current = true;
+    setIsAdding(true);
+    try {
+      await onAddFood({ ...selectedSaved, id: createId("food") });
+      setSaveNotice({ text: `${selectedSaved.name}を保存しました。`, error: false });
+      clearSelection();
+      setQuery("");
+      setSearchEngaged(false);
+    } catch { setSaveNotice({ text: "保存できませんでした。もう一度お試しください。", error: true }); }
+    finally { addingFood.current = false; setIsAdding(false); }
   }
 
   async function addSelectedFood() {
@@ -144,6 +173,14 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     </button>;
   }
 
+  function renderSavedSuggestion(suggestion: SavedFoodSuggestion) {
+    const food = suggestion.food;
+    return <button key={suggestion.id} type="button" onClick={() => chooseSaved(food)} className="flex min-h-14 w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left last:border-b-0 hover:bg-[var(--sage-soft)]">
+      <span className="min-w-0"><span className="block break-words text-sm font-bold text-[var(--ink)]">{food.name}</span><span className="mt-0.5 block text-xs text-[var(--sage-deep)]">以前の記録</span></span>
+      <span className="metric shrink-0 text-sm font-semibold text-[var(--sage-deep)]">{food.calories === undefined ? "—" : Math.round(food.calories)}<span className="ml-1 text-xs font-normal">kcal</span></span>
+    </button>;
+  }
+
   return <section className="mt-5">
     <label htmlFor="meal-food-search" className="text-sm font-bold text-[var(--ink)]">食品名</label>
     <div onMouseLeave={() => setSearchEngaged(false)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchEngaged(false); }} className="relative mt-2">
@@ -152,17 +189,25 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
       <input id="meal-food-search" ref={searchInput} type="search" value={query} onFocus={() => { if (!expandedResults) setSearchEngaged(true); loadExtendedCatalog(); }} onChange={(event) => { setExpandedResults(false); setSearchEngaged(true); setSaveNotice(null); setQuery(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} placeholder="例：白米、とりにく、カレーライス" className="h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--ink)] outline-none placeholder:text-[#a6ada9]" />
     </div>
     {searchEngaged && !expandedResults && <div className="absolute inset-x-0 top-full z-30 max-h-[min(28rem,65dvh)] overflow-y-auto overscroll-contain rounded-b-xl border border-t-0 border-[var(--line)] bg-white shadow-[0_18px_35px_rgba(32,38,34,.16)]" role="region" aria-label="食品の検索候補">
-      <div className="flex items-center gap-2 border-b border-[var(--line)] px-3 py-2"><p className="min-w-0 flex-1 text-xs font-semibold text-[var(--ink)]">{showPopular ? "検索候補" : `検索結果 ${results.groups.length.toLocaleString()}品目`}</p><select aria-label="食品のカテゴリ" value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} className="min-h-10 max-w-[55%] rounded-md border border-[var(--line)] bg-white px-2 text-xs text-[var(--ink)]">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
-      {results.usedFuzzy && <p className="px-3 py-2 text-xs text-[var(--sage-deep)]">入力に近い候補です。品目を確認してください。</p>}
-      {previewGroups.length ? previewGroups.map(renderGroup) : <p className="px-3 py-4 text-xs text-[var(--muted)]">{catalogStatus === "loading" ? "食品データを読み込み中…" : "見つかりませんでした。別名や短い名前でお試しください。"}</p>}
+      <div className="flex items-center gap-2 border-b border-[var(--line)] px-3 py-2"><p className="min-w-0 flex-1 text-xs font-semibold text-[var(--ink)]">{showPopular ? "検索候補" : `検索結果 ${(results.groups.length + savedResults.length).toLocaleString()}件`}</p><select aria-label="食品のカテゴリ" value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} className="min-h-10 max-w-[55%] rounded-md border border-[var(--line)] bg-white px-2 text-xs text-[var(--ink)]">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
+      {savedResults.length > 0 && <div><p className="bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--sage-deep)]">保存済みの食事</p>{savedResults.map(renderSavedSuggestion)}</div>}
+      {results.usedFuzzy && !savedResults.length && <p className="px-3 py-2 text-xs text-[var(--sage-deep)]">入力に近い候補です。品目を確認してください。</p>}
+      {previewGroups.length ? previewGroups.map(renderGroup) : !savedResults.length && <p className="px-3 py-4 text-xs text-[var(--muted)]">{catalogStatus === "loading" ? "食品データを読み込み中…" : "見つかりませんでした。別名や短い名前でお試しください。"}</p>}
       {results.groups.length > previewGroups.length && <button type="button" onClick={() => { setExpandedResults(true); setSearchEngaged(false); setVisibleCount(30); }} className="min-h-11 w-full border-t border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)]">{showPopular ? "全食品の一覧を見る" : `残り${(results.groups.length - previewGroups.length).toLocaleString()}品目を見る`}</button>}
       {catalogStatus === "error" && <button type="button" onClick={loadExtendedCatalog} className="text-link px-3">詳細データを再読み込み</button>}
     </div>}
     </div>
     {expandedResults && <div className="mt-4 rounded-xl border border-[var(--line)] bg-white" role="region" aria-label="食品の検索結果一覧">
-      <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2"><p className="text-sm font-semibold">検索結果 {results.groups.length.toLocaleString()}品目</p><button type="button" onClick={() => setExpandedResults(false)} className="text-link">閉じる</button></div>
-      {shownGroups.length ? shownGroups.map(renderGroup) : <p className="p-3 text-xs text-[var(--muted)]">該当する食品はありません。</p>}
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2"><p className="text-sm font-semibold">検索結果 {(results.groups.length + savedResults.length).toLocaleString()}件</p><button type="button" onClick={() => setExpandedResults(false)} className="text-link">閉じる</button></div>
+      {savedResults.length > 0 && <div><p className="bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--sage-deep)]">保存済みの食事</p>{savedResults.map(renderSavedSuggestion)}</div>}
+      {shownGroups.length ? shownGroups.map(renderGroup) : !savedResults.length && <p className="p-3 text-xs text-[var(--muted)]">該当する食品はありません。</p>}
       {results.groups.length > shownGroups.length && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="min-h-11 w-full border-t border-[var(--line)] text-sm font-semibold text-[var(--sage-deep)]">さらに30品目表示</button>}
+    </div>}
+    {selectedSaved && <div className="mt-4 rounded-xl border border-[var(--sage-deep)] bg-white p-3 sm:p-4" aria-label="保存済みの食事を再登録">
+      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">以前の記録を再利用</p><p className="mt-1 break-words text-base font-bold text-[var(--ink)]">{selectedSaved.name}</p></div><button type="button" onClick={clearSelection} aria-label="保存済みの食事の選択を閉じる" className="delete-button -mr-2 -mt-2 shrink-0"><Icon name="plus" className="size-4 rotate-45" /></button></div>
+      <dl className="metric mt-4 grid grid-cols-2 gap-3 rounded-lg bg-[var(--sand)] p-3 text-sm sm:grid-cols-4">{([ ["カロリー", selectedSaved.calories, "kcal"], ["P", selectedSaved.proteinG, "g"], ["F", selectedSaved.fatG, "g"], ["C", selectedSaved.carbsG, "g"] ] as const).map(([label, value, unit]) => <div key={label}><dt className="text-xs text-[var(--muted)]">{label}</dt><dd className="mt-1 font-semibold">{value === undefined ? "—" : value} {unit}</dd></div>)}</dl>
+      <p className="mt-3 text-xs leading-5 text-[var(--muted)]">前回保存した料理名・量・栄養値をそのまま使います。内容を変える場合は「手入力」で登録してください。</p>
+      <Button type="button" className="mt-4 w-full" onClick={() => void addSavedFood()} disabled={isAdding}>{isAdding ? "保存中…" : "この内容を追加して保存"}</Button>
     </div>}
     {activeGroup && <div className="mt-4 rounded-xl border border-[var(--sage-deep)] bg-white p-3 sm:p-4">
       <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">選択した食品</p><p className="mt-1 break-words text-base font-bold leading-6 text-[var(--ink)]">{activeGroup.name}</p></div><button type="button" onClick={clearSelection} aria-label="食品の選択を閉じる" className="delete-button -mr-2 -mt-2 shrink-0"><Icon name="plus" className="size-4 rotate-45" /></button></div>
