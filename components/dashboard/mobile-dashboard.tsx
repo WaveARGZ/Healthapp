@@ -88,6 +88,10 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
     </header>
     {error && <p role="alert" className="text-xs text-[var(--coral)]">{error}</p>}
 
+    <Link href="/weekly-review" className="flex min-h-14 items-center justify-between rounded-full border border-[var(--line)] bg-white px-5 text-base font-bold text-[var(--ink)] transition-[background-color,border-color] hover:border-[var(--sage-deep)] hover:bg-[var(--sage-soft)] lg:col-span-2">
+      1週間のふり返り <span aria-hidden="true" className="text-xl font-normal text-[var(--sage-deep)]">›</span>
+    </Link>
+
     <section aria-labelledby="mobile-calories-title" className="rounded-xl border border-[var(--line)] bg-white p-5 sm:p-8 lg:col-span-2">
       <h2 id="mobile-calories-title" className="text-xl font-bold tracking-[-.03em] text-[var(--ink)] sm:text-2xl">今日の栄養とカロリー</h2>
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold">

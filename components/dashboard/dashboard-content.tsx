@@ -23,7 +23,7 @@ interface DashboardData {
 }
 const initialData: DashboardData = { profile: null, workouts: [], meals: [], weights: [], burns: [] };
 
-export function DashboardContent() {
+export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | "weekly-review" } = {}) {
   const [data, setData] = useState<DashboardData>(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -112,7 +112,7 @@ export function DashboardContent() {
   const burnedCalories = loading || burnLoadFailed ? null : data.burns.find((entry) => entry.performedAt === today)?.caloriesBurned ?? null;
   const consumedForDifference = dailyCalories.countedMeals > 0 ? recordedCalories : null;
   return <div className="dashboard-unified">
-    <MobileDashboard
+    {view === "dashboard" ? <MobileDashboard
       today={today}
       doneCount={doneCount}
       weight={summary.currentWeight ?? null}
@@ -131,7 +131,6 @@ export function DashboardContent() {
       burnUnavailable={burnLoadFailed}
       workoutUnavailable={workoutLoadFailed}
       error={error}
-    />
-    <WeeklyReview workouts={data.workouts} meals={data.meals} burns={data.burns} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} mealUnavailable={mealLoadFailed} burnUnavailable={burnLoadFailed} profileUnavailable={profileLoadFailed} />
+    /> : <WeeklyReview workouts={data.workouts} meals={data.meals} burns={data.burns} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} mealUnavailable={mealLoadFailed} burnUnavailable={burnLoadFailed} profileUnavailable={profileLoadFailed} />}
   </div>;
 }
