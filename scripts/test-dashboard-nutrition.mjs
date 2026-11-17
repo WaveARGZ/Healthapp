@@ -85,8 +85,8 @@ test("fully entered meals display complete totals without partial-total warnings
   const html = renderDashboard([known]);
   assert.match(html, /摂取 500 kcal/);
   assert.match(html, /消費から摂取を引いた収支 \+1,500 kcal。消費が多い/);
-  assert.match(html, /PFCの摂取量とカロリー比/);
-  assert.match(html, /20g.*比率 16%/);
+  assert.match(html, /PFCの摂取量/);
+  assert.match(html, /20g.*目安上限比 —/);
   assert.ok(!html.includes(partialNotice));
   assert.ok(!html.includes(macroNotice));
 });
@@ -159,7 +159,8 @@ test("actual intake and PFC appear beside daily targets; burn estimate is distin
   assert.match(html, /500/);
   assert.match(html, /1日の目安/);
   assert.match(html, /2,400～2,700/);
-  assert.match(html, /目安：120～135 g（比率 20%）/);
+  assert.match(html, /目安：120～135 g/);
+  assert.match(html, /20g.*目安上限比 15%/);
   assert.match(html, /記録した消費/);
   assert.match(html, /活動による消費の推定/);
   assert.match(html, /650～1,000/);
@@ -170,16 +171,19 @@ test("actual intake and PFC appear beside daily targets; burn estimate is distin
   assert.doesNotMatch(html, /conic-gradient|size-\[80px\]/);
 });
 
-test("PFC markers follow recorded grams against the target grams, not the calorie ratio", () => {
+test("PFC markers and displayed ratios follow recorded grams against the target upper bound", () => {
   const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
   const belowTarget = renderDashboard([known], { profile });
-  assert.match(belowTarget, /aria-label="たんぱく質の摂取量" aria-valuemin="0" aria-valuemax="135" aria-valuenow="20"/);
-  assert.match(belowTarget, /left:14\.814[0-9]*%;background-color:#4f7668/);
+  assert.match(belowTarget, /aria-label="たんぱく質の摂取量" aria-valuemin="0" aria-valuemax="168\.75" aria-valuenow="20"/);
+  assert.match(belowTarget, /width:80%;background-color:#dce8e2/);
+  assert.match(belowTarget, /left:11\.851[0-9]*%;background-color:#4f7668/);
+  assert.match(belowTarget, /20g.*目安上限比 15%/);
 
   const aboveTarget = renderDashboard([{ ...known, proteinG: 200 }], { profile });
   assert.match(aboveTarget, /aria-label="たんぱく質の摂取量" aria-valuemin="0" aria-valuemax="200" aria-valuenow="200"/);
   assert.match(aboveTarget, /width:67\.5%;background-color:#dce8e2/);
   assert.match(aboveTarget, /left:100%;background-color:#4f7668/);
+  assert.match(aboveTarget, /200g.*目安上限比 148%/);
 });
 
 test("calculation details retain resting and total expenditure estimates", () => {
