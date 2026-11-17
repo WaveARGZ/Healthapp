@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { summarizeDailyCalories } from "../lib/utils/meal-calories.ts";
 import { summarizeDailyMacros } from "../lib/utils/meal-macros.ts";
 import { burnMinusIntake } from "../lib/utils/daily-burn.ts";
+import { estimateDailyCalorieGuide, estimateDailyMacroGuide } from "../lib/utils/daily-calorie-guide.ts";
 
 // Actual aggregation, parent prop wiring, and rendered shared component, using
 // synthetic records in RAM. No account, browser storage, network, or file writes.
@@ -37,8 +38,14 @@ const sharedModules = { "react/jsx-runtime": jsxRuntime, "next/link": { default:
 const { MobileDashboard } = load("components/dashboard/mobile-dashboard.tsx", {
   ...sharedModules,
   "@/components/dashboard/anatomy-figure": { AnatomyFigure: () => null },
+  "@/components/dashboard/personal-nutrition-guide": { PersonalNutritionGuide: () => null },
   "@/lib/workouts/muscle-activity": { summarizeMuscleActivity: () => ({}) },
   "@/lib/utils/daily-burn": { burnMinusIntake },
+});
+const { PersonalNutritionGuide } = load("components/dashboard/personal-nutrition-guide.tsx", {
+  ...sharedModules,
+  "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide, estimateDailyMacroGuide },
+  "@/types/user": { fitnessGoalLabels: { "build-muscle": "筋肉を増やす", "lose-fat": "体脂肪を減らす", maintain: "現在の体型を維持する" } },
 });
 
 function renderDashboard(meals, { loading = false, mealUnavailable = false, burnUnavailable = false } = {}) {
@@ -142,6 +149,23 @@ test("loading and failed meal requests do not misreport missing user input", () 
     assert.ok(!html.includes(macroNotice));
     assert.ok(!html.includes("カロリーは未入力"));
   }
+});
+
+test("personal guide distinguishes estimated total expenditure from workout burn and shows goal-based PFC", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  const html = renderToStaticMarkup(PersonalNutritionGuide({ profile, weightKg: 70, loading: false, unavailable: false }));
+  assert.match(html, /摂取カロリーの目安/);
+  assert.match(html, /2,400～2,700/);
+  assert.match(html, /総消費カロリーの推定/);
+  assert.match(html, /2,250～2,600/);
+  assert.match(html, /120～135g/);
+  assert.match(html, /筋トレで記録した消費カロリーとは別の数値/);
+});
+
+test("personal guide requests missing profile details instead of inventing calorie targets", () => {
+  const html = renderToStaticMarkup(PersonalNutritionGuide({ profile: null, weightKg: null, loading: false, unavailable: false }));
+  assert.match(html, /年齢・身長・体重を登録すると/);
+  assert.ok(!html.includes("摂取カロリーの目安"));
 });
 
 test("unavailable burn records do not hide the partial-intake warning or invent a balance", () => {

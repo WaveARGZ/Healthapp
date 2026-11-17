@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { AnatomyFigure } from "@/components/dashboard/anatomy-figure";
+import { PersonalNutritionGuide } from "@/components/dashboard/personal-nutrition-guide";
 import { summarizeMuscleActivity } from "@/lib/workouts/muscle-activity";
 import { burnMinusIntake } from "@/lib/utils/daily-burn";
 import type { summarizeDailyMacros } from "@/lib/utils/meal-macros";
 import type { DailyFeedbackItem } from "@/lib/utils/daily-feedback";
 import type { WorkoutEntry } from "@/types/workout";
+import type { UserProfile } from "@/types/user";
 
 type DailyMacros = ReturnType<typeof summarizeDailyMacros>;
 const positiveBalanceColor = "#b9343a";
@@ -19,11 +21,12 @@ function grams(macros: DailyMacros, key: "proteinG" | "fatG" | "carbsG", loading
     ? "—" : Math.round(macros[key]).toLocaleString("ja-JP");
 }
 
-export function MobileDashboard({ today, doneCount, weight, goal, macros, intake, consumed, burned, incompleteCalories, workouts, feedback, loading, mealUnavailable, burnUnavailable, workoutUnavailable, error }: {
+export function MobileDashboard({ today, doneCount, weight, goal, profile, macros, intake, consumed, burned, incompleteCalories, workouts, feedback, loading, profileUnavailable, mealUnavailable, burnUnavailable, workoutUnavailable, error }: {
   today: string;
   doneCount: number;
   weight: number | null;
   goal: string;
+  profile: UserProfile | null;
   macros: DailyMacros;
   intake: number | null;
   consumed: number | null;
@@ -32,6 +35,7 @@ export function MobileDashboard({ today, doneCount, weight, goal, macros, intake
   workouts: WorkoutEntry[];
   feedback: { meal: DailyFeedbackItem; workout: DailyFeedbackItem };
   loading: boolean;
+  profileUnavailable: boolean;
   mealUnavailable: boolean;
   burnUnavailable: boolean;
   workoutUnavailable: boolean;
@@ -96,6 +100,7 @@ export function MobileDashboard({ today, doneCount, weight, goal, macros, intake
       {calorieStatus && <p id="mobile-calorie-status" className="mt-1 text-xs leading-5 text-[var(--muted)]">{calorieStatus}</p>}
       {macroStatus && <p id="mobile-macro-status" className="mt-1 text-xs leading-5 text-[var(--muted)]">{macroStatus}</p>}
       {(mealUnavailable || burnUnavailable) && <p className="mt-1 text-[11px] text-[var(--coral)]">一部の記録を表示できません。</p>}
+      <PersonalNutritionGuide profile={profile} weightKg={weight} loading={loading} unavailable={profileUnavailable} />
     </section>
 
     <Link href="/workouts" className="block rounded-[20px] border border-[var(--line)] bg-white px-3 py-2.5 transition-colors hover:bg-[var(--sage-soft)] sm:px-6 sm:py-5" aria-label="筋トレを開く。筋トレ部位マップと記録日数を見る">

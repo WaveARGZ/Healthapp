@@ -117,6 +117,7 @@ export function DashboardContent() {
       doneCount={doneCount}
       weight={summary.currentWeight ?? null}
       goal={data.profile ? fitnessGoalLabels[data.profile.goal] : "目標未設定"}
+      profile={data.profile}
       macros={dailyMacros}
       intake={recordedCalories}
       consumed={consumedForDifference}
@@ -125,6 +126,7 @@ export function DashboardContent() {
       workouts={data.workouts}
       feedback={dailyFeedback}
       loading={loading}
+      profileUnavailable={profileLoadFailed}
       mealUnavailable={mealLoadFailed}
       burnUnavailable={burnLoadFailed}
       workoutUnavailable={workoutLoadFailed}
