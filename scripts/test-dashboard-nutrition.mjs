@@ -41,6 +41,7 @@ const { MobileDashboard } = load("components/dashboard/mobile-dashboard.tsx", {
   "@/components/dashboard/personal-nutrition-guide": { PersonalNutritionGuide: () => null },
   "@/lib/workouts/muscle-activity": { summarizeMuscleActivity: () => ({}) },
   "@/lib/utils/daily-burn": { burnMinusIntake },
+  "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide, estimateDailyMacroGuide },
 });
 const { PersonalNutritionGuide } = load("components/dashboard/personal-nutrition-guide.tsx", {
   ...sharedModules,
@@ -48,8 +49,8 @@ const { PersonalNutritionGuide } = load("components/dashboard/personal-nutrition
   "@/types/user": { fitnessGoalLabels: { "build-muscle": "筋肉を増やす", "lose-fat": "体脂肪を減らす", maintain: "現在の体型を維持する" } },
 });
 
-function renderDashboard(meals, { loading = false, mealUnavailable = false, burnUnavailable = false } = {}) {
-  const data = { profile: null, workouts: [], meals, weights: [], burns: [{ performedAt: day, caloriesBurned: 2000 }] };
+function renderDashboard(meals, { loading = false, mealUnavailable = false, burnUnavailable = false, profile = null } = {}) {
+  const data = { profile, workouts: [], meals, weights: [], burns: [{ performedAt: day, caloriesBurned: 2000 }] };
   const states = [data, loading, "", false, mealUnavailable, false, burnUnavailable, day];
   let stateIndex = 0;
   const { DashboardContent } = load("components/dashboard/dashboard-content.tsx", {
@@ -151,25 +152,33 @@ test("loading and failed meal requests do not misreport missing user input", () 
   }
 });
 
-test("personal guide shows intake, non-resting expenditure, resting estimate and goal-based PFC", () => {
+test("actual intake and PFC appear beside daily targets; burn estimate is distinguished from the record", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  const html = renderDashboard([known], { profile });
+  assert.match(html, /今日の摂取/);
+  assert.match(html, /500/);
+  assert.match(html, /1日の目安/);
+  assert.match(html, /2,400～2,700/);
+  assert.match(html, /目安 120～135 g/);
+  assert.match(html, /記録した消費/);
+  assert.match(html, /活動による消費の推定/);
+  assert.match(html, /650～1,000/);
+  assert.match(html, /活動による消費の推定/);
+});
+
+test("calculation details retain resting and total expenditure estimates", () => {
   const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
   const html = renderToStaticMarkup(PersonalNutritionGuide({ profile, weightKg: 70, loading: false, unavailable: false }));
-  assert.match(html, /摂取カロリーの目安/);
-  assert.match(html, /2,400～2,700/);
-  assert.match(html, /消費カロリーの目安/);
-  assert.match(html, /基礎代謝を除いた分/);
-  assert.match(html, /650～1,000/);
-  assert.match(html, /基礎代謝の目安/);
+  assert.match(html, /基礎代謝/);
   assert.match(html, /1,600/);
   assert.match(html, /2,250～2,600/);
-  assert.match(html, /120～135 g/);
-  assert.match(html, /運動だけで消費すべき量ではなく/);
+  assert.match(html, /運動だけで消費すべき量ではありません/);
 });
 
 test("personal guide requests missing profile details instead of inventing calorie targets", () => {
   const html = renderToStaticMarkup(PersonalNutritionGuide({ profile: null, weightKg: null, loading: false, unavailable: false }));
   assert.match(html, /年齢・身長・体重を登録すると/);
-  assert.ok(!html.includes("摂取カロリーの目安"));
+  assert.ok(!html.includes("総消費"));
 });
 
 test("unavailable burn records do not hide the partial-intake warning or invent a balance", () => {
