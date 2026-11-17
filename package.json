@@ -21,6 +21,7 @@
     "generate:curated-food-data": "node --max-old-space-size=2048 scripts/generate-food-library.mjs",
     "validate:food-data": "node scripts/validate-food-library.mjs",
     "test:food-catalog": "node scripts/test-food-catalog.mjs",
+    "test:saved-food-search": "node --experimental-strip-types --test scripts/test-saved-food-search.mjs",
     "test:food-barcode": "node --experimental-strip-types --test scripts/test-food-barcode.mjs",
     "test:static-ui": "node scripts/test-static-ui.mjs",
     "test:mobile-viewport": "node scripts/test-mobile-viewport.mjs",
