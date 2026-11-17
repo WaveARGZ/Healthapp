@@ -129,9 +129,10 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
           <span className="relative mt-3 block h-3 w-full rounded-full bg-[var(--sage-soft)]" role="meter" aria-label={`${row.name}のカロリー比`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percentage ?? undefined} aria-valuetext={row.percentage === null ? "未計算" : `記録${row.percentage}%、目安${row.target ? `${row.target.percent}%` : "未設定"}`}>
             <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.target?.percent ?? 0}%`, backgroundColor: row.targetColor }} aria-hidden="true" />
             <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.percentage ?? 0}%`, backgroundColor: row.color }} aria-hidden="true" />
-            {row.target && <span className="absolute -top-[3px] z-10 size-[18px] -translate-x-1/2 rounded-full border-[3px] border-white" style={{ left: `${row.target.percent}%`, backgroundColor: row.color }} aria-hidden="true" />}
+            {row.target && <span className="absolute top-4 h-2 w-0.5 -translate-x-1/2 rounded-full bg-[var(--ink-soft)]" style={{ left: `${row.target.percent}%` }} aria-hidden="true" />}
+            {row.percentage !== null && <span className="absolute -top-[3px] z-10 size-[18px] -translate-x-1/2 rounded-full border-[3px] border-white" style={{ left: `${row.percentage}%`, backgroundColor: row.color }} aria-hidden="true" />}
           </span>
-          <span className="metric mt-2 block text-[15px] font-semibold leading-6 text-[var(--ink-soft)]">目安：{row.target ? `${range(row.target.minG, row.target.maxG)} g（比率 ${row.target.percent}%）` : "—"}</span>
+          <span className="metric mt-4 block text-[15px] font-semibold leading-6 text-[var(--ink-soft)]">目安：{row.target ? `${range(row.target.minG, row.target.maxG)} g（比率 ${row.target.percent}%）` : "—"}</span>
         </div>)}</div>
       </Link>
       {calorieStatus && <p id="mobile-calorie-status" className="mt-1 text-xs leading-5 text-[var(--muted)]">{calorieStatus}</p>}
