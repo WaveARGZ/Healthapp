@@ -56,9 +56,9 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
   const burnTarget = guide.status === "ready" ? range(guide.minNonRestingKcal, guide.maxNonRestingKcal) : null;
   const intakeProgress = guide.status === "ready" && intake !== null ? Math.min(100, Math.max(0, intake / guide.maxKcal * 100)) : 0;
   const macroRows = ([
-    { key: "proteinG", label: "P", name: "たんぱく質", energy: macros.proteinG * 4, target: macroGuide?.protein },
-    { key: "fatG", label: "F", name: "脂質", energy: macros.fatG * 9, target: macroGuide?.fat },
-    { key: "carbsG", label: "C", name: "炭水化物", energy: macros.carbsG * 4, target: macroGuide?.carbs },
+    { key: "proteinG", label: "P", name: "たんぱく質", energy: macros.proteinG * 4, target: macroGuide?.protein, color: "#4f7668", targetColor: "#dce8e2" },
+    { key: "fatG", label: "F", name: "脂質", energy: macros.fatG * 9, target: macroGuide?.fat, color: "#947449", targetColor: "#eee3d1" },
+    { key: "carbsG", label: "C", name: "炭水化物", energy: macros.carbsG * 4, target: macroGuide?.carbs, color: "#9f6257", targetColor: "#f0dfda" },
   ] as const).map((row) => ({
     ...row,
     amount: grams(macros, row.key, macroUnavailable),
@@ -95,8 +95,8 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
     <section aria-labelledby="mobile-calories-title" className="rounded-xl border border-[var(--line)] bg-white p-5 sm:p-8 lg:col-span-2">
       <h2 id="mobile-calories-title" className="text-xl font-bold tracking-[-.03em] text-[var(--ink)] sm:text-2xl">今日の栄養とカロリー</h2>
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold">
-        <span className="inline-flex items-center gap-1.5 text-[var(--sage-deep)]"><span className="size-2 rounded-full bg-[var(--sage-deep)]" />濃い緑：今日の記録</span>
-        <span className="inline-flex items-center gap-1.5 text-[#607960]"><span className="size-2 rounded-full bg-[#dce8dc]" />薄色：1日の目安</span>
+        <span className="inline-flex items-center gap-1.5 text-[var(--ink-soft)]"><span className="size-2 rounded-full bg-[var(--sage-deep)]" />濃色：今日の記録</span>
+        <span className="inline-flex items-center gap-1.5 text-[var(--muted)]"><span className="size-2 rounded-full bg-[#dce8dc]" />淡色：1日の目安</span>
       </div>
       <div className="mt-5 grid grid-cols-2 border-t border-[var(--line)]">
         <Link href="/meals" className="block min-w-0 border-r border-[var(--line)] py-5 pr-3 transition-colors hover:bg-[var(--canvas)] sm:py-8 sm:pr-8" aria-describedby={intakeDescription} aria-label={"食事を開く。摂取 " + amount(intake) + " kcal。PFC：" + macroRows.map((row) => row.name + " " + (row.amount === "—" ? "未計算" : row.amount + "g、" + (row.percentage === null ? "カロリー比未計算" : row.percentage + "%"))).join("、") + (intakeTarget ? "。1日の摂取目安 " + intakeTarget + " kcal" : "")}>
@@ -127,9 +127,9 @@ export function MobileDashboard({ today, doneCount, weight, goal, profile, macro
         <div className="mt-4 grid gap-5 sm:grid-cols-3" aria-label="PFCの記録と目安">{macroRows.map((row) => <div key={row.key} className="min-w-0">
           <span className="flex items-baseline justify-between gap-2"><span className="text-sm font-semibold text-[var(--ink-soft)]">{row.label} {row.name}</span><strong className="metric whitespace-nowrap text-base text-[var(--ink)]">{row.amount === "—" ? "—" : `${row.amount}g · ${row.percentage === null ? "—" : `${row.percentage}%`}`}</strong></span>
           <span className="relative mt-2 block h-2.5 w-full overflow-hidden rounded-full bg-[var(--sage-soft)]" role="meter" aria-label={`${row.name}のカロリー比`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percentage ?? undefined} aria-valuetext={row.percentage === null ? "未計算" : `記録${row.percentage}%、目安${row.target ? `${row.target.percent}%` : "未設定"}`}>
-            <span className="absolute inset-y-0 left-0 block bg-[#dce8dc]" style={{ width: `${row.target?.percent ?? 0}%` }} aria-hidden="true" />
-            <span className="absolute inset-y-0 left-0 block rounded-full bg-[var(--sage-deep)]" style={{ width: `${row.percentage ?? 0}%` }} aria-hidden="true" />
-            {row.target && <span className="absolute inset-y-0 z-10 w-px bg-[#789277]" style={{ left: `${row.target.percent}%` }} aria-hidden="true" />}
+            <span className="absolute inset-y-0 left-0 block" style={{ width: `${row.target?.percent ?? 0}%`, backgroundColor: row.targetColor }} aria-hidden="true" />
+            <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.percentage ?? 0}%`, backgroundColor: row.color }} aria-hidden="true" />
+            {row.target && <span className="absolute inset-y-0 z-10 w-px" style={{ left: `${row.target.percent}%`, backgroundColor: row.color }} aria-hidden="true" />}
           </span>
           <span className="metric mt-1.5 block text-sm font-semibold text-[#607960]">目安 {row.target ? `${range(row.target.minG, row.target.maxG)} g · ${row.target.percent}%` : "—"}</span>
         </div>)}</div>

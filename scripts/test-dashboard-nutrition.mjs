@@ -164,8 +164,8 @@ test("actual intake and PFC appear beside daily targets; burn estimate is distin
   assert.match(html, /活動による消費の推定/);
   assert.match(html, /650～1,000/);
   assert.match(html, /活動による消費の推定/);
-  assert.match(html, /濃い緑：今日の記録/);
-  assert.match(html, /薄色：1日の目安/);
+  assert.match(html, /濃色：今日の記録/);
+  assert.match(html, /淡色：1日の目安/);
   assert.match(html, /role="meter"/);
   assert.doesNotMatch(html, /conic-gradient|size-\[80px\]/);
 });
