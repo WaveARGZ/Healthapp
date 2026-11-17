@@ -1,7 +1,16 @@
+export const workoutExerciseCategories = ["胸", "背中", "腕", "肩", "腹筋・体幹", "脚", "有酸素"] as const;
+export type WorkoutExerciseCategory = typeof workoutExerciseCategories[number];
+
+export interface CustomExercise {
+  name: string;
+  category: WorkoutExerciseCategory;
+}
+
 export interface WorkoutPreferences {
   facilityEquipment: string[];
   customEquipment: string[];
   favoriteExercises: string[];
+  customExercises: CustomExercise[];
   isGymMember?: boolean;
   splitPlan?: WorkoutSplitPlan;
 }
@@ -20,6 +29,7 @@ export const defaultWorkoutPreferences: WorkoutPreferences = {
   facilityEquipment: [],
   customEquipment: [],
   favoriteExercises: [],
+  customExercises: [],
 };
 
 export function normalizeWorkoutPreferences(value: unknown): WorkoutPreferences {
@@ -38,6 +48,18 @@ export function normalizeWorkoutPreferences(value: unknown): WorkoutPreferences 
     && !Number.isNaN(Date.parse(`${plan.anchorDate}T00:00:00Z`))
     && new Date(`${plan.anchorDate}T00:00:00Z`).toISOString().slice(0, 10) === plan.anchorDate;
   const validCategories = new Set(["胸", "背中", "肩", "腕", "脚", "腹筋・体幹", "有酸素"]);
+  const seenExercises = new Set<string>();
+  const customExercises: CustomExercise[] = Array.isArray(stored.customExercises)
+    ? stored.customExercises.flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const candidate = item as Partial<CustomExercise>;
+      const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
+      if (!name || name.length > 80 || !workoutExerciseCategories.includes(candidate.category as WorkoutExerciseCategory)) return [];
+      const key = name.toLocaleLowerCase();
+      if (seenExercises.has(key)) return [];
+      seenExercises.add(key);
+      return [{ name, category: candidate.category as WorkoutExerciseCategory }];
+    }) : [];
   const customByWeekday = plan?.customByWeekday && typeof plan.customByWeekday === "object"
     ? Object.fromEntries(Object.entries(plan.customByWeekday)
       .filter(([day, categories]) => /^[0-6]$/.test(day) && Array.isArray(categories))
@@ -47,6 +69,7 @@ export function normalizeWorkoutPreferences(value: unknown): WorkoutPreferences 
     facilityEquipment: Array.isArray(stored.facilityEquipment) ? stored.facilityEquipment.filter((item): item is string => typeof item === "string") : [],
     customEquipment: Array.isArray(stored.customEquipment) ? stored.customEquipment.filter((item): item is string => typeof item === "string") : [],
     favoriteExercises: Array.isArray(stored.favoriteExercises) ? stored.favoriteExercises.filter((item): item is string => typeof item === "string") : [],
+    customExercises,
     ...(typeof stored.isGymMember === "boolean" ? { isGymMember: stored.isGymMember } : {}),
     ...(validPlan ? { splitPlan: { kind: plan.kind, trainingDays: [...trainingDays].sort((a, b) => a - b), anchorDate: plan.anchorDate, ...(plan.kind === "custom" ? { customByWeekday } : {}) } as WorkoutSplitPlan } : {}),
   };

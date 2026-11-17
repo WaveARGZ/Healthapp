@@ -91,11 +91,11 @@ export function summarizeWeeklyWorkoutAdvice(workouts: readonly WorkoutEntry[], 
     recentDays.add(workout.performedAt);
     for (const exercise of workout.exercises) {
       if (!exercise.name.trim()) continue;
-      const groups = groupsForExercise(exercise.name);
+      const groups = groupsForExercise(exercise.name, exercise.category);
       if (groups.length > 0) {
         strengthDates.add(workout.performedAt);
         for (const group of groups) datesByMuscle[group].add(workout.performedAt);
-      } else if (cardioExercises.has(exercise.name.trim())) cardioDates.add(workout.performedAt);
+      } else if (exercise.category === "有酸素" || cardioExercises.has(exercise.name.trim())) cardioDates.add(workout.performedAt);
       else unclassifiedExercises++;
       completedSets += exercise.setRecords?.filter((set) => set.completed).length ?? 0;
     }

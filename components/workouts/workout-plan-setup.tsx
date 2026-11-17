@@ -29,7 +29,7 @@ const suggestedDays: Record<number, number[]> = {
 
 export function WorkoutPlanSetup({ date, onSave }: { date: string; onSave: () => void }) {
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
-  const [preferences, setPreferences] = useState<WorkoutPreferences>({ facilityEquipment: [], customEquipment: [], favoriteExercises: [] });
+  const [preferences, setPreferences] = useState<WorkoutPreferences>({ facilityEquipment: [], customEquipment: [], favoriteExercises: [], customExercises: [] });
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
   const [draft, setDraft] = useState<WorkoutSplitPlan>({ kind: "three", trainingDays: [1, 3, 5], anchorDate: date, customByWeekday: {} });
   const [frequency, setFrequency] = useState(3);
@@ -113,6 +113,7 @@ export function WorkoutPlanSetup({ date, onSave }: { date: string; onSave: () =>
     goal: profile.goal,
     availableEquipment: [...preferences.facilityEquipment, ...preferences.customEquipment],
     favorites: preferences.favoriteExercises,
+    customExercises: preferences.customExercises,
     workouts,
     selectedCategory: "すべて",
     query: "",

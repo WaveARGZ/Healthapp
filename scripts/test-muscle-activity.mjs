@@ -50,6 +50,17 @@ test("common free-text exercise names update the map for recent saved dates", ()
   assert.equal(activity["腕"], 0);
 });
 
+test("user-defined exercises count for their selected body part after the record is saved", () => {
+  const custom = workout("2026-11-16", "自作メニュー");
+  custom.exercises[0].category = "肩";
+  const activity = summarizeMuscleActivity([custom], "2026-11-17");
+  assert.equal(activity["肩"], 1);
+  assert.equal(activity["胸"], 0);
+  const cardio = workout("2026-11-17", "胸を開く有酸素");
+  cardio.exercises[0].category = "有酸素";
+  assert.equal(summarizeMuscleActivity([cardio], "2026-11-17")["胸"], 0);
+});
+
 test("year rollover and malformed calendar dates are handled", () => {
   const activity = summarizeMuscleActivity([
     workout("2025-12-18", "レッグプレス"),

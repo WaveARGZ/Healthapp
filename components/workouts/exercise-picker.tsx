@@ -15,12 +15,12 @@ import { loadWorkoutPreferences, storeWorkoutPreferences } from "@/lib/api/worko
 import { bodyMakeClient } from "@/lib/api/client";
 import type { FitnessGoal } from "@/types/user";
 import type { WorkoutEntry, WorkoutSet } from "@/types/workout";
-import { defaultWorkoutPreferences, type WorkoutPreferences } from "@/types/workout-preferences";
+import { defaultWorkoutPreferences, type WorkoutExerciseCategory, type WorkoutPreferences } from "@/types/workout-preferences";
 import { isCloudConfigured } from "@/lib/cloud/config";
 import { isFirebaseSelected } from "@/lib/firebase/config";
 
 interface ExercisePickerProps {
-  onSelect: (exerciseName: string) => void;
+  onSelect: (exerciseName: string, category?: WorkoutExerciseCategory) => void;
   exerciseName: string;
   sets: WorkoutSet[];
   onUpdateSet: (setId: string, patch: Partial<WorkoutSet>) => void;
@@ -38,6 +38,8 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
   const [isOpen, setIsOpen] = useState(false);
   const [isEditingSets, setIsEditingSets] = useState(false);
   const [query, setQuery] = useState("");
+  const [customExerciseInput, setCustomExerciseInput] = useState("");
+  const [customExerciseNotice, setCustomExerciseNotice] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<WorkoutPreferences>(() => isCloudConfigured || isFirebaseSelected ? defaultWorkoutPreferences : getWorkoutPreferences());
   const [showEquipmentEditor, setShowEquipmentEditor] = useState(false);
@@ -156,8 +158,8 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
     };
   }, [isOpen]);
 
-  const visibleFavoriteCount = useMemo(() => beginnerExerciseCatalog.flatMap((category) => category.groups.flatMap((group) => group.exercises))
-    .filter((exercise) => preferences.favoriteExercises.includes(exercise)).length, [preferences.favoriteExercises]);
+  const visibleFavoriteCount = useMemo(() => new Set([...beginnerExerciseCatalog.flatMap((category) => category.groups.flatMap((group) => group.exercises)), ...preferences.customExercises.map((exercise) => exercise.name)]
+    .filter((exercise) => preferences.favoriteExercises.includes(exercise))).size, [preferences.customExercises, preferences.favoriteExercises]);
   const results = useMemo(() => {
     if (!activeCategory) return [];
     const matchingExercises = beginnerExerciseCatalog
@@ -165,8 +167,12 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
       .flatMap((category) => category.groups.flatMap((group) => group.exercises
         .filter((exercise) => (activeCategory !== "お気に入り" || preferences.favoriteExercises.includes(exercise))
           && (exercise.toLocaleLowerCase().includes(normalizedQuery) || Boolean(queryFocus && category.label === queryFocus)))));
-    return groupExercisesByEquipment(matchingExercises);
-  }, [activeCategory, normalizedQuery, preferences.favoriteExercises, queryFocus]);
+    const customMatches = preferences.customExercises
+      .filter((exercise) => (activeCategory === "お気に入り" ? preferences.favoriteExercises.includes(exercise.name) : exercise.category === activeCategory)
+        && (exercise.name.toLocaleLowerCase().includes(normalizedQuery) || Boolean(queryFocus && exercise.category === queryFocus)))
+      .map((exercise) => exercise.name);
+    return [...(customMatches.length ? [{ label: "自分で追加した種目", exercises: customMatches }] : []), ...groupExercisesByEquipment(matchingExercises)];
+  }, [activeCategory, normalizedQuery, preferences.customExercises, preferences.favoriteExercises, queryFocus]);
   const availableEquipment = useMemo(() => [...preferences.facilityEquipment, ...preferences.customEquipment], [preferences.customEquipment, preferences.facilityEquipment]);
   const scheduledDay = preferences.splitPlan && date ? getWorkoutDayPlan(preferences.splitPlan, date) : undefined;
   const week = preferences.splitPlan && date ? getWorkoutWeek(preferences.splitPlan, date) : [];
@@ -174,6 +180,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
     goal,
     availableEquipment,
     favorites: preferences.favoriteExercises,
+    customExercises: preferences.customExercises,
     workouts,
     selectedCategory: activeCategory ?? "すべて",
     query,
@@ -222,8 +229,30 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
     setEquipmentInput("");
   }
 
-  function choose(exerciseName: string) {
-    onSelect(exerciseName);
+  async function addCustomExercise() {
+    const name = customExerciseInput.trim();
+    const category = activeCategory;
+    if (!name || !category || category === "お気に入り" || !preferencesReady || pendingPreferenceWrites > 0 || preferencesError) return;
+    const key = name.toLocaleLowerCase();
+    const alreadyExists = preferences.customExercises.some((exercise) => exercise.name.toLocaleLowerCase() === key)
+      || beginnerExerciseCatalog.some((item) => item.groups.some((group) => group.exercises.some((exercise) => exercise.toLocaleLowerCase() === key)));
+    if (alreadyExists) { setCustomExerciseNotice("同じ名前の種目が既にあります。一覧から選んでください。"); return; }
+    const saved = await updatePreferences({ customExercises: [...preferences.customExercises, { name, category: category as WorkoutExerciseCategory }] });
+    if (!saved) return;
+    setCustomExerciseInput("");
+    setCustomExerciseNotice("");
+    choose(name, category as WorkoutExerciseCategory);
+  }
+
+  function removeCustomExercise(name: string) {
+    void updatePreferences({
+      customExercises: preferences.customExercises.filter((exercise) => exercise.name !== name),
+      favoriteExercises: preferences.favoriteExercises.filter((exercise) => exercise !== name),
+    });
+  }
+
+  function choose(exerciseName: string, customCategory?: WorkoutExerciseCategory) {
+    onSelect(exerciseName, customCategory ?? preferences.customExercises.find((exercise) => exercise.name === exerciseName)?.category);
     setIsEditingSets(true);
     setTutorialStage(null);
     setQuery("");
@@ -232,6 +261,8 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
 
   function selectCategory(category: string) {
     setActiveCategory(category);
+    setCustomExerciseInput("");
+    setCustomExerciseNotice("");
     requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus());
   }
 
@@ -243,7 +274,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
   }
 
   return <>
-    <Button type="button" variant="secondary" size="small" className="mt-3 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setShowEquipmentEditor(false); setActiveCategory(null); setIsEditingSets(false); setVideoExercise(null); setQuery(""); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />登録</Button>
+    <Button type="button" variant="secondary" size="small" className="mt-3 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setShowEquipmentEditor(false); setActiveCategory(null); setIsEditingSets(false); setVideoExercise(null); setQuery(""); setCustomExerciseInput(""); setCustomExerciseNotice(""); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />登録</Button>
     {isOpen ? <div ref={dialogRef} className="exercise-dialog" role="dialog" aria-modal="true" aria-label={videoExercise ? `${videoExercise}の動作動画` : "筋トレ種目を選択"} onClick={(event) => { if (event.target === event.currentTarget) { if (videoExercise) setVideoExercise(null); else closePicker(); } }}>
       {videoExercise ? <section className="exercise-dialog-panel">
         <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5">
@@ -256,7 +287,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
         </div>
       </section> : <>
       <section className="exercise-dialog-panel">
-        <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5"><div><p className="text-base font-bold">{isEditingSets ? "重量・レップ数を入力" : tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-white/70">{isEditingSets ? "セットごとに入力できます" : `初心者向けの${beginnerExerciseCount}種目から選べます`}</p>{!isEditingSets && <p className="mt-0.5 text-xs text-white/70">再生ボタンでアプリ内に動画を表示します</p>}</div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded-xl border border-white/30 text-xl leading-none text-white hover:bg-white/10" aria-label="種目メニューを閉じる">×</button></header>
+        <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5"><div><p className="text-base font-bold">{isEditingSets ? "重量・レップ数を入力" : tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-white/70">{isEditingSets ? "セットごとに入力できます" : `初心者向けの${beginnerExerciseCount}種目と自分で追加した種目から選べます`}</p>{!isEditingSets && <p className="mt-0.5 text-xs text-white/70">動画がある種目は再生ボタンで確認できます</p>}</div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded-xl border border-white/30 text-xl leading-none text-white hover:bg-white/10" aria-label="種目メニューを閉じる">×</button></header>
         <div ref={listScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(16px,env(safe-area-inset-bottom))]">
         {isEditingSets ? <section aria-label={`${exerciseName}のセット入力`} className="px-4 py-5 sm:px-5">
           <button type="button" onClick={() => { setIsEditingSets(false); requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus()); }} className="mb-4 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目選択へ戻る</button>
@@ -284,6 +315,13 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
           <TextInput type="search" aria-label="種目名を検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="種目名を検索 例：ベンチプレス" />
         </div>
         <div className="px-4 sm:px-5">
+          {activeCategory !== "お気に入り" && <section className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-4" aria-label={`${categoryDisplayName(activeCategory)}の種目を追加`}>
+            <p className="text-sm font-bold text-[var(--ink)]">一覧にない種目を追加</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">ここで追加した種目は、次回から「{categoryDisplayName(activeCategory)}」の一覧にも表示されます。</p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row"><TextInput aria-label="追加する種目名" value={customExerciseInput} maxLength={80} disabled={!preferencesReady || Boolean(preferencesError)} onChange={(event) => { setCustomExerciseInput(event.target.value); setCustomExerciseNotice(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void addCustomExercise(); } }} placeholder="例：自分のトレーニング名" /><Button type="button" onClick={() => void addCustomExercise()} disabled={!customExerciseInput.trim() || !preferencesReady || pendingPreferenceWrites > 0 || Boolean(preferencesError)} className="shrink-0"><Icon name="plus" className="size-4" />追加して記録</Button></div>
+            {customExerciseNotice && <p role="alert" className="mt-2 text-xs text-[var(--coral)]">{customExerciseNotice}</p>}
+            {preferencesError && <p role="alert" className="mt-2 text-xs text-[var(--coral)]">{preferencesError}</p>}
+          </section>}
           <div className="mt-3 flex items-center justify-between gap-3">
             <p className="text-xs font-semibold leading-5 text-[var(--ink)]">施設の器具 <span className="block text-[var(--muted)] sm:inline">{availableEquipment.length}件登録</span></p>
             <button type="button" aria-expanded={showEquipmentEditor} onClick={() => { if (showEquipmentEditor && tutorialStage === "equipment") setTutorialStage(null); setShowEquipmentEditor((shown) => !shown); }} className="min-h-11 shrink-0 rounded border border-[var(--line)] bg-white px-3 text-xs font-bold text-[var(--sage-deep)]">{showEquipmentEditor ? "器具の編集を閉じる" : "器具を登録・編集"}</button>
@@ -315,8 +353,8 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
         <div className="px-4 pt-5 sm:px-5">
           {results.length ? <div className="space-y-6">{results.map((group) => <section key={group.label} aria-label={group.label}>
             <h3 className="text-sm font-bold text-[var(--ink)]">{group.label} <span className="font-normal text-[var(--muted)]">{group.exercises.length}件</span></h3>
-            <div className="mt-3 overflow-hidden rounded-xl border border-[var(--line)] bg-white">{group.exercises.map((exercise, index) => <div key={exercise} className={`flex min-h-16 items-stretch ${index ? "border-t border-[var(--line)]" : ""}`}><button type="button" onClick={() => choose(exercise)} className="flex min-w-0 flex-1 items-center gap-2 px-3 py-3 text-left transition hover:bg-[var(--sage-soft)] sm:gap-3"><span className="grid size-6 shrink-0 place-items-center text-[var(--muted)]"><Icon name="dumbbell" className="size-4" /></span><span className="min-w-0 flex-1 break-words text-sm font-semibold leading-6 text-[var(--ink)]">{exercise}</span><Icon name="chevron-right" className="size-4 shrink-0 text-[var(--muted)]" /></button><button type="button" data-exercise-video={exercise} onClick={() => { videoOpenerNameRef.current = exercise; savedListScrollRef.current = listScrollRef.current?.scrollTop ?? 0; setVideoExercise(exercise); }} aria-label={`${exercise}の動作説明をアプリ内で見る`} title="動作動画を見る" className="grid min-h-16 w-11 shrink-0 place-items-center border-l border-[var(--line)] text-[var(--sage-deep)] hover:bg-[var(--sage-soft)] sm:w-12"><Icon name="play" className="size-5" /></button><button ref={exercise === guideExerciseName ? firstFavoriteRef : undefined} type="button" disabled={!preferencesReady || Boolean(preferencesError)} aria-label={preferences.favoriteExercises.includes(exercise) ? `${exercise}をお気に入りから削除` : `${exercise}をお気に入りに登録`} aria-pressed={preferences.favoriteExercises.includes(exercise)} onClick={() => toggleFavorite(exercise)} className={`grid min-h-16 w-11 shrink-0 place-items-center border-l border-[var(--line)] text-xl text-[var(--sage-deep)] disabled:opacity-40 sm:w-12 ${tutorialStage === "favorite" && exercise === guideExerciseName ? "workout-favorite-nudge" : ""}`} title="お気に入り">{preferences.favoriteExercises.includes(exercise) ? "★" : "☆"}</button></div>)}</div>
-          </section>)}</div> : <div className="py-14 text-center"><Icon name="dumbbell" className="mx-auto size-6 text-[#a6ada8]" /><p className="mt-3 text-sm font-semibold text-[var(--ink)]">{activeCategory === "お気に入り" && !query ? "お気に入りはまだありません" : "該当する種目がありません"}</p><p className="mt-2 text-xs leading-5 text-[var(--muted)]">種目名を変えるか、種目の☆を押して登録してください。</p></div>}
+            <div className="mt-3 overflow-hidden rounded-xl border border-[var(--line)] bg-white">{group.exercises.map((exercise, index) => <div key={exercise} className={`flex min-h-16 items-stretch ${index ? "border-t border-[var(--line)]" : ""}`}><button type="button" onClick={() => choose(exercise)} className="flex min-w-0 flex-1 items-center gap-2 px-3 py-3 text-left transition hover:bg-[var(--sage-soft)] sm:gap-3"><span className="grid size-6 shrink-0 place-items-center text-[var(--muted)]"><Icon name="dumbbell" className="size-4" /></span><span className="min-w-0 flex-1 break-words text-sm font-semibold leading-6 text-[var(--ink)]">{exercise}</span><Icon name="chevron-right" className="size-4 shrink-0 text-[var(--muted)]" /></button>{getExerciseShortEmbedUrl(exercise) && <button type="button" data-exercise-video={exercise} onClick={() => { videoOpenerNameRef.current = exercise; savedListScrollRef.current = listScrollRef.current?.scrollTop ?? 0; setVideoExercise(exercise); }} aria-label={`${exercise}の動作説明をアプリ内で見る`} title="動作動画を見る" className="grid min-h-16 w-11 shrink-0 place-items-center border-l border-[var(--line)] text-[var(--sage-deep)] hover:bg-[var(--sage-soft)] sm:w-12"><Icon name="play" className="size-5" /></button>}<button ref={exercise === guideExerciseName ? firstFavoriteRef : undefined} type="button" disabled={!preferencesReady || Boolean(preferencesError)} aria-label={preferences.favoriteExercises.includes(exercise) ? `${exercise}をお気に入りから削除` : `${exercise}をお気に入りに登録`} aria-pressed={preferences.favoriteExercises.includes(exercise)} onClick={() => toggleFavorite(exercise)} className={`grid min-h-16 w-11 shrink-0 place-items-center border-l border-[var(--line)] text-xl text-[var(--sage-deep)] disabled:opacity-40 sm:w-12 ${tutorialStage === "favorite" && exercise === guideExerciseName ? "workout-favorite-nudge" : ""}`} title="お気に入り">{preferences.favoriteExercises.includes(exercise) ? "★" : "☆"}</button>{group.label === "自分で追加した種目" && <button type="button" disabled={!preferencesReady || pendingPreferenceWrites > 0 || Boolean(preferencesError)} onClick={() => removeCustomExercise(exercise)} aria-label={`${exercise}を自分の種目一覧から削除`} className="grid min-h-16 w-11 shrink-0 place-items-center border-l border-[var(--line)] text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-40"><Icon name="trash" className="size-4" /></button>}</div>)}</div>
+          </section>)}</div> : <div className="py-14 text-center"><Icon name="dumbbell" className="mx-auto size-6 text-[#a6ada8]" /><p className="mt-3 text-sm font-semibold text-[var(--ink)]">{activeCategory === "お気に入り" && !query ? "お気に入りはまだありません" : "該当する種目がありません"}</p><p className="mt-2 text-xs leading-5 text-[var(--muted)]">{activeCategory === "お気に入り" ? "種目の☆を押すと、ここからも選べます。" : "一覧にない種目は上の入力欄から追加できます。"}</p></div>}
         </div>
         </>}
         </div>
