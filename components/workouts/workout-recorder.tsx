@@ -224,7 +224,7 @@ export function WorkoutRecorder() {
 
   return <>
     <PageHeader title="筋トレ" description="カレンダーで日付を選んで、種目を記録。" />
-    <div role="tablist" aria-label="筋トレの表示切り替え" className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-[var(--line)] bg-white p-1 shadow-[0_6px_18px_rgba(32,38,34,.04)]">
+    <div role="tablist" aria-label="筋トレの表示切り替え" className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--sage-soft)] p-1">
       {([{ id: "record", label: "筋トレ記録" }, { id: "plan", label: "週間メニュー" }] as const).map((tab) => <button
         key={tab.id}
         id={`workout-${tab.id}-tab`}
@@ -241,7 +241,7 @@ export function WorkoutRecorder() {
           setActiveTab(next);
           document.getElementById(`workout-${next}-tab`)?.focus();
         }}
-        className={`min-h-12 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "bg-[#19182f] text-white" : "text-[var(--muted)] hover:bg-[var(--sand)] hover:text-[var(--ink)]"}`}
+        className={`min-h-12 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "bg-[var(--sage-deep)] text-white" : "text-[var(--ink-soft)] hover:bg-white hover:text-[var(--sage-deep)]"}`}
       >{tab.label}</button>)}
     </div>
     <div id="workout-plan-panel" role="tabpanel" aria-labelledby="workout-plan-tab" hidden={activeTab !== "plan"}>

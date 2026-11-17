@@ -143,9 +143,9 @@ export function MealRecorder() {
   }
 
   return <>
-    <header className="overflow-hidden rounded-[24px] border border-[var(--line)] border-l-[5px] border-l-[var(--sage-deep)] bg-white px-5 py-6 text-[var(--ink)] shadow-[0_12px_30px_rgba(34,71,44,.07)] sm:px-7">
+    <header className="overflow-hidden rounded-[22px] border border-[var(--line)] bg-[var(--sage-soft)] px-5 py-6 text-[var(--ink)] sm:px-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div><p className="text-xs font-semibold tracking-[.18em] text-[var(--sage-deep)]">BODYMAKE</p><h1 className="mt-2 text-[27px] font-bold tracking-tight text-[var(--sage-deep)]">食事記録</h1><p className="mt-1 text-xs text-[var(--muted)]">選んだ日の食事と栄養を確認</p></div>
+        <div><span aria-hidden="true" className="mb-3 block h-1 w-8 rounded-full bg-[var(--sage-deep)]" /><h1 className="text-[27px] font-bold tracking-tight">食事記録</h1><p className="mt-1 text-xs text-[var(--ink-soft)]">選んだ日の食事と栄養を確認</p></div>
         <label className="min-w-0 text-xs font-semibold text-[var(--sage-deep)]">記録日<input id="meal-date" type="date" value={recordedAt} onChange={(event) => setRecordedAt(event.target.value)} required className="mt-1 block h-11 max-w-full rounded-lg border border-[var(--line)] bg-white px-3 text-base text-[var(--ink)] focus:border-[var(--sage-deep)]" /></label>
       </div>
       <div className="mt-7 flex items-center justify-between gap-3 sm:gap-6">
@@ -193,7 +193,7 @@ export function MealRecorder() {
         ["photo", "camera", "写真"],
         ["manual", "plus", "手入力"],
         ["barcode", "barcode", "バーコード"],
-      ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-md border px-1 text-[11px] font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
+      ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border px-1 text-[11px] font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)] hover:bg-[var(--sand)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
       <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} /></div>
       {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} />}
       {inputMode === "barcode" && <BarcodeMealEntry onAddFood={saveFood} barcode={barcodeDraft} onBarcodeChange={updateBarcodeDraft} />}

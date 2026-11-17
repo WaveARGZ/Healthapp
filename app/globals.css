@@ -3,17 +3,17 @@
 :root {
   --body-font: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
   --display-font: var(--body-font);
-  --canvas: #f6f7f7;
-  --ink: #202434;
-  --ink-soft: #40475a;
-  --muted: #657084;
-  --line: #e1e5e7;
-  --navy: #19182f;
-  --cyan: #38bdc8;
-  --sage-soft: #edf2e9;
-  --sage-deep: #365940;
-  --sand: #f2f4f3;
-  --peach: #d8e4ca;
+  --canvas: #f7faf6;
+  --ink: #20372b;
+  --ink-soft: #3a5746;
+  --muted: #63776a;
+  --line: #dce8dd;
+  --navy: #193f2e;
+  --cyan: #4c9a75;
+  --sage-soft: #edf5eb;
+  --sage-deep: #24623d;
+  --sand: #f3f8f1;
+  --peach: #d6e9d2;
   --coral: #a44436;
   --coral-soft: #fbefec;
   --background: var(--canvas);
@@ -44,14 +44,14 @@ button:not(:disabled), summary, select { cursor: pointer; }
 input, select, textarea { scroll-margin-block: 24px 180px; }
 html { scroll-padding-bottom: 180px; }
 :focus-visible { outline: 2px solid var(--sage-deep); outline-offset: 4px; }
-::selection { background: #d8e4ca; color: var(--ink); }
+::selection { background: #d6e9d2; color: var(--ink); }
 
 @layer components {
-  .panel { min-width: 0; border: 1px solid var(--line); border-radius: 16px; background: white; padding: 16px; box-shadow: 0 6px 18px rgb(25 24 47 / .035); }
-  .section-title { font-size: 17px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+  .panel { min-width: 0; border: 1px solid var(--line); border-radius: 20px; background: white; padding: 16px; box-shadow: 0 8px 24px rgb(28 67 41 / .045); }
+  .section-title { font-size: 18px; font-weight: 700; letter-spacing: -.025em; color: var(--ink); }
   .metric { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -.04em; }
-  .form-input { height: 48px; width: 100%; min-width: 0; border: 1px solid #cbd3d1; border-radius: 10px; background: white; padding: 0 12px; font-size: 16px; color: var(--ink); }
-  .form-input::placeholder { color: #929a93; }
+  .form-input { height: 48px; width: 100%; min-width: 0; border: 1px solid #c7d9ca; border-radius: 12px; background: white; padding: 0 12px; font-size: 16px; color: var(--ink); transition: border-color 150ms ease, box-shadow 150ms ease; }
+  .form-input::placeholder { color: #829487; }
   .form-input:focus { border-color: var(--sage-deep); outline: 2px solid var(--sage-deep); outline-offset: 1px; }
   .delete-button { display: grid; min-width: 44px; min-height: 44px; place-items: center; border-radius: 10px; color: var(--muted); }
   .delete-button:hover { color: var(--coral); background: var(--coral-soft); }
@@ -59,10 +59,10 @@ html { scroll-padding-bottom: 180px; }
   .text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
   .setup-page { min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); background: var(--canvas); }
   .setup-content { margin: 0 auto; width: 100%; max-width: 480px; }
-  .setup-heading { margin-top: 24px; border-radius: 24px; background: var(--navy); padding: 24px 20px; color: white; box-shadow: 0 18px 40px rgb(25 24 47 / .12); }
-  .setup-heading > p:last-of-type:not([role="alert"]) { color: #d5d2e9 !important; }
+  .setup-heading { margin-top: 24px; border-radius: 24px; background: var(--navy); padding: 24px 20px; color: white; box-shadow: 0 18px 40px rgb(28 67 41 / .12); }
+  .setup-heading > p:last-of-type:not([role="alert"]) { color: #d8e9da !important; }
   .setup-title { margin-top: 12px; font-size: clamp(24px, 6vw, 28px); line-height: 1.5; font-weight: 700; letter-spacing: -.025em; text-wrap: balance; }
-  .setup-step { font-size: 12px; font-weight: 600; color: #b8b4db; }
+  .setup-step { font-size: 12px; font-weight: 600; color: #c9e3cb; }
   .choice-tab { min-height: 48px; border-bottom: 2px solid transparent; padding: 8px 4px; font-size: 13px; font-weight: 600; color: var(--muted); transition: color 150ms ease, border-color 150ms ease; }
   .choice-tab[aria-pressed="true"] { border-color: var(--navy); color: var(--navy); }
   .safe-gutters { padding-left: max(var(--page-gutter), env(safe-area-inset-left)); padding-right: max(var(--page-gutter), env(safe-area-inset-right)); }

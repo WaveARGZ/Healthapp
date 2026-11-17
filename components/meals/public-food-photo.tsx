@@ -285,7 +285,7 @@ export function PublicFoodPhoto() {
         <a href="./?reload=food-photo-startup-v1" className="text-link mt-3 flex min-h-12 items-center text-sm font-bold">操作できないときは、ページを読み直す</a>
         <p className="mt-2 text-xs leading-6">読み直すと入力中の内容は消えます。改善しない場合はSafari／ChromeにこのページのURLを貼り付けて開いてください。JavaScriptが無効の場合は有効にする必要があります。</p>
       </section>}
-      <section className="rounded-[24px] bg-[#19182f] px-5 py-7 text-white shadow-[0_18px_40px_rgba(25,24,47,.14)] sm:px-7 sm:py-9">
+      <section className="rounded-[24px] bg-[var(--navy)] px-5 py-7 text-white shadow-[0_18px_40px_rgba(28,67,41,.14)] sm:px-7 sm:py-9">
         <p className="text-xs font-bold tracking-[.16em] text-[#c1bde4]">BODYMAKE FOOD PHOTO</p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">食事写真AIを試す</h1>
         <p className="mt-4 text-sm leading-7 text-[#d5d2e9]">写真を選ぶと、端末上のAIが料理候補を表示します。初回は約200MBの無料モデルをダウンロードします。{isSharedTestEnvironment ? "本番と同じ認識モデルで、料理候補と修正画面を確認できます。" : "判定が違えば正しい料理名を教えてください。学習用の共有は任意で、Google認証と同意をした時だけ送信します。"}</p>

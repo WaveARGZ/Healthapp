@@ -34,7 +34,7 @@ export function LandingPage() {
       </div>
     </header>
     <section className="safe-gutters mx-auto max-w-6xl pt-5 sm:pt-8">
-    <div className="grid gap-8 rounded-[28px] bg-[#19182f] px-5 py-10 text-white shadow-[0_20px_44px_rgba(25,24,47,.14)] sm:gap-10 sm:px-10 sm:py-14 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-14 lg:px-14">
+    <div className="grid gap-8 rounded-[28px] bg-[var(--navy)] px-5 py-10 text-white shadow-[0_20px_44px_rgba(28,67,41,.14)] sm:gap-10 sm:px-10 sm:py-14 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-14 lg:px-14">
       <div className="min-w-0">
         <p className="mb-4 text-xs font-bold tracking-[.18em] text-[#c1bde4]">BODYMAKE · 毎日の記録</p>
         <h1 className="text-[clamp(2rem,6.5vw,3.5rem)] font-bold leading-[1.35] tracking-[-0.05em]">理想の身体を、<br />見える目標に。</h1>

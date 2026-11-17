@@ -14,8 +14,8 @@ export function Button({
   ...props
 }: ButtonProps) {
   const variants = {
-    primary: "border border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white hover:bg-[var(--ink)]",
-    secondary: "border border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--sand)]",
+    primary: "border border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white hover:bg-[var(--navy)]",
+    secondary: "border border-[var(--line)] bg-white text-[var(--sage-deep)] hover:bg-[var(--sage-soft)]",
     ghost: "bg-transparent text-[var(--muted)] hover:bg-[var(--sand)] hover:text-[var(--ink)]",
     danger: "bg-[var(--coral-soft)] text-[var(--coral)] hover:bg-[#f8deda]",
   };
