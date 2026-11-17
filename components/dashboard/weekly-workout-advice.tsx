@@ -21,7 +21,7 @@ function shortDate(date: string): string {
 
 export function WeeklyWorkoutAdvice({ workouts, today, goal, loading, workoutUnavailable, profileUnavailable }: WeeklyWorkoutAdviceProps) {
   const advice = summarizeWeeklyWorkoutAdvice(workouts, today, goal);
-  return <section aria-labelledby="weekly-workout-advice-title" aria-busy={loading} className="mt-8 overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
+  return <section aria-labelledby="weekly-workout-advice-title" aria-busy={loading} className="mt-2 overflow-hidden rounded-2xl border border-[var(--line)] bg-white sm:mt-8">
     <div className="bg-[var(--sage-soft)] px-5 py-5 sm:px-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
