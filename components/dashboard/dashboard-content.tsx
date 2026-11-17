@@ -130,8 +130,6 @@ export function DashboardContent() {
       workoutUnavailable={workoutLoadFailed}
       error={error}
     />
-    <div className="hidden sm:block">
-      <WeeklyWorkoutAdvice workouts={data.workouts} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} profileUnavailable={profileLoadFailed} />
-    </div>
+    <WeeklyWorkoutAdvice workouts={data.workouts} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} profileUnavailable={profileLoadFailed} />
   </div>;
 }
