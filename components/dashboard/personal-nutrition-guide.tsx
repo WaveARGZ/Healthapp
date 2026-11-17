@@ -29,7 +29,7 @@ export function PersonalNutritionGuide({ profile, weightKg, loading, unavailable
         ? "推定値が低いため、数値目安は表示しません。"
         : "年齢・身長・体重を登録すると、あなた向けの目安を表示できます。";
 
-  return <div className="mt-6 border-t border-[var(--line)] pt-4 text-xs leading-6 text-[var(--muted)]" aria-label="1日の目安の計算方法">
+  return <div className="mt-6 border-t border-[var(--line)] pt-4 text-sm leading-6 text-[var(--muted)]" aria-label="1日の目安の計算方法">
     {loading ? <p>目安を計算しています…</p>
       : unavailable ? <p className="text-[var(--coral)]">プロフィールを読み込めないため、目安を表示できません。</p>
         : guide.status !== "ready" || !profile ? <p>{unavailableMessage} <Link href="/onboarding" className="text-link">プロフィールを編集</Link></p>

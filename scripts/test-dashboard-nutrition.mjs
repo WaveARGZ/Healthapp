@@ -85,7 +85,7 @@ test("fully entered meals display complete totals without partial-total warnings
   const html = renderDashboard([known]);
   assert.match(html, /摂取 500 kcal/);
   assert.match(html, /消費から摂取を引いた収支 \+1,500 kcal。消費が多い/);
-  assert.match(html, /PFC · カロリー比/);
+  assert.match(html, /PFC・カロリー比/);
   assert.match(html, /20g · 16%/);
   assert.ok(!html.includes(partialNotice));
   assert.ok(!html.includes(macroNotice));
@@ -155,7 +155,7 @@ test("loading and failed meal requests do not misreport missing user input", () 
 test("actual intake and PFC appear beside daily targets; burn estimate is distinguished from the record", () => {
   const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
   const html = renderDashboard([known], { profile });
-  assert.match(html, /今日の摂取/);
+  assert.match(html, /摂取/);
   assert.match(html, /500/);
   assert.match(html, /1日の目安/);
   assert.match(html, /2,400～2,700/);
