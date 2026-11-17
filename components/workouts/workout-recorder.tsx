@@ -21,8 +21,10 @@ function newSet(): WorkoutSet {
   return { id: createId("set"), weightKg: undefined, reps: undefined, completed: false };
 }
 
+const defaultSetCount = 4;
+
 function newExercise(): WorkoutExercise {
-  return { id: createId("exercise"), name: "", setRecords: [newSet()] };
+  return { id: createId("exercise"), name: "", setRecords: Array.from({ length: defaultSetCount }, () => newSet()) };
 }
 
 function setsFor(exercise: WorkoutExercise): WorkoutSet[] {
@@ -151,7 +153,7 @@ export function WorkoutRecorder() {
   const [performedAt, setPerformedAt] = useState(toDateInputValue());
   const [performedTime, setPerformedTime] = useState("");
   // Stable first-render IDs keep the server HTML and hydrated client inputs identical.
-  const [exercises, setExercises] = useState<WorkoutExercise[]>([{ id: "exercise-initial", name: "", setRecords: [{ id: "set-initial", weightKg: undefined, reps: undefined, completed: false }] }]);
+  const [exercises, setExercises] = useState<WorkoutExercise[]>([{ id: "exercise-initial", name: "", setRecords: Array.from({ length: defaultSetCount }, (_, index) => ({ id: `set-initial-${index + 1}`, weightKg: undefined, reps: undefined, completed: false })) }]);
   const [history, setHistory] = useState<WorkoutEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState("");
