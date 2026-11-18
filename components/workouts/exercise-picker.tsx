@@ -135,7 +135,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
     const initialFocus = window.matchMedia("(min-width: 640px)").matches
       ? dialogRef.current?.querySelector<HTMLInputElement>('input[type="search"]') ?? categoryButton
       : categoryButton ?? dialogRef.current?.querySelector<HTMLButtonElement>("button");
-    initialFocus?.focus();
+    (initialFocus ?? dialogRef.current?.querySelector<HTMLButtonElement>('[aria-label="種目メニューを閉じる"]'))?.focus();
     document.body.style.overflow = "hidden";
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -275,7 +275,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
   }
 
   return <>
-    <Button type="button" variant="secondary" size="small" className="mt-3 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setShowEquipmentEditor(false); setActiveCategory(null); setIsEditingSets(false); setVideoExercise(null); setQuery(""); setCustomExerciseInput(""); setCustomExerciseNotice(""); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />登録</Button>
+    <Button type="button" variant="secondary" size="small" className="mt-3 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setShowEquipmentEditor(false); setActiveCategory(null); setIsEditingSets(Boolean(exerciseName)); setVideoExercise(null); setQuery(""); setCustomExerciseInput(""); setCustomExerciseNotice(""); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />{exerciseName ? "登録内容を編集" : "登録"}</Button>
     {isOpen ? <div ref={dialogRef} className="exercise-dialog" role="dialog" aria-modal="true" aria-label={videoExercise ? `${videoExercise}の動作動画` : "筋トレ種目を選択"} onClick={(event) => { if (event.target === event.currentTarget) { if (videoExercise) setVideoExercise(null); else closePicker(); } }}>
       {videoExercise ? <section className="exercise-dialog-panel">
         <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5">
