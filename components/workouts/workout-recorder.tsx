@@ -7,7 +7,6 @@ import { Icon } from "@/components/ui/icon";
 import { RecordActions } from "@/components/ui/record-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExercisePicker } from "@/components/workouts/exercise-picker";
-import { WorkoutSetNumberField } from "@/components/workouts/workout-set-number-field";
 import { DailyBurnRecorder } from "@/components/workouts/daily-burn-recorder";
 import { AnatomyFigure } from "@/components/dashboard/anatomy-figure";
 import { activityTint, inactiveOutlineColor } from "@/components/dashboard/activity-color";
@@ -276,16 +275,14 @@ export function WorkoutRecorder() {
               <p className="text-xs font-semibold text-[var(--muted)]">種目</p>
               <p className={`mt-2 break-words text-sm font-bold ${exercise.name ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}>{exercise.name || "まだ種目を選んでいません"}</p>
               <ExercisePicker date={performedAt} startWithEquipmentSetup={index === 0} exerciseName={exercise.name} sets={sets} onSelect={(name, category) => updateExercise(exercise.id, { name, category: category ?? null })} onUpdateSet={(setId, patch) => updateSet(exercise.id, setId, patch)} onAddSet={() => addSet(exercise.id)} onRemoveSet={(setId) => removeSet(exercise.id, setId)} />
-              <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span><span>完了 {completedCount} / {sets.length}</span></div>
-              <div className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] gap-1.5 border-y border-[var(--line)] py-2 text-center text-xs font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>回数</span><span>完了</span><span className="sr-only">削除</span></div>
-              <div className="mt-3 space-y-2">{sets.map((set, setIndex) => <div key={set.id} className="grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] items-center gap-1.5">
-                <span className="metric text-center text-xs text-[var(--muted)]">{setIndex + 1}</span>
-                <WorkoutSetNumberField value={set.weightKg} onCommit={(weightKg) => updateSet(exercise.id, set.id, { weightKg })} previousValue={sets[setIndex - 1]?.weightKg} label={`${setIndex + 1}セット目の重量`} copyLabel={setIndex > 0 ? `${setIndex}セット目の重量を${setIndex + 1}セット目にコピー` : undefined} step="0.5" inputMode="decimal" />
-                <WorkoutSetNumberField value={set.reps} onCommit={(reps) => updateSet(exercise.id, set.id, { reps })} previousValue={sets[setIndex - 1]?.reps} label={`${setIndex + 1}セット目の回数`} copyLabel={setIndex > 0 ? `${setIndex}セット目の回数を${setIndex + 1}セット目にコピー` : undefined} step="1" inputMode="numeric" />
-                <button type="button" onClick={() => updateSet(exercise.id, set.id, { completed: !set.completed })} aria-pressed={set.completed} aria-label={`${setIndex + 1}セット目の完了`} className={`grid size-11 place-items-center rounded border ${set.completed ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name="check" className="size-5" /></button>
-                <button type="button" disabled={sets.length === 1} onClick={() => removeSet(exercise.id, set.id)} aria-label={`${setIndex + 1}セット目を削除`} className="grid size-11 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-3.5" /></button>
-              </div>)}</div>
-              <Button type="button" variant="secondary" size="small" className="mt-4 w-full text-[var(--sage-deep)]" onClick={() => addSet(exercise.id)}><Icon name="plus" className="size-4" />セットを追加</Button>
+              {exercise.name && <>
+                <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm leading-6 text-[var(--muted)]"><span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span><span>完了 {completedCount} / {sets.length}</span></div>
+                <div aria-label={`${exercise.name}のセット内容`} className="divide-y divide-[var(--line)] overflow-hidden rounded-xl border border-[var(--line)]">{sets.map((set, setIndex) => <div key={set.id} className="flex min-h-14 items-center gap-3 px-3">
+                  <span className="metric w-7 shrink-0 text-sm font-semibold text-[var(--muted)]">{setIndex + 1}</span>
+                  <span className="metric min-w-0 flex-1 text-sm font-semibold text-[var(--ink)]">{set.weightKg ?? "—"} kg × {set.reps ?? "—"} 回</span>
+                  <button type="button" onClick={() => updateSet(exercise.id, set.id, { completed: !set.completed })} aria-pressed={set.completed} aria-label={`${setIndex + 1}セット目の完了`} className={`grid size-11 shrink-0 place-items-center rounded border ${set.completed ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name="check" className="size-5" /></button>
+                </div>)}</div>
+              </>}
             </div>
           </section>;
         })}
