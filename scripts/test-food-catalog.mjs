@@ -25,6 +25,17 @@ for (const spelling of ["白米", "しろごはん", "おこめ", "ライス"]) 
 assert.ok(searchFoodGroups(foods, "おにぎり", "すべて").groups.some((group) => group.name.includes("おにぎり")));
 assert.ok(searchFoodGroups(foods, "納豆", "すべて").groups.some((group) => group.name.includes("糸引き納豆")));
 assert.ok(searchFoodGroups(foods, "チキンカレイ", "すべて").groups.some((group) => group.name === "チキンカレーライス"));
+assert.ok(searchFoodGroups(foods, "とりむね", "すべて").groups.some((group) => group.name.startsWith("鶏むね肉")));
+assert.ok(searchFoodGroups(foods, "玉子焼き", "すべて").groups.some((group) => group.name.includes("厚焼きたまご")));
+const related = searchFoodGroups(foods, "ツナサラダ", "すべて");
+assert.equal(related.usedRelated, true);
+assert.deepEqual(related.relatedTerms, ["ツナ", "サラダ"]);
+assert.ok(related.groups.some((group) => group.name === "ツナ缶"));
+assert.ok(related.groups.some((group) => group.name.includes("サラダ")));
+const kimchi = searchFoodGroups(foods, "豚キムチ", "すべて");
+assert.equal(kimchi.usedRelated, true);
+assert.ok(kimchi.relatedTerms.includes("キムチ"));
+assert.equal(searchFoodGroups(foods, "該当しない食品", "すべて").groups.length, 0);
 assert.ok(searchFoodGroups(foods, "チャーハン", "調理済み料理").groups.some((group) => group.name.includes("チャーハン")));
 assert.ok(searchFoodGroups(foods, "バナナ", "果物").groups.every((group) => group.variants.every((food) => food.category === "果物")));
 assert.equal(searchFoodGroups(foods, "シャオエッセン", "すべて").groups[0]?.name, "シャウエッセン");
