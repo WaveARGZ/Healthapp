@@ -21,7 +21,9 @@ for (const category of exerciseCatalog) {
   }
 }
 
-export function groupsForExercise(name: string): MuscleGroup[] {
+export function groupsForExercise(name: string, category?: string | null): MuscleGroup[] {
+  if (category === "有酸素") return [];
+  if (category && muscleGroupSet.has(category)) return [category as MuscleGroup];
   const trimmed = name.trim();
   const catalogGroups = groupsByExercise.get(trimmed);
   if (catalogGroups) return catalogGroups;
@@ -55,7 +57,7 @@ export function summarizeMuscleActivity(workouts: WorkoutEntry[], today: string)
   for (const workout of workouts) {
     if (!isValidDate(workout.performedAt) || workout.performedAt < startDate || workout.performedAt > today) continue;
     for (const exercise of workout.exercises) {
-      for (const group of groupsForExercise(exercise.name)) datesByGroup[group].add(workout.performedAt);
+      for (const group of groupsForExercise(exercise.name, exercise.category)) datesByGroup[group].add(workout.performedAt);
     }
   }
   return Object.fromEntries(muscleGroups.map((group) => [group, datesByGroup[group].size])) as MuscleActivity;

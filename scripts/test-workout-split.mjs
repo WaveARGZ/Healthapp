@@ -53,4 +53,12 @@ test("旧設定や壊れた設定を安全に読み込む", () => {
   assert.deepEqual(valid.splitPlan?.customByWeekday["1"], ["胸", "脚"]);
   assert.equal(normalizeWorkoutPreferences({ isGymMember: false }).isGymMember, false);
   assert.equal(normalizeWorkoutPreferences({ isGymMember: "false" }).isGymMember, undefined);
+  assert.deepEqual(old.customExercises, []);
+  assert.deepEqual(normalizeWorkoutPreferences({ customExercises: [
+    { name: "  オリジナルプレス  ", category: "胸" },
+    { name: "オリジナルプレス", category: "脚" },
+    { name: "ステップ運動", category: "有酸素" },
+    { name: "", category: "腕" },
+    { name: "分類なし", category: "不明" },
+  ] }).customExercises, [{ name: "オリジナルプレス", category: "胸" }, { name: "ステップ運動", category: "有酸素" }]);
 });

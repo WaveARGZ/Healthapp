@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { summarizeDailyCalories } from "../lib/utils/meal-calories.ts";
 import { summarizeDailyMacros } from "../lib/utils/meal-macros.ts";
 import { burnMinusIntake } from "../lib/utils/daily-burn.ts";
+import { estimateDailyCalorieGuide, estimateDailyMacroGuide } from "../lib/utils/daily-calorie-guide.ts";
 
 // Actual aggregation, parent prop wiring, and rendered shared component, using
 // synthetic records in RAM. No account, browser storage, network, or file writes.
@@ -37,12 +38,19 @@ const sharedModules = { "react/jsx-runtime": jsxRuntime, "next/link": { default:
 const { MobileDashboard } = load("components/dashboard/mobile-dashboard.tsx", {
   ...sharedModules,
   "@/components/dashboard/anatomy-figure": { AnatomyFigure: () => null },
+  "@/components/dashboard/personal-nutrition-guide": { PersonalNutritionGuide: () => null },
   "@/lib/workouts/muscle-activity": { summarizeMuscleActivity: () => ({}) },
   "@/lib/utils/daily-burn": { burnMinusIntake },
+  "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide, estimateDailyMacroGuide },
+});
+const { PersonalNutritionGuide } = load("components/dashboard/personal-nutrition-guide.tsx", {
+  ...sharedModules,
+  "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide, estimateDailyMacroGuide },
+  "@/types/user": { fitnessGoalLabels: { "build-muscle": "筋肉を増やす", "lose-fat": "体脂肪を減らす", maintain: "現在の体型を維持する" } },
 });
 
-function renderDashboard(meals, { loading = false, mealUnavailable = false, burnUnavailable = false } = {}) {
-  const data = { profile: null, workouts: [], meals, weights: [], burns: [{ performedAt: day, caloriesBurned: 2000 }] };
+function renderDashboard(meals, { loading = false, mealUnavailable = false, burnUnavailable = false, profile = null } = {}) {
+  const data = { profile, workouts: [], meals, weights: [], burns: [{ performedAt: day, caloriesBurned: 2000 }] };
   const states = [data, loading, "", false, mealUnavailable, false, burnUnavailable, day];
   let stateIndex = 0;
   const { DashboardContent } = load("components/dashboard/dashboard-content.tsx", {
@@ -53,7 +61,7 @@ function renderDashboard(meals, { loading = false, mealUnavailable = false, burn
     "@/components/dashboard/muscle-activity-map": { MuscleActivityMap: () => null },
     "@/components/dashboard/daily-calorie-rings": { DailyCalorieRings: () => null },
     "@/components/dashboard/mobile-dashboard": { MobileDashboard },
-    "@/components/dashboard/weekly-workout-advice": { WeeklyWorkoutAdvice: () => null },
+    "@/components/dashboard/weekly-review": { WeeklyReview: () => null },
     "@/lib/api/client": { bodyMakeClient: {} },
     "@/lib/utils/date": { formatToday: () => day, toDateInputValue: () => day },
     "@/lib/utils/meal-calories": { summarizeDailyCalories },
@@ -77,8 +85,8 @@ test("fully entered meals display complete totals without partial-total warnings
   const html = renderDashboard([known]);
   assert.match(html, /摂取 500 kcal/);
   assert.match(html, /消費から摂取を引いた収支 \+1,500 kcal。消費が多い/);
-  assert.match(html, /PFC · カロリー比/);
-  assert.match(html, /20g · 16%/);
+  assert.match(html, /PFCの摂取量/);
+  assert.match(html, /20g.*目安上限比 —/);
   assert.ok(!html.includes(partialNotice));
   assert.ok(!html.includes(macroNotice));
 });
@@ -142,6 +150,55 @@ test("loading and failed meal requests do not misreport missing user input", () 
     assert.ok(!html.includes(macroNotice));
     assert.ok(!html.includes("カロリーは未入力"));
   }
+});
+
+test("actual intake and PFC appear beside daily targets; burn estimate is distinguished from the record", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  const html = renderDashboard([known], { profile });
+  assert.match(html, /摂取/);
+  assert.match(html, /500/);
+  assert.match(html, /1日の目安/);
+  assert.match(html, /2,400～2,700/);
+  assert.match(html, /目安：120～135 g/);
+  assert.match(html, /20g.*目安上限比 15%/);
+  assert.match(html, /記録した消費/);
+  assert.match(html, /活動による消費の推定/);
+  assert.match(html, /650～1,000/);
+  assert.match(html, /活動による消費の推定/);
+  assert.match(html, /濃色：今日の記録/);
+  assert.match(html, /淡色：1日の目安/);
+  assert.match(html, /role="meter"/);
+  assert.doesNotMatch(html, /conic-gradient|size-\[80px\]/);
+});
+
+test("PFC markers and displayed ratios follow recorded grams against the target upper bound", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  const belowTarget = renderDashboard([known], { profile });
+  assert.match(belowTarget, /aria-label="たんぱく質の摂取量" aria-valuemin="0" aria-valuemax="168\.75" aria-valuenow="20"/);
+  assert.match(belowTarget, /width:80%;background-color:#dce8e2/);
+  assert.match(belowTarget, /left:11\.851[0-9]*%;background-color:#4f7668/);
+  assert.match(belowTarget, /20g.*目安上限比 15%/);
+
+  const aboveTarget = renderDashboard([{ ...known, proteinG: 200 }], { profile });
+  assert.match(aboveTarget, /aria-label="たんぱく質の摂取量" aria-valuemin="0" aria-valuemax="200" aria-valuenow="200"/);
+  assert.match(aboveTarget, /width:67\.5%;background-color:#dce8e2/);
+  assert.match(aboveTarget, /left:100%;background-color:#4f7668/);
+  assert.match(aboveTarget, /200g.*目安上限比 148%/);
+});
+
+test("calculation details retain resting and total expenditure estimates", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  const html = renderToStaticMarkup(PersonalNutritionGuide({ profile, weightKg: 70, loading: false, unavailable: false }));
+  assert.match(html, /基礎代謝/);
+  assert.match(html, /1,600/);
+  assert.match(html, /2,250～2,600/);
+  assert.match(html, /運動だけで消費すべき量ではありません/);
+});
+
+test("personal guide requests missing profile details instead of inventing calorie targets", () => {
+  const html = renderToStaticMarkup(PersonalNutritionGuide({ profile: null, weightKg: null, loading: false, unavailable: false }));
+  assert.match(html, /年齢・身長・体重を登録すると/);
+  assert.ok(!html.includes("総消費"));
 });
 
 test("unavailable burn records do not hide the partial-intake warning or invent a balance", () => {

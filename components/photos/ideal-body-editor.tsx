@@ -51,7 +51,7 @@ export function IdealBodyEditor({ source, view, onReady }: { source: string; vie
 
   const current = results[selected];
   return (
-    <section className="mt-5 rounded-2xl border border-[var(--line)] bg-white p-4 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-5">
+    <section className="mt-5 rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-[var(--ink)]">{bodyPhotoViewLabels[view]}：理想の身体プレビュー</h3>

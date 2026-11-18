@@ -42,9 +42,9 @@ export function AppShell({ children, recording = false }: { children: ReactNode;
     <MobileViewport>
       <a href="#main-content" className="sr-only z-50 bg-white p-3 focus:not-sr-only focus:fixed">本文へ移動</a>
       <AppTopBar />
-      <div className="mx-auto max-w-6xl lg:grid lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-12 lg:px-8">
+      <div className="mx-auto max-w-7xl lg:grid lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-16 lg:px-10">
         <BottomNav />
-        <main id="main-content" data-recording={recording} className="app-content mx-auto w-full min-w-0 max-w-[760px]">{children}</main>
+        <main id="main-content" data-recording={recording} className="app-content mx-auto w-full min-w-0 max-w-[940px]">{children}</main>
       </div>
     </MobileViewport>
   );

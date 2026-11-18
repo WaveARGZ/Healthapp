@@ -61,7 +61,7 @@ export function LandmarkAdjuster({ source, view, initial, automatic, onCommit }:
             onPointerCancel={(event) => finish(event, level, side)}
             style={{ left: `${points[level][side].x * 100}%`, top: `${points[level][side].y * 100}%`, touchAction: "none" }}
             className="absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full"
-          ><span className="grid size-7 place-items-center rounded-full border-2 border-white bg-[#2997e7] text-[9px] font-bold text-white shadow-lg">{levelLabels[level][0]}</span></button>))}
+          ><span className="grid size-7 place-items-center rounded-full border-2 border-white bg-[#52654f] text-[9px] font-bold text-white">{levelLabels[level][0]}</span></button>))}
       </div>
     </div>
   </div>;

@@ -66,6 +66,18 @@ test("goal feedback uses recorded exercise types without promising body-shape re
   assert.doesNotMatch(summarizeWeeklyWorkoutAdvice(records, "2026-10-31", "lose-fat").goal, /%|確実|効果がある/);
 });
 
+test("user-defined exercise categories contribute to strength and cardio advice", () => {
+  const records = [
+    workout("2026-11-16", { name: "オリジナルプレス", category: "胸" }),
+    workout("2026-11-17", { name: "自由ステップ", category: "有酸素" }),
+  ];
+  const advice = summarizeWeeklyWorkoutAdvice(records, "2026-11-17", "maintain");
+  assert.equal(advice.strengthDays, 1);
+  assert.equal(advice.cardioDays, 1);
+  assert.equal(advice.muscleDays["胸"], 1);
+  assert.equal(advice.unclassifiedExercises, 0);
+});
+
 test("empty or unclassified weeks do not invent activity or judge balance", () => {
   const empty = summarizeWeeklyWorkoutAdvice([workout("2026-10-24", { name: "プランク" })], "2026-10-31", "maintain");
   assert.equal(empty.trainingDays, 0);

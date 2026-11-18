@@ -8,8 +8,8 @@ const outerRadius = 102;
 const burnRadius = 80;
 const outerCircumference = 2 * Math.PI * outerRadius;
 const burnCircumference = 2 * Math.PI * burnRadius;
-const macroColors = { proteinG: "#e989db", fatG: "#ffd16d", carbsG: "#aa91ff" };
-const macroTextColors = { proteinG: "#a83e91", fatG: "#926510", carbsG: "#6247a8" };
+const macroColors = { proteinG: "#52654f", fatG: "#a1a1aa", carbsG: "#d4d4d8" };
+const macroTextColors = { proteinG: "#52654f", fatG: "#52525b", carbsG: "#71717a" };
 
 function formatGrams(value: number) {
   return (Math.round(value * 10) / 10).toLocaleString("ja-JP", { maximumFractionDigits: 1 });

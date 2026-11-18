@@ -27,26 +27,24 @@ export function LandingPage() {
     if (isCloudConfigured ? hasCloudSession() : hasDemoSession()) router.replace("/dashboard");
   }, [router]);
 
-  return <main className="min-h-dvh bg-[var(--sand)]">
+  return <main className="min-h-dvh bg-[var(--canvas)]">
     <header className="safe-top border-b border-[var(--line)] bg-white">
       <div className="mx-auto flex min-h-20 max-w-6xl items-center justify-between gap-3 safe-gutters">
         <Logo /><Link href="/login" className="text-link shrink-0 text-[var(--ink)]">ログイン<Icon name="arrow-right" className="size-4" /></Link>
       </div>
     </header>
-    <section className="safe-gutters mx-auto max-w-6xl pt-5 sm:pt-8">
-    <div className="grid gap-8 rounded-[28px] bg-[#19182f] px-5 py-10 text-white shadow-[0_20px_44px_rgba(25,24,47,.14)] sm:gap-10 sm:px-10 sm:py-14 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-14 lg:px-14">
-      <div className="min-w-0">
-        <p className="mb-4 text-xs font-bold tracking-[.18em] text-[#c1bde4]">BODYMAKE · 毎日の記録</p>
-        <h1 className="text-[clamp(2rem,6.5vw,3.5rem)] font-bold leading-[1.35] tracking-[-0.05em]">理想の身体を、<br />見える目標に。</h1>
-        <p className="mt-5 max-w-md text-sm leading-7 text-[#d5d2e9] sm:leading-8">食事・筋トレ・体重・身体写真。毎日の記録をまとめて、変化を振り返れます。</p>
-        <Link href="/signup" className="mt-7 inline-flex min-h-14 w-full max-w-64 items-center justify-center gap-3 rounded-xl bg-[var(--sage-deep)] px-6 text-base font-bold text-white hover:bg-[#24432e]">はじめる<Icon name="arrow-right" className="size-5" /></Link>
-        <p className="mt-3 text-xs leading-6 text-[#d5d2e9]">筋トレ・食事・体重・写真をまとめて記録</p>
-        <Link href="/food-photo" className="mt-5 flex min-h-12 max-w-64 items-center justify-center rounded-xl border border-white/50 px-4 text-center text-sm font-semibold text-white hover:bg-white/10">食事写真AIを無料で試す</Link>
-        <p className="mt-2 max-w-80 text-xs leading-6 text-[#d5d2e9]">{isSharedTestEnvironment ? "写真の解析はログイン不要。テスト環境では学習共有を行いません。" : "写真の解析はログイン不要。正解の共有は任意です。"}</p>
+    <section className="safe-gutters mx-auto max-w-6xl pt-10 sm:pt-20">
+    <div className="grid gap-12 border-b border-[var(--line)] pb-14 sm:gap-16 sm:pb-24 lg:grid-cols-[1.15fr_.85fr] lg:items-end">
+      <div className="min-w-0 pb-2">
+        <p className="mb-7 text-[11px] font-bold tracking-[.2em] text-[var(--sage-deep)]">BODYMAKE / A BETTER PRACTICE</p>
+        <h1 className="max-w-[13ch] text-[clamp(2.8rem,7vw,5.8rem)] font-bold leading-[1.1] tracking-[-0.065em] text-[var(--ink)]">理想の身体を、<br />見える目標に。</h1>
+        <p className="mt-8 max-w-md text-[15px] leading-8 text-[var(--muted)]">食事・筋トレ・体重・身体写真。毎日の記録をまとめて、変化を振り返れます。</p>
+        <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3"><Link href="/signup" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-md border border-[var(--ink)] bg-[var(--ink)] px-7 text-sm font-semibold text-white transition-[background-color,border-color] hover:border-[var(--ink-soft)] hover:bg-[var(--ink-soft)]">はじめる<Icon name="arrow-right" className="size-4" /></Link><Link href="/food-photo" className="inline-flex min-h-12 items-center gap-2 border-b border-[var(--line)] text-sm font-semibold text-[var(--ink)] transition-colors hover:border-[var(--sage-deep)]">食事写真AIを無料で試す<Icon name="arrow-right" className="size-4" /></Link></div>
+        <p className="mt-5 max-w-sm text-xs leading-6 text-[var(--muted)]">{isSharedTestEnvironment ? "写真の解析はログイン不要。テスト環境では学習共有を行いません。" : "写真の解析はログイン不要。正解の共有は任意です。"}</p>
       </div>
-      <div className="relative min-w-0 rounded-2xl bg-white p-5 text-[var(--ink)] shadow-[0_16px_36px_rgba(0,0,0,.12)] sm:p-7">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[var(--line)] pb-4"><p className="text-lg font-bold">わたしの記録</p><span className="text-xs text-[var(--muted)]">記録のイメージ</span></div>
-        <div className="flex items-end justify-between border-b border-[var(--line)] py-6"><div><p className="text-xs text-[var(--muted)]">今日の体重</p><p className="metric mt-2 text-5xl font-medium">62.5<span className="ml-2 text-sm text-[var(--muted)]">kg</span></p></div><Icon name="scale" className="mb-1 size-6 text-[var(--sage-deep)]" /></div>
+      <div className="relative min-w-0 rounded-xl border border-[var(--line)] bg-white p-6 text-[var(--ink)] sm:p-9">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[var(--line)] pb-6"><p className="text-lg font-bold tracking-tight">わたしの記録</p><span className="text-[11px] tracking-wide text-[var(--muted)]">PREVIEW / 01</span></div>
+        <div className="flex items-end justify-between border-b border-[var(--line)] py-8"><div><p className="text-xs text-[var(--muted)]">今日の体重</p><p className="metric mt-2 text-6xl font-medium">62.5<span className="ml-2 text-sm text-[var(--muted)]">kg</span></p></div><Icon name="scale" className="mb-1 size-6 text-[var(--sage-deep)]" /></div>
         {[
           { icon: "dumbbell" as const, title: "筋トレ", value: "ベンチプレス", detail: "60 kg × 10回 × 3セット" },
           { icon: "leaf" as const, title: "食事", value: "ご飯・焼き鮭・味噌汁", detail: "朝食を記録" },
@@ -55,11 +53,12 @@ export function LandingPage() {
       </div>
     </div></section>
     <section>
-      <div className="mx-auto max-w-6xl safe-gutters py-12 sm:py-16">
-        <h2 className="text-balance text-xl font-bold leading-relaxed tracking-tight sm:text-2xl">続けやすい、3つの記録</h2>
-        <div className="mt-6 grid gap-3 md:grid-cols-3">{features.map((item) => <div key={item.number} className="rounded-2xl border border-[var(--line)] bg-white p-5 shadow-[0_6px_18px_rgba(32,38,34,.04)] sm:p-6"><div className="flex items-center gap-3"><span className="metric text-xs text-[var(--muted)]">{item.number}</span><span className="grid size-10 place-items-center rounded-xl bg-[var(--sage-soft)]"><Icon name={item.icon} className="size-5 text-[var(--sage-deep)]" /></span></div><h3 className="mt-4 text-base font-bold">{item.title}</h3><p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.text}</p></div>)}</div>
+      <div className="mx-auto max-w-6xl safe-gutters py-16 sm:py-24">
+        <p className="text-[11px] font-bold tracking-[.18em] text-[var(--sage-deep)]">A SIMPLE ROUTINE</p>
+        <h2 className="mt-3 text-balance text-3xl font-bold leading-tight tracking-[-.045em] sm:text-4xl">続けやすい、3つの記録</h2>
+        <div className="mt-10 grid gap-4 md:grid-cols-[1.15fr_.85fr] md:grid-rows-2">{features.map((item, index) => <div key={item.number} className={`flex flex-col justify-between rounded-xl border border-[var(--line)] bg-white p-7 sm:p-9 ${index === 0 ? "md:row-span-2 md:min-h-[370px]" : ""}`}><div className="flex items-center justify-between"><span className="metric text-xs text-[var(--muted)]">/{item.number}</span><Icon name={item.icon} className="size-5 text-[var(--sage-deep)]" /></div><div><h3 className="mt-10 text-xl font-bold tracking-tight">{item.title}</h3><p className="mt-3 max-w-sm text-sm leading-7 text-[var(--muted)]">{item.text}</p></div></div>)}</div>
       </div>
     </section>
-    <footer className="border-t border-[var(--line)] bg-white"><div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 safe-gutters safe-bottom pt-6 text-center text-xs leading-6 text-[var(--muted)] sm:flex-row sm:gap-4 sm:text-left"><span>BodyMake</span><span>{isFirebaseSelected ? "記録はアカウントごと、身体写真はこの端末に保存します。" : isCloudConfigured ? "記録はアカウントごとに保管されます。" : "現在はこのブラウザ内に記録を保存します。"}</span></div></footer>
+    <footer className="border-t border-[var(--line)] bg-white"><div className="mx-auto flex max-w-6xl flex-col justify-between gap-2 safe-gutters safe-bottom pt-7 text-left text-xs leading-6 text-[var(--muted)] sm:flex-row sm:gap-4"><span>BodyMake</span><span>{isFirebaseSelected ? "記録はアカウントごと、身体写真はこの端末に保存します。" : isCloudConfigured ? "記録はアカウントごとに保管されます。" : "現在はこのブラウザ内に記録を保存します。"}</span></div></footer>
   </main>;
 }

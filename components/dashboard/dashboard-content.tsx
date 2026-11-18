@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { MobileDashboard } from "@/components/dashboard/mobile-dashboard";
-import { WeeklyWorkoutAdvice } from "@/components/dashboard/weekly-workout-advice";
+import { WeeklyReview } from "@/components/dashboard/weekly-review";
 import { bodyMakeClient } from "@/lib/api/client";
 import { toDateInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
@@ -23,7 +23,7 @@ interface DashboardData {
 }
 const initialData: DashboardData = { profile: null, workouts: [], meals: [], weights: [], burns: [] };
 
-export function DashboardContent() {
+export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | "weekly-review" } = {}) {
   const [data, setData] = useState<DashboardData>(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -112,11 +112,12 @@ export function DashboardContent() {
   const burnedCalories = loading || burnLoadFailed ? null : data.burns.find((entry) => entry.performedAt === today)?.caloriesBurned ?? null;
   const consumedForDifference = dailyCalories.countedMeals > 0 ? recordedCalories : null;
   return <div className="dashboard-unified">
-    <MobileDashboard
+    {view === "dashboard" ? <MobileDashboard
       today={today}
       doneCount={doneCount}
       weight={summary.currentWeight ?? null}
       goal={data.profile ? fitnessGoalLabels[data.profile.goal] : "目標未設定"}
+      profile={data.profile}
       macros={dailyMacros}
       intake={recordedCalories}
       consumed={consumedForDifference}
@@ -125,11 +126,11 @@ export function DashboardContent() {
       workouts={data.workouts}
       feedback={dailyFeedback}
       loading={loading}
+      profileUnavailable={profileLoadFailed}
       mealUnavailable={mealLoadFailed}
       burnUnavailable={burnLoadFailed}
       workoutUnavailable={workoutLoadFailed}
       error={error}
-    />
-    <WeeklyWorkoutAdvice workouts={data.workouts} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} profileUnavailable={profileLoadFailed} />
+    /> : <WeeklyReview workouts={data.workouts} meals={data.meals} burns={data.burns} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} mealUnavailable={mealLoadFailed} burnUnavailable={burnLoadFailed} profileUnavailable={profileLoadFailed} />}
   </div>;
 }

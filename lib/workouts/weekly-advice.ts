@@ -35,9 +35,9 @@ function encouragementFor(trainingDays: number, previousTrainingDays: number): s
   if (trainingDays === 0) return previousTrainingDays > 0
     ? `前の7日間には${previousTrainingDays}日の記録があります。次の1回から、また積み重ねていきましょう。`
     : "最初の1回を記録すると、ここで1週間の積み重ねを振り返れます。";
-  if (previousTrainingDays > 0 && trainingDays > previousTrainingDays) return `直近7日で${trainingDays}日記録。前の7日より${trainingDays - previousTrainingDays}日増えました。続けていることが形になっています。`;
-  if (previousTrainingDays > 0 && trainingDays === previousTrainingDays) return `直近7日も${trainingDays}日の記録を続けています。無理のないペースを大切にしましょう。`;
-  return `直近7日で${trainingDays}日記録できました。1回ずつの積み重ねが、次の習慣につながります。`;
+  if (previousTrainingDays > 0 && trainingDays > previousTrainingDays) return `この7日間で${trainingDays}日記録。前の7日より${trainingDays - previousTrainingDays}日増えました。続けていることが形になっています。`;
+  if (previousTrainingDays > 0 && trainingDays === previousTrainingDays) return `この7日間も${trainingDays}日の記録を続けています。無理のないペースを大切にしましょう。`;
+  return `この7日間で${trainingDays}日記録できました。1回ずつの積み重ねが、次の習慣につながります。`;
 }
 
 function balanceFor(trainingDays: number, muscleDays: Record<MuscleGroup, number>, unclassifiedExercises: number): string {
@@ -56,7 +56,7 @@ function balanceFor(trainingDays: number, muscleDays: Record<MuscleGroup, number
 
 function goalFor(goal: FitnessGoal | null, strengthDays: number, cardioDays: number): { detail: string; nextStep: string } {
   if (!goal) return { detail: "目標体型を設定すると、記録とのつながりを確認できます。", nextStep: "プロフィールで目標を設定しましょう。" };
-  if (strengthDays === 0 && cardioDays === 0) return { detail: "直近7日には目標と照らし合わせられる運動記録がまだありません。", nextStep: "次の運動を1種目から記録してみましょう。" };
+  if (strengthDays === 0 && cardioDays === 0) return { detail: "この7日間には目標と照らし合わせられる運動記録がまだありません。", nextStep: "次の運動を1種目から記録してみましょう。" };
   if (goal === "build-muscle") return strengthDays > 0
     ? { detail: `${strengthDays}日に筋トレ種目を記録。筋肉を増やす目標に向けた取り組みを振り返れます。`, nextStep: "同じ種目の重量・回数・完了セットを続けて記録すると、負荷の変化が分かります。" }
     : { detail: "有酸素運動の記録があります。筋肉を増やす目標については、筋トレ種目の記録がまだありません。", nextStep: "次は取り組みやすい筋トレ種目を1つ加えてみましょう。" };
@@ -91,11 +91,11 @@ export function summarizeWeeklyWorkoutAdvice(workouts: readonly WorkoutEntry[], 
     recentDays.add(workout.performedAt);
     for (const exercise of workout.exercises) {
       if (!exercise.name.trim()) continue;
-      const groups = groupsForExercise(exercise.name);
+      const groups = groupsForExercise(exercise.name, exercise.category);
       if (groups.length > 0) {
         strengthDates.add(workout.performedAt);
         for (const group of groups) datesByMuscle[group].add(workout.performedAt);
-      } else if (cardioExercises.has(exercise.name.trim())) cardioDates.add(workout.performedAt);
+      } else if (exercise.category === "有酸素" || cardioExercises.has(exercise.name.trim())) cardioDates.add(workout.performedAt);
       else unclassifiedExercises++;
       completedSets += exercise.setRecords?.filter((set) => set.completed).length ?? 0;
     }

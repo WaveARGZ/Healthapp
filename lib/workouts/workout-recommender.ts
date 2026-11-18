@@ -1,7 +1,7 @@
 import { beginnerExerciseCatalog } from "@/lib/data/beginner-exercise-catalog";
 import type { FitnessGoal } from "@/types/user";
 import type { WorkoutEntry } from "@/types/workout";
-import type { WorkoutSplitPlan } from "@/types/workout-preferences";
+import type { CustomExercise, WorkoutSplitPlan } from "@/types/workout-preferences";
 import { getWorkoutDayPlan } from "@/lib/workouts/workout-split";
 
 export interface WorkoutSuggestion {
@@ -17,7 +17,7 @@ interface Candidate {
   group: string;
 }
 
-const candidates: Candidate[] = [...new Map(beginnerExerciseCatalog.flatMap((category) => category.groups.flatMap((group) =>
+const catalogCandidates: Candidate[] = [...new Map(beginnerExerciseCatalog.flatMap((category) => category.groups.flatMap((group) =>
   group.exercises.map((name) => [name, { name, category: category.label, group: group.label }] as const),
 ))).values()];
 
@@ -92,6 +92,7 @@ export function recommendExercises(input: {
   goal?: FitnessGoal;
   availableEquipment: string[];
   favorites: string[];
+  customExercises?: CustomExercise[];
   workouts: WorkoutEntry[];
   selectedCategory: string;
   query: string;
@@ -117,6 +118,7 @@ export function recommendExercises(input: {
     }
   }
 
+  const candidates = [...catalogCandidates, ...(input.customExercises ?? []).map(({ name, category }) => ({ name, category, group: "自分で追加した種目" }))];
   const ranked = candidates
     // Recommendations are deliberately restricted to the user's gym favorites.
     .filter((candidate) => favorites.includes(candidate.name))

@@ -14,10 +14,10 @@ export function Button({
   ...props
 }: ButtonProps) {
   const variants = {
-    primary: "border border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white hover:bg-[var(--ink)]",
-    secondary: "border border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--sand)]",
-    ghost: "bg-transparent text-[var(--muted)] hover:bg-[var(--sand)] hover:text-[var(--ink)]",
-    danger: "bg-[var(--coral-soft)] text-[var(--coral)] hover:bg-[#f8deda]",
+    primary: "border border-[var(--ink)] bg-[var(--ink)] text-white hover:border-[var(--ink-soft)] hover:bg-[var(--ink-soft)]",
+    secondary: "border border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--muted)] hover:bg-[var(--sand)]",
+    ghost: "border border-transparent bg-transparent text-[var(--muted)] hover:border-[var(--line)] hover:bg-[var(--sand)] hover:text-[var(--ink)]",
+    danger: "border border-[var(--line)] bg-white text-[var(--coral)] hover:border-[var(--coral)] hover:bg-[var(--coral-soft)]",
   };
   const sizes = {
     default: "min-h-12 px-5 text-sm",
@@ -26,7 +26,7 @@ export function Button({
 
   return (
     <button
-      className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-xl py-2 text-center font-semibold leading-5 transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-md py-2 text-sm font-semibold leading-5 transition-[background-color,border-color,opacity] duration-200 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45 ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {children}
