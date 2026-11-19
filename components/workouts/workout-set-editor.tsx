@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { WorkoutSetNumberField } from "@/components/workouts/workout-set-number-field";
@@ -35,6 +35,14 @@ function usesNumberPad() {
   return window.matchMedia(keypadQuery).matches;
 }
 
+function revealSetControl(scroller: HTMLElement, field: HTMLElement) {
+  const { top, bottom } = field.getBoundingClientRect();
+  const bounds = scroller.getBoundingClientRect();
+  const margin = 8;
+  if (top < bounds.top + margin) scroller.scrollTop += top - bounds.top - margin;
+  else if (bottom > bounds.bottom - margin) scroller.scrollTop += bottom - bounds.bottom + margin;
+}
+
 export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, onRemoveSet, onBack }: WorkoutSetEditorProps) {
   const keypadMode = useSyncExternalStore(subscribeToKeypadMode, usesNumberPad, () => false);
   const [selected, setSelected] = useState<ActiveField | null>(null);
@@ -53,12 +61,19 @@ export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, on
 
     // Reveal only the selected row. Browser focus scrolling can pan the entire screen.
     field.focus({ preventScroll: true });
-    const { top, bottom } = field.getBoundingClientRect();
-    const bounds = scroller.getBoundingClientRect();
-    const margin = 8;
-    if (top < bounds.top + margin) scroller.scrollTop += top - bounds.top - margin;
-    else if (bottom > bounds.bottom - margin) scroller.scrollTop += bottom - bounds.bottom + margin;
+    revealSetControl(scroller, field);
   }, [activeSetId, activeKey]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const observer = new ResizeObserver(() => {
+      const note = scroller.querySelector<HTMLTextAreaElement>("[data-workout-set-note]:focus");
+      if (note) revealSetControl(scroller, note);
+    });
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, []);
 
   function selectField(set: WorkoutSet, key: SetField) {
     if (active?.setId === set.id && active.key === key) return;
@@ -142,6 +157,17 @@ export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, on
               }} aria-label={`セット${index + 1}を削除`} className="grid size-10 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25">
                 <Icon name="trash" className="size-4" />
               </button>
+              <textarea
+                data-workout-set-note
+                aria-label={`セット${index + 1}のメモ`}
+                placeholder="セットメモ（任意）"
+                rows={1}
+                maxLength={500}
+                value={set.note ?? ""}
+                onFocus={() => setSelected(null)}
+                onChange={(event) => onUpdateSet(set.id, { note: event.target.value || undefined })}
+                className="form-input col-span-full mt-1 h-9 resize-none px-3 py-[7px] leading-5"
+              />
             </div>)}
           </div>
           <div className="border-t border-[var(--line)] p-3">

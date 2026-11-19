@@ -160,7 +160,15 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
       <h3 className="text-sm font-bold">{formatDate(selectedDate, { year: "numeric" })}の記録 <span className="ml-1 font-normal text-[var(--muted)]">{selectedEntries.length}件</span></h3>
       {selectedEntries.length ? <div className="mt-3 border-t border-[var(--line)]">{selectedEntries.map((entry) => <article key={entry.id} className="border-b border-[var(--line)] py-5 last:border-b-0">
         <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">{entry.performedTime ? <span className="metric">{entry.performedTime}</span> : "時刻未記録"}</p><p className="mt-2 break-words text-sm font-semibold leading-6">{entry.exercises.map((exercise) => exercise.name).join("・")}</p></div><button type="button" aria-label={`${formatDate(entry.performedAt)}の筋トレ記録を削除`} onClick={() => onDelete(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button></div>
-        <div className="mt-3 space-y-3">{entry.exercises.map((exercise) => <div key={exercise.id} className="text-xs leading-6 text-[var(--muted)]"><p className="break-words font-medium">{exercise.name}</p><div className="mt-1 flex flex-wrap gap-2">{setsFor(exercise).map((set, setIndex) => <span key={set.id} className="metric rounded-lg bg-[var(--sand)] px-2 py-1"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{set.weightKg ?? "—"}kg × {set.reps ?? "—"}回</span>)}</div></div>)}</div>
+        <div className="mt-3 space-y-3">{entry.exercises.map((exercise) => <div key={exercise.id} className="text-xs leading-6 text-[var(--muted)]">
+          <p className="break-words font-medium">{exercise.name}</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {setsFor(exercise).map((set, setIndex) => <div key={set.id} className="min-w-0 max-w-full rounded-lg bg-[var(--sand)] px-2 py-1">
+              <p className="metric"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{set.weightKg ?? "—"}kg × {set.reps ?? "—"}回</p>
+              {set.note?.trim() && <p className="whitespace-pre-wrap text-sm text-[var(--ink-soft)]">{set.note}</p>}
+            </div>)}
+          </div>
+        </div>)}</div>
       </article>)}</div> : <p className="mt-3 text-sm text-[var(--muted)]">この日の記録はありません。</p>}
     </div>}
   </section>;
@@ -285,10 +293,13 @@ export function WorkoutRecorder() {
               <ExercisePicker date={performedAt} startWithEquipmentSetup={index === 0} exerciseName={exercise.name} sets={sets} onSelect={(name, category) => updateExercise(exercise.id, { name, category: category ?? null })} onUpdateSet={(setId, patch) => updateSet(exercise.id, setId, patch)} onAddSet={() => addSet(exercise.id)} onRemoveSet={(setId) => removeSet(exercise.id, setId)} />
               {exercise.name && <>
                 <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm leading-6 text-[var(--muted)]"><span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span><span>完了 {completedCount} / {sets.length}</span></div>
-                <div aria-label={`${exercise.name}のセット内容`} className="divide-y divide-[var(--line)] overflow-hidden rounded-lg border border-[var(--line)]">{sets.map((set, setIndex) => <div key={set.id} className="flex min-h-14 items-center gap-3 px-3">
-                  <span className="metric w-7 shrink-0 text-sm font-semibold text-[var(--muted)]">{setIndex + 1}</span>
-                  <span className="metric min-w-0 flex-1 text-sm font-semibold text-[var(--ink)]">{set.weightKg ?? "—"} kg × {set.reps ?? "—"} 回</span>
-                  <button type="button" onClick={() => updateSet(exercise.id, set.id, { completed: !set.completed })} aria-pressed={set.completed} aria-label={`${setIndex + 1}セット目の完了`} className={`grid size-11 shrink-0 place-items-center rounded border ${set.completed ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name="check" className="size-5" /></button>
+                <div aria-label={`${exercise.name}のセット内容`} className="divide-y divide-[var(--line)] overflow-hidden rounded-lg border border-[var(--line)]">{sets.map((set, setIndex) => <div key={set.id} className="px-3">
+                  <div className="flex min-h-14 items-center gap-3">
+                    <span className="metric w-7 shrink-0 text-sm font-semibold text-[var(--muted)]">{setIndex + 1}</span>
+                    <span className="metric min-w-0 flex-1 text-sm font-semibold text-[var(--ink)]">{set.weightKg ?? "—"} kg × {set.reps ?? "—"} 回</span>
+                    <button type="button" onClick={() => updateSet(exercise.id, set.id, { completed: !set.completed })} aria-pressed={set.completed} aria-label={`${setIndex + 1}セット目の完了`} className={`grid size-11 shrink-0 place-items-center rounded border ${set.completed ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name="check" className="size-5" /></button>
+                  </div>
+                  {set.note?.trim() && <p className="pb-3 pl-10 text-sm whitespace-pre-wrap text-[var(--ink-soft)]">{set.note}</p>}
                 </div>)}</div>
               </>}
             </div>

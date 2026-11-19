@@ -4,6 +4,7 @@ export interface WorkoutSet {
   id: string;
   weightKg?: number;
   reps?: number;
+  note?: string;
   completed: boolean;
 }
 

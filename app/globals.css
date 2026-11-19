@@ -142,6 +142,13 @@ html { scroll-padding-bottom: 180px; }
     overflow: clip;
   }
   .exercise-dialog[data-set-editor] .exercise-dialog-panel { height: 100%; }
+  @media (max-width: 639px), (pointer: coarse) {
+    [data-keyboard-open="true"] .exercise-dialog[data-set-editor]:has([data-workout-set-note]:focus) .exercise-dialog-panel {
+      align-self: flex-start;
+      height: var(--visual-height, 100%);
+      margin-top: var(--visual-top, 0px);
+    }
+  }
   .exercise-dialog-scroll {
     overflow-x: hidden;
     overflow-y: scroll;
@@ -218,7 +225,7 @@ html { scroll-padding-bottom: 180px; }
   }
 }
 
-.exercise-dialog input { scroll-margin-block: 8px 16px; }
+.exercise-dialog :is(input, textarea) { scroll-margin-block: 8px 16px; }
 
 @media (max-width: 639px) {
   body:has(.mobile-dashboard) > .min-h-dvh {
