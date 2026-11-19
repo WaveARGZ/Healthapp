@@ -28,5 +28,15 @@ assert.ok(searchFoodGroups(foods, "チキンカレイ", "すべて").groups.some
 assert.ok(searchFoodGroups(foods, "チャーハン", "調理済み料理").groups.some((group) => group.name.includes("チャーハン")));
 assert.ok(searchFoodGroups(foods, "バナナ", "果物").groups.every((group) => group.variants.every((food) => food.category === "果物")));
 assert.equal(searchFoodGroups(foods, "シャオエッセン", "すべて").groups[0]?.name, "シャウエッセン");
+assert.ok(searchFoodGroups(foods, "鶏肉カレー", "すべて").groups.some((group) => group.name === "チキンカレーライス"));
+assert.ok(searchFoodGroups(foods, "とりにくのカレー", "すべて").groups.some((group) => group.name === "チキンカレーライス"));
+assert.ok(searchFoodGroups(foods, "鶏肉、カレー", "すべて").groups.some((group) => group.name === "チキンカレーライス"));
+assert.ok(searchFoodGroups(foods, "焼き飯", "すべて").groups.some((group) => group.name === "中国料理 菜類 チャーハン"));
+assert.ok(searchFoodGroups(foods, "プチトマト", "すべて").groups.some((group) => group.name.includes("ミニトマト")));
+assert.ok(searchFoodGroups(foods, "たまごやき", "すべて").groups.some((group) => group.name.includes("厚焼きたまご")));
+assert.ok(searchFoodGroups(foods, "豚カツ", "すべて").groups.every((group) => group.name.includes("とんかつ")));
+assert.ok(searchFoodGroups(foods, "鶏もも肉", "すべて").groups.some((group) => group.name.includes("にわとり") && group.name.includes("もも")));
+assert.equal(searchFoodGroups(foods, "焼鮭", "すべて").groups[0]?.name, "焼き鮭");
+assert.equal(searchFoodGroups([curated.find((food) => food.id === "salad-chicken")], "サラダチキン", "すべて").groups.length, 0);
 
 console.log(`${foods.length} records grouped into ${all.groups.length} Japanese display names`);
