@@ -161,12 +161,12 @@ export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, on
                 data-workout-set-note
                 aria-label={`セット${index + 1}のメモ`}
                 placeholder="セットメモ（任意）"
-                rows={2}
+                rows={1}
                 maxLength={500}
                 value={set.note ?? ""}
                 onFocus={() => setSelected(null)}
                 onChange={(event) => onUpdateSet(set.id, { note: event.target.value || undefined })}
-                className="form-input col-span-full mt-2 h-auto min-h-14 resize-none px-3 py-2 leading-5"
+                className="form-input col-span-full mt-1 h-9 resize-none px-3 py-[7px] leading-5"
               />
             </div>)}
           </div>
