@@ -122,6 +122,7 @@ html { scroll-padding-bottom: 180px; }
     display: flex;
     justify-content: center;
     background: rgb(0 0 0 / .3);
+    overscroll-behavior: none;
   }
   .exercise-dialog-panel {
     display: flex;
@@ -134,6 +135,7 @@ html { scroll-padding-bottom: 180px; }
     padding-top: env(safe-area-inset-top);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+    overflow-anchor: none;
   }
   .workout-guide-enter { animation: workout-guide-enter 240ms ease-out both; }
   .workout-favorite-nudge { animation: workout-guide-pulse 900ms ease-in-out 2; background: var(--sage-soft); }
@@ -143,6 +145,8 @@ html { scroll-padding-bottom: 180px; }
     .app-content { padding-top: 48px; }
     .exercise-dialog { align-items: center; padding: 16px; }
     .exercise-dialog-panel { max-width: 576px; max-height: 100%; border-radius: 16px; padding-top: 0; }
+    .exercise-dialog:has([data-workout-set-editor]) { align-items: flex-start; }
+    .exercise-dialog:has([data-workout-set-editor]) .exercise-dialog-panel { height: 100%; max-height: 100%; }
   }
   @media (max-width: 1023px) {
     [data-keyboard-open="true"]:not(:has(.exercise-dialog)) .mobile-nav { display: none; }

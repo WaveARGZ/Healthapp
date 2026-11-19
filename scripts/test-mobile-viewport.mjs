@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
+import vm from "node:vm";
 
 const source = await readFile("lib/utils/mobile-viewport.ts", "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } });
@@ -23,3 +24,76 @@ for (const [label, patch, expected] of cases) {
   assert.equal(isSoftwareKeyboardOpen({ ...phone, ...patch }), expected, label);
 }
 console.log(`${cases.length} mobile keyboard detection cases passed. Physical-device viewport events still require device testing.`);
+
+function loadModule(source, modules, globals) {
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const exports = {};
+  vm.runInNewContext(compiled, { exports, require: (name) => {
+    assert.ok(Object.hasOwn(modules, name), `Unexpected dependency: ${name}`);
+    return modules[name];
+  }, ...globals });
+  return exports;
+}
+
+// A modal opened below the top of the page must not move the background or
+// lose its original inline styles/scroll position when dismissed.
+const style = { position: "relative", top: "", left: "", width: "", overflow: "auto", paddingRight: "12px" };
+const originalStyle = { ...style };
+let restoredScroll;
+const scrollLock = loadModule(await readFile("lib/utils/lock-page-scroll.ts", "utf8"), {}, {
+  document: { body: { style }, documentElement: { clientWidth: 980 } },
+  window: { scrollX: 8, scrollY: 640, innerWidth: 1000, getComputedStyle: () => ({ paddingRight: "12px" }), scrollTo: (value) => { restoredScroll = value; } },
+});
+const unlock = scrollLock.lockPageScroll();
+assert.equal(style.position, "fixed");
+assert.equal(style.top, "-640px");
+assert.equal(style.left, "-8px");
+assert.equal(style.paddingRight, "32px");
+unlock();
+assert.deepEqual(style, originalStyle);
+assert.equal(restoredScroll.top, 640);
+assert.equal(restoredScroll.left, 8);
+
+let effect;
+let viewportState;
+let queuedFrame;
+let editorOpen = true;
+class Element { isContentEditable = false; }
+class Input extends Element { type = "number"; closest() { return editorOpen ? {} : null; } }
+class Textarea extends Element {}
+const activeInput = new Input();
+const listeners = new Map();
+const visual = { height: 844, offsetTop: 0, scale: 1, addEventListener: (event, handler) => listeners.set(event, handler), removeEventListener() {} };
+const documentMock = { activeElement: activeInput, querySelector: () => editorOpen ? {} : null, addEventListener: (event, handler) => listeners.set(event, handler), removeEventListener() {} };
+const windowMock = { visualViewport: visual, innerHeight: 844, innerWidth: 390, addEventListener() {}, removeEventListener() {} };
+const viewport = loadModule(await readFile("components/layout/mobile-viewport.tsx", "utf8"), {
+  react: { useEffect: (callback) => { effect = callback; }, useState: (initial) => { viewportState = initial; return [initial, (next) => { viewportState = next(viewportState); }]; } },
+  "react/jsx-runtime": { jsx: () => null },
+  "@/lib/utils/mobile-viewport": { isSoftwareKeyboardOpen },
+}, { window: windowMock, document: documentMock, HTMLElement: Element, HTMLInputElement: Input, HTMLTextAreaElement: Textarea,
+  requestAnimationFrame: (callback) => { queuedFrame = callback; return 1; }, cancelAnimationFrame() {} });
+viewport.MobileViewport({ children: null });
+const cleanup = effect();
+function update(event, height, top, active = activeInput) {
+  visual.height = height; visual.offsetTop = top; documentMock.activeElement = active;
+  listeners.get(event)({ target: active }); queuedFrame();
+}
+queuedFrame();
+update("resize", 510, 110);
+assert.equal(viewportState.top, 0);
+assert.equal(viewportState.height, 510);
+// During weight -> reps, the browser briefly focuses the document or a button.
+update("focusout", 510, 170, new Element());
+assert.equal(viewportState.top, 0, "focus gaps must not replace the editor anchor");
+update("focusin", 510, 190);
+assert.equal(viewportState.top, 0);
+update("resize", 844, 40, new Element());
+assert.equal(viewportState.top, 0, "keyboard dismissal must not move the editor");
+assert.equal(viewportState.keyboard, false);
+editorOpen = false;
+update("focusout", 844, 0, new Element());
+visual.scale = 2;
+update("resize", 422, 90);
+assert.equal(viewportState.height, 0, "pinch zoom keeps the browser's native viewport");
+cleanup();
+console.log("Modal scroll restoration and keyboard focus-switch stability passed.");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/ui/form-fields";
 import { WorkoutSetNumberField } from "@/components/workouts/workout-set-number-field";
@@ -19,6 +19,7 @@ import type { WorkoutEntry, WorkoutSet } from "@/types/workout";
 import { defaultWorkoutPreferences, type WorkoutExerciseCategory, type WorkoutPreferences } from "@/types/workout-preferences";
 import { isCloudConfigured } from "@/lib/cloud/config";
 import { isFirebaseSelected } from "@/lib/firebase/config";
+import { lockPageScroll } from "@/lib/utils/lock-page-scroll";
 
 interface ExercisePickerProps {
   onSelect: (exerciseName: string, category?: WorkoutExerciseCategory) => void;
@@ -67,12 +68,12 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
 
   useEffect(() => {
     videoExerciseRef.current = videoExercise;
-    if (videoExercise) videoCloseRef.current?.focus();
+    if (videoExercise) videoCloseRef.current?.focus({ preventScroll: true });
     else if (isOpen && videoOpenerNameRef.current) {
       const frame = requestAnimationFrame(() => {
         if (listScrollRef.current) listScrollRef.current.scrollTop = savedListScrollRef.current;
         Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>("button[data-exercise-video]") ?? [])
-          .find((button) => button.dataset.exerciseVideo === videoOpenerNameRef.current)?.focus();
+          .find((button) => button.dataset.exerciseVideo === videoOpenerNameRef.current)?.focus({ preventScroll: true });
       });
       return () => cancelAnimationFrame(frame);
     }
@@ -127,16 +128,15 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
     return () => cancelAnimationFrame(frame);
   }, [isOpen, tutorialStage]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen) return;
-    const previousOverflow = document.body.style.overflow;
+    const unlockPageScroll = lockPageScroll();
     // Focus the close control on phones so opening the list does not open the keyboard.
     const categoryButton = dialogRef.current?.querySelector<HTMLButtonElement>('[data-muscle-category="true"]');
     const initialFocus = window.matchMedia("(min-width: 640px)").matches
       ? dialogRef.current?.querySelector<HTMLInputElement>('input[type="search"]') ?? categoryButton
       : categoryButton ?? dialogRef.current?.querySelector<HTMLButtonElement>("button");
-    (initialFocus ?? dialogRef.current?.querySelector<HTMLButtonElement>('[aria-label="種目メニューを閉じる"]'))?.focus();
-    document.body.style.overflow = "hidden";
+    (initialFocus ?? dialogRef.current?.querySelector<HTMLButtonElement>('[aria-label="種目メニューを閉じる"]'))?.focus({ preventScroll: true });
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -153,9 +153,9 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
     }
     document.addEventListener("keydown", handleKey);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlockPageScroll();
       document.removeEventListener("keydown", handleKey);
-      openerRef.current?.focus();
+      openerRef.current?.focus({ preventScroll: true });
     };
   }, [isOpen]);
 
@@ -257,14 +257,16 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
     setIsEditingSets(true);
     setTutorialStage(null);
     setQuery("");
-    if (window.matchMedia("(min-width: 640px)").matches) requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLInputElement>('[data-set-weight="true"]')?.focus());
+    if (listScrollRef.current) listScrollRef.current.scrollTop = 0;
+    if (window.matchMedia("(min-width: 640px)").matches) requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLInputElement>('[data-set-weight="true"]')?.focus({ preventScroll: true }));
   }
 
   function selectCategory(category: string) {
     setActiveCategory(category);
     setCustomExerciseInput("");
     setCustomExerciseNotice("");
-    requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus());
+    if (listScrollRef.current) listScrollRef.current.scrollTop = 0;
+    requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus({ preventScroll: true }));
   }
 
   function closePicker() {
@@ -291,7 +293,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
         <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5"><div><p className="text-base font-bold">{isEditingSets ? "重量・レップ数を入力" : tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-white/70">{isEditingSets ? "セットごとに入力できます" : `初心者向けの${beginnerExerciseCount}種目と自分で追加した種目から選べます`}</p></div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded-lg border border-white/30 text-xl leading-none text-white hover:bg-white/10" aria-label="種目メニューを閉じる">×</button></header>
         <div ref={listScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(16px,env(safe-area-inset-bottom))]">
         {isEditingSets ? <section data-workout-set-editor aria-label={`${exerciseName}のセット入力`} className="px-4 py-5 sm:px-5">
-          <button type="button" onClick={() => { setIsEditingSets(false); requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus()); }} className="mb-4 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目選択へ戻る</button>
+          <button type="button" onClick={() => { setIsEditingSets(false); requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus({ preventScroll: true })); }} className="mb-4 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目選択へ戻る</button>
           <h2 className="text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
           <p className="mt-2 text-xs leading-5 text-[var(--muted)]">入力後、記録画面で保存してください。</p>
           <div className="mt-5 overflow-hidden rounded-lg border border-[var(--line)] bg-white">
@@ -302,7 +304,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
               <WorkoutSetNumberField value={set.reps} onCommit={(reps) => onUpdateSet(set.id, { reps })} previousValue={sets[index - 1]?.reps} label={`セット${index + 1}のレップ数`} copyLabel={index > 0 ? `セット${index}のレップ数をセット${index + 1}にコピー` : undefined} step="1" inputMode="numeric" />
               <button type="button" disabled={sets.length === 1} onClick={() => onRemoveSet(set.id)} aria-label={`セット${index + 1}を削除`} className="grid size-10 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-4" /></button>
             </div>)}</div>
-            <div className="border-t border-[var(--line)] p-3"><Button type="button" variant="secondary" className="w-full text-[var(--sage-deep)]" onClick={() => { onAddSet(); if (window.matchMedia("(min-width: 640px)").matches) requestAnimationFrame(() => { const inputs = dialogRef.current?.querySelectorAll<HTMLInputElement>('[data-set-weight="true"]'); inputs?.[inputs.length - 1]?.focus(); }); }}><Icon name="plus" className="size-4" />セットを1つ追加</Button></div>
+            <div className="border-t border-[var(--line)] p-3"><Button type="button" variant="secondary" className="w-full text-[var(--sage-deep)]" onClick={() => { onAddSet(); if (window.matchMedia("(min-width: 640px)").matches) requestAnimationFrame(() => { const inputs = dialogRef.current?.querySelectorAll<HTMLInputElement>('[data-set-weight="true"]'); inputs?.[inputs.length - 1]?.focus({ preventScroll: true }); }); }}><Icon name="plus" className="size-4" />セットを1つ追加</Button></div>
           </div>
           <Button type="button" className="mt-5 w-full" onClick={closePicker}>記録画面へ戻る</Button>
         </section> : activeCategory === null ? <section aria-label="鍛える部位を選択" className="px-4 py-6 sm:px-5">
@@ -311,7 +313,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
           <div className="mt-7 border-t border-[var(--line)] pt-5"><p className="mb-3 text-xs font-semibold text-[var(--muted)]">その他の選択</p><div className="flex flex-wrap gap-2">{["お気に入り", "有酸素"].map((category) => <button key={category} type="button" onClick={() => selectCategory(category)} className="min-h-11 rounded border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[var(--sage-deep)]">{category === "お気に入り" ? `${category} ${visibleFavoriteCount}` : category}</button>)}</div></div>
         </section> : <>
         <div className="sticky top-0 z-10 border-b border-[var(--line)] bg-white px-4 py-3 sm:px-5">
-          <button id="exercise-category-back" type="button" onClick={() => { setActiveCategory(null); setQuery(""); requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLButtonElement>('[data-muscle-category="true"]')?.focus()); }} className="mb-3 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 部位を選び直す</button>
+          <button id="exercise-category-back" type="button" onClick={() => { setActiveCategory(null); setQuery(""); requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLButtonElement>('[data-muscle-category="true"]')?.focus({ preventScroll: true })); }} className="mb-3 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 部位を選び直す</button>
           <h2 className="mb-3 text-base font-bold text-[var(--ink)]">{categoryDisplayName(activeCategory)}の種目</h2>
           <TextInput type="search" aria-label="種目名を検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="種目名を検索 例：ベンチプレス" />
         </div>
