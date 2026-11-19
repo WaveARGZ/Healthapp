@@ -22,4 +22,5 @@ const cases = [
 for (const [label, patch, expected] of cases) {
   assert.equal(isSoftwareKeyboardOpen({ ...phone, ...patch }), expected, label);
 }
+
 console.log(`${cases.length} mobile keyboard detection cases passed. Physical-device viewport events still require device testing.`);
