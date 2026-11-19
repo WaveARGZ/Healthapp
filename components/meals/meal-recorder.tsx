@@ -10,6 +10,7 @@ import { BarcodeMealEntry } from "@/components/meals/barcode-meal-entry";
 import { bodyMakeClient } from "@/lib/api/client";
 import { toDateInputValue, toTimeInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
+import { mealEntryFromItems } from "@/lib/utils/meal-entry";
 import { summarizeDailyMacros } from "@/lib/utils/meal-macros";
 import { createId } from "@/lib/utils/id";
 import { mealTypeLabels, type MealEntry, type MealFoodItem, type MealType } from "@/types/meal";
@@ -43,6 +44,7 @@ function recordedCalories(entry: MealEntry): number | undefined {
 }
 
 const mealTypes = Object.entries(mealTypeLabels) as Array<[MealType, string]>;
+type FoodInput = Omit<MealFoodItem, "id"> | MealFoodItem;
 const barcodeDraftKey = "bodymake:meal-barcode-draft:v1";
 const barcodeDraftEvent = "bodymake:meal-barcode-draft-change";
 let memoryBarcodeDraft = "";
@@ -97,31 +99,32 @@ export function MealRecorder() {
     if (revision === historyRevision.current) setHistory(entries);
   }
   function updateManualFood(patch: Partial<MealFoodItem>) { setManualFood((current) => ({ ...current, ...patch })); }
-  async function saveFood(food: Omit<MealFoodItem, "id"> | MealFoodItem) {
+  async function saveFoods(foods: FoodInput[]) {
     if (saveLock.current) throw new Error("保存中です。");
-    const item = foodWithManualPortion({ ...food, id: "id" in food ? food.id : createId("food") });
-    if (!item.name.trim() || invalidManualPortion(item) || !recordedAt) {
+    const items = foods.map((food) => foodWithManualPortion({ ...food, id: "id" in food ? food.id : createId("food") }));
+    if (!items.length || items.some((item) => !item.name.trim() || invalidManualPortion(item)) || !recordedAt) {
       setNotice("記録日・料理名・食べた量を確認してください。");
       throw new Error("入力内容を確認してください。");
     }
-    const key = JSON.stringify([mealType, recordedAt, recordedTime, food]);
+    const key = JSON.stringify([mealType, recordedAt, recordedTime, foods]);
     if (pendingSave.current?.key !== key) pendingSave.current = { key, id: createId("meal") };
     const mealId = pendingSave.current.id;
     saveLock.current = true;
     setIsSaving(true);
     setNotice("保存中…");
     try {
-      const entry: MealEntry = { id: mealId, mealType, name: item.name.trim(), items: [item], calories: item.calories, proteinG: item.proteinG, fatG: item.fatG, carbsG: item.carbsG, recordedAt, recordedTime: recordedTime || toTimeInputValue(), createdAt: new Date().toISOString() };
+      const entry = mealEntryFromItems(items, { id: mealId, mealType, recordedAt, recordedTime: recordedTime || toTimeInputValue(), createdAt: new Date().toISOString() });
       await bodyMakeClient.saveMeal(entry);
       pendingSave.current = null;
       historyRevision.current += 1;
       setHistory((current) => [entry, ...current.filter((saved) => saved.id !== entry.id)]);
-      setNotice(`${item.name.trim()}を保存しました。`);
+      setNotice(items.length === 1 ? `${items[0].name.trim()}を保存しました。` : `${items.length}品をまとめて保存しました。`);
     } catch {
       setNotice("保存できませんでした。通信状態を確認して、もう一度追加してください。");
       throw new Error("食事の保存に失敗しました。");
     } finally { saveLock.current = false; setIsSaving(false); }
   }
+  async function saveFood(food: FoodInput) { await saveFoods([food]); }
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (inputMode !== "manual") return;
@@ -168,14 +171,16 @@ export function MealRecorder() {
     <section aria-label="選択日の食事" className="mt-6 space-y-3">
       {mealTypes.map(([type, label]) => {
         const entries = dayMeals.filter((entry) => entry.mealType === type);
+        const foodCount = entries.reduce((sum, entry) => sum + (entry.items?.length || 1), 0);
         const calories = entries.reduce((sum, entry) => sum + (recordedCalories(entry) ?? 0), 0);
         const missingCalories = entries.some((entry) => recordedCalories(entry) === undefined);
         return <article key={type} className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
-          <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5"><div><h2 className="text-sm font-bold text-[var(--ink)]">{label}</h2><p className="metric mt-0.5 text-xs text-[var(--muted)]">{entries.length ? `${missingCalories && entries.every((entry) => recordedCalories(entry) === undefined) ? "カロリー未入力" : `${missingCalories ? "入力済み分 " : ""}${Math.round(calories)} kcal`} · ${entries.length}品` : "まだ記録がありません"}</p></div><button type="button" onClick={() => openComposer(type)} aria-label={`${label}に食品を追加`} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)] hover:bg-[#dce9da]"><Icon name="plus" className="size-5" /></button></div>
+          <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5"><div><h2 className="text-sm font-bold text-[var(--ink)]">{label}</h2><p className="metric mt-0.5 text-xs text-[var(--muted)]">{entries.length ? `${missingCalories && entries.every((entry) => recordedCalories(entry) === undefined) ? "カロリー未入力" : `${missingCalories ? "入力済み分 " : ""}${Math.round(calories)} kcal`} · ${foodCount}品` : "まだ記録がありません"}</p></div><button type="button" onClick={() => openComposer(type)} aria-label={`${label}に食品を追加`} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)] hover:bg-[#dce9da]"><Icon name="plus" className="size-5" /></button></div>
           {entries.length > 0 && <div className="border-t border-[var(--line)] px-4 sm:px-5">{entries.map((entry) => <div key={entry.id} className="flex min-h-16 items-center gap-3 border-b border-[var(--line)] py-2 last:border-b-0">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-[var(--ink)]">{entry.name}</p>
-              <p className="mt-0.5 text-xs text-[var(--muted)]">{entry.recordedTime || "時刻なし"}{entry.items?.[0]?.portionQuantity ? ` · ${entry.items[0].portionQuantity}${entry.items[0].portionUnit ?? "g"}` : ""}</p>
+              <p className="mt-0.5 text-xs text-[var(--muted)]">{entry.recordedTime || "時刻なし"}{entry.items && entry.items.length > 1 ? ` · ${entry.items.length}品` : entry.items?.[0]?.portionQuantity ? ` · ${entry.items[0].portionQuantity}${entry.items[0].portionUnit ?? "g"}` : ""}</p>
+              {entry.items && entry.items.length > 1 && <details className="mt-1 text-xs text-[var(--muted)]"><summary className="min-h-8 cursor-pointer py-1 text-[var(--sage-deep)]">食品の内訳を見る</summary><ul className="space-y-1 pb-2">{entry.items.map((item) => <li key={item.id}>{item.name}{item.calories !== undefined ? ` · ${item.calories} kcal` : ""}</li>)}</ul></details>}
               {entry.items?.[0]?.sourceBarcode && <a href={`https://world.openfoodfacts.org/product/${encodeURIComponent(entry.items[0].sourceBarcode)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sage-deep)] underline">出典：Open Food Facts</a>}
             </div>
             <span className="metric shrink-0 text-xs font-semibold text-[var(--ink)]">{recordedCalories(entry) === undefined ? "—" : `${Math.round(recordedCalories(entry) ?? 0)} kcal`}</span>
@@ -186,7 +191,7 @@ export function MealRecorder() {
     </section>
     {composerOpen && <div ref={composerRef} className="mt-8 scroll-mt-6 rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-6">
     <form onSubmit={handleSubmit}>
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="section-title">{mealTypeLabels[mealType]}に追加</h2><p className="mt-1 text-xs text-[var(--muted)]">選ぶとこの日の食事記録に保存されます。</p></div><button type="button" onClick={() => setComposerOpen(false)} className="text-link">閉じる</button></div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="section-title">{mealTypeLabels[mealType]}に追加</h2><p className="mt-1 text-xs text-[var(--muted)]">食品を選び、量を確認して保存します。</p></div><button type="button" onClick={() => setComposerOpen(false)} className="text-link">閉じる</button></div>
       <div className="mt-4 max-w-44"><FieldLabel htmlFor="meal-time">時刻</FieldLabel><TextInput id="meal-time" type="time" step="60" value={recordedTime} onChange={(event) => setRecordedTime(event.target.value)} required /></div>
       <div className="mt-4 grid grid-cols-4 gap-2" aria-label="食事の入力方法">{([
         ["search", "search", "検索"],
@@ -194,7 +199,7 @@ export function MealRecorder() {
         ["manual", "plus", "手入力"],
         ["barcode", "barcode", "バーコード"],
       ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border px-1 text-[11px] font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)] hover:bg-[var(--sand)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
-      <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} /></div>
+      <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} onAddFoods={saveFoods} /></div>
       {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} />}
       {inputMode === "barcode" && <BarcodeMealEntry onAddFood={saveFood} barcode={barcodeDraft} onBarcodeChange={updateBarcodeDraft} />}
       {inputMode === "photo" && <p role="status" aria-live="polite" className="mt-4 text-sm text-[var(--sage-deep)]">{notice}</p>}

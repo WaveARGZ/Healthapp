@@ -11,9 +11,11 @@ import type { MealFoodItem } from "@/types/meal";
 
 interface FoodLibrarySearchProps {
   onAddFood: (food: Omit<MealFoodItem, "id">) => Promise<void>;
+  onAddFoods: (foods: Omit<MealFoodItem, "id">[]) => Promise<void>;
 }
 
 type FoodGroup = ReturnType<typeof searchFoodGroups>["groups"][number];
+type QueuedFood = { food: FoodLibraryItem; quantity: number; unit: FoodPortionUnit; gramsPerPiece: number; inferred?: boolean };
 
 const library = libraryJson as FoodLibraryDataset;
 const popularIds = ["rice", "natto", "miso-soup", "chicken-breast", "grilled-salmon", "ramen", "curry-rice", "banana"];
@@ -31,7 +33,7 @@ function detailLabel(food: FoodLibraryItem): string {
   return food.foodCode ? food.sourceDescription ?? food.name : food.name;
 }
 
-export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
+export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchProps) {
   const [query, setQuery] = useState("");
   const [searchEngaged, setSearchEngaged] = useState(false);
   const [expandedResults, setExpandedResults] = useState(false);
@@ -47,6 +49,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
   const [quantity, setQuantity] = useState(100);
   const [unit, setUnit] = useState<FoodPortionUnit>("g");
   const [gramsPerPiece, setGramsPerPiece] = useState(100);
+  const [queuedFoods, setQueuedFoods] = useState<QueuedFood[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const searchInput = useRef<HTMLInputElement>(null);
   const addingFood = useRef(false);
@@ -97,8 +100,18 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
   const grams = portionGrams(quantity, unit, gramsPerPiece);
   const valid = validPortion(quantity, unit, gramsPerPiece);
   const nutrition = selectedFood && valid ? foodToMealItem(selectedFood, grams, { unit, quantity, gramsPerPiece }) : null;
+  const queuedItems = queuedFoods.map(({ food, quantity: amount, unit: portionUnit, gramsPerPiece: pieceGrams }) =>
+    foodToMealItem(food, portionGrams(amount, portionUnit, pieceGrams), { unit: portionUnit, quantity: amount, gramsPerPiece: pieceGrams }));
+  const queuedCalories = queuedItems.reduce((sum, item) => sum + (item.calories ?? 0), 0);
 
   function setFoodPortion(food: FoodLibraryItem) {
+    const queued = queuedFoods.find((item) => item.food.id === food.id);
+    if (queued) {
+      setUnit(queued.unit);
+      setGramsPerPiece(queued.gramsPerPiece);
+      setQuantity(queued.quantity);
+      return;
+    }
     const pieceGrams = suggestedGramsPerPiece(food.id, food.name, food.suggestedGrams);
     setUnit(pieceGrams ? (food.id === "schau-essen" ? "本" : "個") : "g");
     setGramsPerPiece(pieceGrams ?? food.suggestedGrams);
@@ -124,7 +137,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
   }
 
   async function addSelectedFood() {
-    if (!selectedFood || !valid || addingFood.current) return;
+    if (!selectedFood || !valid || queuedFoods.length || addingFood.current) return;
     addingFood.current = true;
     setIsAdding(true);
     try {
@@ -138,16 +151,47 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
     finally { addingFood.current = false; setIsAdding(false); }
   }
 
+  function queueSelectedFood() {
+    if (!selectedFood || !valid || addingFood.current) return;
+    const selection = { food: selectedFood, quantity, unit, gramsPerPiece, inferred: activeGroup?.inferred };
+    const foodId = selectedFood.id;
+    setQueuedFoods((current) => current.some((item) => item.food.id === foodId) ?
+      current.map((item) => item.food.id === foodId ? selection : item) : [...current, selection]);
+    setSaveNotice(null);
+    clearSelection();
+    setExpandedResults(Boolean(query.trim()));
+    setSearchEngaged(false);
+    requestAnimationFrame(() => searchInput.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  async function saveQueuedFoods() {
+    if (!queuedFoods.length || addingFood.current) return;
+    addingFood.current = true;
+    setIsAdding(true);
+    try {
+      await onAddFoods(queuedItems);
+      setSaveNotice({ text: `${queuedItems.length}品をまとめて保存しました。`, error: false });
+      setQueuedFoods([]);
+      clearSelection();
+      setQuery("");
+      setSearchEngaged(false);
+      setExpandedResults(false);
+    } catch { setSaveNotice({ text: "まとめて保存できませんでした。選択内容を確認して、もう一度お試しください。", error: true }); }
+    finally { addingFood.current = false; setIsAdding(false); }
+  }
+
   function renderGroup(group: FoodGroup) {
     const single = group.variants.length === 1 ? group.variants[0] : null;
-    return <button key={group.name} type="button" onClick={() => chooseGroup(group)} className="flex min-h-14 w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left last:border-b-0 hover:bg-[var(--sage-soft)]">
-      <span className="min-w-0"><span className="block break-words text-sm font-bold text-[var(--ink)]">{group.name}</span><span className="mt-0.5 block text-xs text-[var(--muted)]">{group.inferred ? `推測：${group.matchedTerms?.join("・")}に関連 · ` : ""}{single ? single.category : `${group.variants.length.toLocaleString()}品目から選択`}</span></span>
+    const alreadyQueued = group.variants.some((food) => queuedFoods.some((item) => item.food.id === food.id));
+    return <button key={group.name} type="button" onClick={() => chooseGroup(group)} disabled={isAdding} className="flex min-h-14 w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left last:border-b-0 hover:bg-[var(--sage-soft)] disabled:opacity-50">
+      <span className="min-w-0"><span className="block break-words text-sm font-bold text-[var(--ink)]">{group.name}{alreadyQueued && <span className="ml-2 text-xs font-semibold text-[var(--sage-deep)]">選択中</span>}</span><span className="mt-0.5 block text-xs text-[var(--muted)]">{group.inferred ? `推測：${group.matchedTerms?.join("・")}に関連 · ` : ""}{single ? single.category : `${group.variants.length.toLocaleString()}品目から選択`}</span></span>
       {single ? <span className="metric shrink-0 text-sm font-semibold text-[var(--sage-deep)]">{single.per100g.calories}<span className="ml-1 text-xs font-normal">kcal</span></span> : <Icon name="chevron-right" className="size-4 shrink-0 text-[var(--sage-deep)]" />}
     </button>;
   }
 
   return <section className="mt-5">
     <label htmlFor="meal-food-search" className="text-sm font-bold text-[var(--ink)]">食品名</label>
+    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">食品を選んで量を設定すると、複数品をまとめて登録できます。</p>
     <div onMouseLeave={() => setSearchEngaged(false)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchEngaged(false); }} className="relative mt-2">
     <div onMouseEnter={() => { if (!expandedResults) setSearchEngaged(true); loadExtendedCatalog(); }} className="flex min-h-12 items-center gap-1 rounded-lg border border-[var(--line)] bg-white px-1.5 focus-within:outline-2 focus-within:outline-[var(--sage-deep)]">
       <button type="button" aria-label="料理・食品の検索を開始" onClick={() => searchInput.current?.focus()} className="grid size-10 shrink-0 place-items-center rounded text-[var(--muted)] hover:text-[var(--sage-deep)]"><Icon name="search" className="size-4" /></button>
@@ -165,6 +209,14 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
       {catalogStatus === "error" && <button type="button" onClick={loadExtendedCatalog} className="text-link px-3">詳細データを再読み込み</button>}
     </div>}
     </div>
+    {queuedFoods.length > 0 && <section aria-label="まとめて登録する食品" className="mt-4 rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] p-3 sm:p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="text-sm font-bold text-[var(--ink)]">選択中の食品 · {queuedFoods.length}品</h3><p className="metric text-sm font-semibold text-[var(--sage-deep)]">合計 {queuedCalories} kcal</p></div>
+      <ul className="mt-3 divide-y divide-[var(--line)]">{queuedFoods.map((selection, index) => <li key={selection.food.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+        <div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold text-[var(--ink)]">{selection.food.name}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{selection.inferred ? "推測候補 · " : ""}{selection.quantity}{selection.unit} · {queuedItems[index]?.calories} kcal</p></div>
+        <div className="flex shrink-0 gap-2"><button type="button" disabled={isAdding} onClick={() => chooseGroup({ name: selection.food.name, variants: [selection.food], inferred: selection.inferred })} className="min-h-11 rounded-md px-2 text-xs font-semibold text-[var(--sage-deep)] disabled:opacity-50">量を編集</button><button type="button" disabled={isAdding} onClick={() => setQueuedFoods((current) => current.filter((item) => item.food.id !== selection.food.id))} className="min-h-11 rounded-md px-2 text-xs font-semibold text-[var(--muted)] disabled:opacity-50">外す</button></div>
+      </li>)}</ul>
+      <Button type="button" className="mt-3 w-full" onClick={() => void saveQueuedFoods()} disabled={isAdding}>{isAdding ? "保存中…" : `${queuedFoods.length}品をまとめて保存`}</Button>
+    </section>}
     {expandedResults && <div className="mt-4 rounded-xl border border-[var(--line)] bg-white" role="region" aria-label="食品の検索結果一覧">
       <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2"><p className="text-sm font-semibold">検索結果 {resultCount.toLocaleString()}品目</p><button type="button" onClick={() => setExpandedResults(false)} className="text-link">閉じる</button></div>
       {results.inferredGroups.length > 0 && <p className="px-3 py-2 text-sm text-[var(--muted)]">検索語：{results.searchTerms.join("・")}。推測候補は食品名と栄養値を確認してください。</p>}
@@ -201,7 +253,7 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
         {selectedFood.sourceUrl && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{selectedFood.sourceDescription}</p>}
         {nutrition && <div className="mt-5 rounded-lg border border-[var(--line)] bg-[var(--sand)] p-5"><p className="text-xs font-bold text-[var(--ink)]">栄養情報 · 入力した量</p><div className="mt-4 flex flex-wrap items-start gap-6"><div className="metric min-w-20 border-l-2 border-[var(--sage-deep)] pl-3"><strong className="block text-2xl leading-none text-[var(--ink)]">{nutrition.calories}</strong><span className="mt-1 block text-[11px] text-[var(--muted)]">kcal</span></div><dl className="metric flex min-w-[155px] flex-1 flex-wrap gap-x-6 gap-y-3">{([ ["P", nutrition.proteinG], ["F", nutrition.fatG], ["C", nutrition.carbsG] ] as const).map(([label, value]) => <div key={label}><dt className="text-xs font-semibold text-[var(--muted)]">{label}</dt><dd className="mt-1 text-sm font-bold text-[var(--ink)]">{value}<span className="ml-0.5 text-xs font-normal text-[var(--muted)]">g</span></dd></div>)}</dl></div></div>}
         {!valid && <p className="mt-2 text-xs text-[var(--coral)]">量と1個あたりの重さを確認してください（合計3,000gまで）。</p>}
-        <Button type="button" className="mt-4 w-full" onClick={() => void addSelectedFood()} disabled={!valid || isAdding}>{isAdding ? "保存中…" : "この食品を追加して保存"}</Button>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row"><Button type="button" className="flex-1" onClick={queueSelectedFood} disabled={!valid || isAdding}>{queuedFoods.some((item) => item.food.id === selectedFood.id) ? "選択中の量を更新" : "選択リストに追加"}</Button>{queuedFoods.length === 0 && <Button type="button" variant="secondary" className="flex-1" onClick={() => void addSelectedFood()} disabled={!valid || isAdding}>{isAdding ? "保存中…" : "この食品だけ保存"}</Button>}</div>
         <a href={sourceLink(selectedFood)} target="_blank" rel="noreferrer" className="text-link mt-1 underline underline-offset-2">栄養値の出典を見る</a>
       </div> : null}
     </div>}

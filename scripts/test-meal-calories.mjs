@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { summarizeDailyCalories } from "../lib/utils/meal-calories.ts";
+import { mealEntryFromItems } from "../lib/utils/meal-entry.ts";
 import { summarizeDailyMacros } from "../lib/utils/meal-macros.ts";
 
 const day = "2026-10-13";
@@ -42,4 +43,18 @@ test("旧記録の料理内訳を使い、欠損と異常値を0gと誤認しな
     { recordedAt: day, items: [{ proteinG: 3, fatG: 2, carbsG: 10 }, { proteinG: 5, fatG: 1, carbsG: 15 }] },
     { recordedAt: day, proteinG: 7, fatG: Number.NaN, carbsG: -2 },
   ], day), { proteinG: 15, fatG: 3, carbsG: 25, knownCounts: { proteinG: 2, fatG: 1, carbsG: 1 }, mealCount: 2, incompleteMeals: 1 });
+});
+
+test("検索から選んだ複数食品を一つの食事として保存し、合計を一度だけ集計する", () => {
+  const entry = mealEntryFromItems([
+    { id: "rice", name: "白ごはん（150g）", calories: 195, proteinG: 3.5, fatG: 0.3, carbsG: 43, portionGrams: 150, portionQuantity: 150, portionUnit: "g" },
+    { id: "egg", name: "ゆで卵（1個・約50g）", calories: 75, proteinG: 6.2, fatG: 5.2, carbsG: 0.2, portionGrams: 50, portionQuantity: 1, portionUnit: "個" },
+  ], { id: "meal-1", mealType: "breakfast", recordedAt: day, recordedTime: "08:00", createdAt: "2026-10-13T08:00:00.000Z" });
+
+  assert.equal(entry.items.length, 2);
+  assert.equal(entry.items[1].portionQuantity, 1);
+  assert.equal(entry.calories, 270);
+  assert.equal(entry.proteinG, 9.7);
+  assert.deepEqual(summarizeDailyCalories([entry], day), { calories: 270, mealCount: 1, countedMeals: 1, missingMeals: 0, partiallyCountedMeals: 0 });
+  assert.deepEqual(summarizeDailyMacros([entry], day), { proteinG: 9.7, fatG: 5.5, carbsG: 43.2, knownCounts: { proteinG: 1, fatG: 1, carbsG: 1 }, mealCount: 1, incompleteMeals: 0 });
 });
