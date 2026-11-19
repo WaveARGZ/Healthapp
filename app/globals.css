@@ -121,12 +121,12 @@ html { scroll-padding-bottom: 180px; }
     .exercise-dialog-panel { max-width: 576px; max-height: 100%; border-radius: 16px; padding-top: 0; }
   }
   @media (max-width: 1023px) {
-    [data-keyboard-open="true"] .mobile-nav { display: none; }
-    [data-keyboard-open="true"] .record-actions { position: static; margin-top: 24px; border: 0; padding: 0; }
+    [data-keyboard-open="true"]:not(:has(.exercise-dialog)) .mobile-nav { display: none; }
+    [data-keyboard-open="true"]:not(:has(.exercise-dialog)) .record-actions { position: static; margin-top: 24px; border: 0; padding: 0; }
   }
   @media (max-height: 500px) and (max-width: 1023px) {
-    .record-actions { position: static; margin-top: 24px; border: 0; padding: 0; }
-    .app-content[data-recording="true"] { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+    [data-keyboard-open]:not(:has(.exercise-dialog)) .record-actions { position: static; margin-top: 24px; border: 0; padding: 0; }
+    [data-keyboard-open]:not(:has(.exercise-dialog)) .app-content[data-recording="true"] { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
   }
   @media (min-width: 1024px) {
     .app-content, .app-content[data-recording="true"] { padding: 56px 0 96px; }

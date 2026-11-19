@@ -290,7 +290,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
       <section className="exercise-dialog-panel">
         <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5"><div><p className="text-base font-bold">{isEditingSets ? "重量・レップ数を入力" : tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-white/70">{isEditingSets ? "セットごとに入力できます" : `初心者向けの${beginnerExerciseCount}種目と自分で追加した種目から選べます`}</p>{!isEditingSets && <p className="mt-0.5 text-xs text-white/70">動画がある種目は再生ボタンで確認できます</p>}</div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded-xl border border-white/30 text-xl leading-none text-white hover:bg-white/10" aria-label="種目メニューを閉じる">×</button></header>
         <div ref={listScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(16px,env(safe-area-inset-bottom))]">
-        {isEditingSets ? <section aria-label={`${exerciseName}のセット入力`} className="px-4 py-5 sm:px-5">
+        {isEditingSets ? <section data-workout-set-editor aria-label={`${exerciseName}のセット入力`} className="px-4 py-5 sm:px-5">
           <button type="button" onClick={() => { setIsEditingSets(false); requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus()); }} className="mb-4 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目選択へ戻る</button>
           <h2 className="text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
           <p className="mt-2 text-xs leading-5 text-[var(--muted)]">入力内容は筋トレ記録に反映されます。保存は記録画面で行います。</p>
