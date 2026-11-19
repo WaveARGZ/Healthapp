@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { searchFoodGroups } from "@/lib/food-catalog-groups.mjs";
@@ -16,6 +16,7 @@ interface FoodLibrarySearchProps {
 
 type FoodGroup = ReturnType<typeof searchFoodGroups>["groups"][number];
 type QueuedFood = { food: FoodLibraryItem; quantity: number; unit: FoodPortionUnit; gramsPerPiece: number; inferred?: boolean };
+type ResultsMode = "closed" | "preview" | "all";
 
 const library = libraryJson as FoodLibraryDataset;
 const popularIds = ["rice", "natto", "miso-soup", "chicken-breast", "grilled-salmon", "ramen", "curry-rice", "banana"];
@@ -33,10 +34,19 @@ function detailLabel(food: FoodLibraryItem): string {
   return food.foodCode ? food.sourceDescription ?? food.name : food.name;
 }
 
+function defaultPortion(food: FoodLibraryItem): QueuedFood {
+  const pieceGrams = suggestedGramsPerPiece(food.id, food.name, food.suggestedGrams);
+  return {
+    food,
+    quantity: pieceGrams ? 1 : food.suggestedGrams,
+    unit: pieceGrams ? (food.id === "schau-essen" ? "本" : "個") : "g",
+    gramsPerPiece: pieceGrams ?? food.suggestedGrams,
+  };
+}
+
 export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchProps) {
   const [query, setQuery] = useState("");
-  const [searchEngaged, setSearchEngaged] = useState(false);
-  const [expandedResults, setExpandedResults] = useState(false);
+  const [resultsMode, setResultsMode] = useState<ResultsMode>("closed");
   const [saveNotice, setSaveNotice] = useState<{ text: string; error: boolean } | null>(null);
   const [category, setCategory] = useState("すべて");
   const [extendedFoods, setExtendedFoods] = useState<FoodLibraryItem[]>([]);
@@ -52,11 +62,24 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
   const [queuedFoods, setQueuedFoods] = useState<QueuedFood[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const searchInput = useRef<HTMLInputElement>(null);
+  const searchSection = useRef<HTMLElement>(null);
+  const foodDetails = useRef<HTMLHeadingElement>(null);
   const addingFood = useRef(false);
   const loadingCatalog = useRef<Promise<void> | null>(null);
 
   const allFoods = useMemo(() => [...library.foods, ...extendedFoods], [extendedFoods]);
   const categories = useMemo(() => ["すべて", ...new Set(allFoods.map((food) => food.category))], [allFoods]);
+
+  useEffect(() => {
+    if (resultsMode === "closed") return;
+    // Some touch browsers blur the input without reporting the tapped control.
+    // Dismiss only when the pointer actually starts outside the search.
+    function dismissOutside(event: PointerEvent) {
+      if (event.target instanceof Node && !searchSection.current?.contains(event.target)) setResultsMode("closed");
+    }
+    document.addEventListener("pointerdown", dismissOutside, true);
+    return () => document.removeEventListener("pointerdown", dismissOutside, true);
+  }, [resultsMode]);
 
   function loadExtendedCatalog() {
     if (loadingCatalog.current || catalogStatus === "loaded") return;
@@ -82,15 +105,17 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
     setVisibleVariants(10);
   }
 
-  const showPopular = !query.trim() && category === "すべて" && !expandedResults;
+  const expandedResults = resultsMode === "all";
+  const showPopular = !query.trim() && category === "すべて" && resultsMode === "preview";
   const results = useMemo<ReturnType<typeof searchFoodGroups>>(
-    () => searchEngaged || expandedResults ? searchFoodGroups(showPopular ? popularFoods : allFoods, showPopular ? "" : query, category) : { groups: [], inferredGroups: [], searchTerms: [], matchingRecords: 0, usedFuzzy: false },
-    [searchEngaged, expandedResults, showPopular, allFoods, query, category],
+    () => resultsMode !== "closed" ? searchFoodGroups(showPopular ? popularFoods : allFoods, showPopular ? "" : query, category) : { groups: [], inferredGroups: [], searchTerms: [], matchingRecords: 0, usedFuzzy: false },
+    [resultsMode, showPopular, allFoods, query, category],
   );
   const resultCount = results.groups.length + results.inferredGroups.length;
-  const shownGroups = results.groups.slice(0, visibleCount);
-  const previewGroups = results.groups.slice(0, 8);
-  const previewInferredGroups = results.inferredGroups.slice(0, Math.max(0, 8 - previewGroups.length));
+  const shownGroups = results.groups.slice(0, expandedResults ? visibleCount : 8);
+  const shownInferredGroups = expandedResults ? results.inferredGroups :
+    results.inferredGroups.slice(0, Math.max(0, 8 - shownGroups.length));
+  const remainingResults = resultCount - shownGroups.length - shownInferredGroups.length;
   const variantResults = useMemo(() => {
     if (!activeGroup) return [];
     const needle = variantQuery.trim().toLocaleLowerCase();
@@ -105,29 +130,21 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
   const queuedCalories = queuedItems.reduce((sum, item) => sum + (item.calories ?? 0), 0);
 
   function setFoodPortion(food: FoodLibraryItem) {
-    const queued = queuedFoods.find((item) => item.food.id === food.id);
-    if (queued) {
-      setUnit(queued.unit);
-      setGramsPerPiece(queued.gramsPerPiece);
-      setQuantity(queued.quantity);
-      return;
-    }
-    const pieceGrams = suggestedGramsPerPiece(food.id, food.name, food.suggestedGrams);
-    setUnit(pieceGrams ? (food.id === "schau-essen" ? "本" : "個") : "g");
-    setGramsPerPiece(pieceGrams ?? food.suggestedGrams);
-    setQuantity(pieceGrams ? 1 : food.suggestedGrams);
+    const portion = queuedFoods.find((item) => item.food.id === food.id) ?? defaultPortion(food);
+    setUnit(portion.unit);
+    setGramsPerPiece(portion.gramsPerPiece);
+    setQuantity(portion.quantity);
   }
 
   function chooseGroup(group: FoodGroup) {
     setActiveGroup(group);
-    setSearchEngaged(false);
-    setExpandedResults(false);
     setSaveNotice(null);
     setVariantQuery("");
     setVisibleVariants(10);
     const onlyFood = group.variants.length === 1 ? group.variants[0] : null;
     setSelectedFood(onlyFood);
     if (onlyFood) setFoodPortion(onlyFood);
+    requestAnimationFrame(() => foodDetails.current?.focus());
   }
 
   function chooseVariant(food: FoodLibraryItem) {
@@ -145,23 +162,27 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
       setSaveNotice({ text: `${selectedFood.name} ${quantity}${unit}を保存しました。`, error: false });
       clearSelection();
       setQuery("");
-      setSearchEngaged(false);
-      setExpandedResults(false);
+      setResultsMode("closed");
     } catch { setSaveNotice({ text: "保存できませんでした。入力を確認して、もう一度お試しください。", error: true }); }
     finally { addingFood.current = false; setIsAdding(false); }
   }
 
-  function queueSelectedFood() {
-    if (!selectedFood || !valid || addingFood.current) return;
-    const selection = { food: selectedFood, quantity, unit, gramsPerPiece, inferred: activeGroup?.inferred };
-    const foodId = selectedFood.id;
+  function queueFood(selection: QueuedFood) {
+    const foodId = selection.food.id;
     setQueuedFoods((current) => current.some((item) => item.food.id === foodId) ?
       current.map((item) => item.food.id === foodId ? selection : item) : [...current, selection]);
     setSaveNotice(null);
+  }
+
+  function removeQueuedFood(foodId: string) {
+    setQueuedFoods((current) => current.filter((item) => item.food.id !== foodId));
+  }
+
+  function queueSelectedFood() {
+    if (!selectedFood || !valid || addingFood.current) return;
+    queueFood({ food: selectedFood, quantity, unit, gramsPerPiece, inferred: activeGroup?.inferred });
     clearSelection();
-    setExpandedResults(Boolean(query.trim()));
-    setSearchEngaged(false);
-    requestAnimationFrame(() => searchInput.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    requestAnimationFrame(() => searchInput.current?.scrollIntoView({ block: "nearest" }));
   }
 
   async function saveQueuedFoods() {
@@ -174,58 +195,106 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
       setQueuedFoods([]);
       clearSelection();
       setQuery("");
-      setSearchEngaged(false);
-      setExpandedResults(false);
+      setResultsMode("closed");
     } catch { setSaveNotice({ text: "まとめて保存できませんでした。選択内容を確認して、もう一度お試しください。", error: true }); }
     finally { addingFood.current = false; setIsAdding(false); }
   }
 
   function renderGroup(group: FoodGroup) {
     const single = group.variants.length === 1 ? group.variants[0] : null;
+    const quickSelection = single && !group.inferred ? defaultPortion(single) : null;
     const alreadyQueued = group.variants.some((food) => queuedFoods.some((item) => item.food.id === food.id));
-    return <button key={group.name} type="button" onClick={() => chooseGroup(group)} disabled={isAdding} className="flex min-h-14 w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left last:border-b-0 hover:bg-[var(--sage-soft)] disabled:opacity-50">
-      <span className="min-w-0"><span className="block break-words text-sm font-bold text-[var(--ink)]">{group.name}{alreadyQueued && <span className="ml-2 text-xs font-semibold text-[var(--sage-deep)]">選択中</span>}</span><span className="mt-0.5 block text-xs text-[var(--muted)]">{group.inferred ? `推測：${group.matchedTerms?.join("・")}に関連 · ` : ""}{single ? single.category : `${group.variants.length.toLocaleString()}品目から選択`}</span></span>
-      {single ? <span className="metric shrink-0 text-sm font-semibold text-[var(--sage-deep)]">{single.per100g.calories}<span className="ml-1 text-xs font-normal">kcal</span></span> : <Icon name="chevron-right" className="size-4 shrink-0 text-[var(--sage-deep)]" />}
+    return <button
+      key={group.name}
+      type="button"
+      aria-pressed={quickSelection ? alreadyQueued : undefined}
+      onClick={() => {
+        if (!quickSelection) chooseGroup(group);
+        else if (alreadyQueued) removeQueuedFood(quickSelection.food.id);
+        else queueFood(quickSelection);
+      }}
+      disabled={isAdding}
+      className="flex min-h-14 w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left last:border-b-0 hover:bg-[var(--sage-soft)] aria-pressed:bg-[var(--sage-soft)] disabled:opacity-50"
+    >
+      <span className="min-w-0">
+        <span className="block break-words text-sm font-bold text-[var(--ink)]">{group.name}{alreadyQueued && !quickSelection && <span className="ml-2 text-xs font-semibold text-[var(--sage-deep)]">選択あり</span>}</span>
+        <span className="mt-0.5 block text-xs text-[var(--muted)]">
+          {group.inferred ? `推測：${group.matchedTerms?.join("・")}に関連 · ` : ""}
+          {single ? single.category : `${group.variants.length.toLocaleString()}品目から選択`}
+          {quickSelection && ` · 目安 ${quickSelection.quantity}${quickSelection.unit}`}
+        </span>
+      </span>
+      {quickSelection ? <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--sage-deep)]">
+        <Icon name={alreadyQueued ? "check" : "plus"} className="size-4" />{alreadyQueued ? "選択済み" : "追加"}
+      </span> : <Icon name="chevron-right" className="size-4 shrink-0 text-[var(--sage-deep)]" />}
     </button>;
   }
 
-  return <section className="mt-5">
+  function openSearch() {
+    setResultsMode((mode) => mode === "all" ? mode : "preview");
+    loadExtendedCatalog();
+  }
+
+  return <section
+    ref={searchSection}
+    className="mt-5"
+    onKeyDown={(event) => {
+      if (event.key !== "Escape" || (resultsMode === "closed" && !activeGroup)) return;
+      event.preventDefault();
+      if (activeGroup) clearSelection();
+      else setResultsMode("closed");
+    }}
+  >
     <label htmlFor="meal-food-search" className="text-sm font-bold text-[var(--ink)]">食品名</label>
-    <div onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchEngaged(false); }} className="relative mt-2">
-    <div className="flex min-h-12 items-center gap-1 rounded-lg border border-[var(--line)] bg-white px-1.5 focus-within:outline-2 focus-within:outline-[var(--sage-deep)]">
-      <button type="button" aria-label="料理・食品の検索を開始" onClick={() => searchInput.current?.focus()} className="grid size-10 shrink-0 place-items-center rounded text-[var(--muted)] hover:text-[var(--sage-deep)]"><Icon name="search" className="size-4" /></button>
-      <input id="meal-food-search" ref={searchInput} type="search" value={query} onFocus={() => { if (!expandedResults) setSearchEngaged(true); loadExtendedCatalog(); }} onChange={(event) => { setExpandedResults(false); setSearchEngaged(true); setSaveNotice(null); setQuery(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} placeholder="例：白米、鶏肉と卵の炒め物" className="h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--ink)] outline-none placeholder:text-[#a6ada9]" />
+    <div className="mt-2 flex min-h-12 items-center gap-1 rounded-lg border border-[var(--line)] bg-white px-1.5 focus-within:outline-2 focus-within:outline-[var(--sage-deep)]">
+      <button type="button" aria-label="料理・食品の検索を開始" onClick={() => { clearSelection(); openSearch(); searchInput.current?.focus(); }} className="grid size-10 shrink-0 place-items-center rounded text-[var(--muted)] hover:text-[var(--sage-deep)]"><Icon name="search" className="size-4" /></button>
+      <input
+        id="meal-food-search"
+        ref={searchInput}
+        type="search"
+        value={query}
+        onFocus={openSearch}
+        onClick={openSearch}
+        onChange={(event) => {
+          setResultsMode("preview");
+          setSaveNotice(null);
+          setQuery(event.target.value);
+          setVisibleCount(30);
+          clearSelection();
+          loadExtendedCatalog();
+        }}
+        placeholder="例：白米、鶏肉と卵の炒め物"
+        className="h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--ink)] outline-none placeholder:text-[#a6ada9]"
+      />
     </div>
-    {searchEngaged && !expandedResults && <div className="absolute inset-x-0 top-full z-30 max-h-[min(28rem,65dvh)] overflow-y-auto overscroll-contain rounded-b-xl border border-t-0 border-[var(--line)] bg-white" role="region" aria-label="食品の検索候補">
-      <div className="flex items-center gap-2 border-b border-[var(--line)] px-3 py-2"><p className="min-w-0 flex-1 text-xs font-semibold text-[var(--ink)]">{showPopular ? "検索候補" : `検索結果 ${resultCount.toLocaleString()}品目`}</p><select aria-label="食品のカテゴリ" value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} className="min-h-10 max-w-[55%] rounded-md border border-[var(--line)] bg-white px-2 text-xs text-[var(--ink)]">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
-      {results.usedFuzzy && <p className="px-3 py-2 text-xs text-[var(--sage-deep)]">入力に近い候補です。品目を確認してください。</p>}
-      {results.inferredGroups.length > 0 && <p className="border-b border-[var(--line)] px-3 py-2 text-sm text-[var(--muted)]">検索語：{results.searchTerms.join("・")}。推測候補は食品名と栄養値を確認してください。</p>}
-      {previewGroups.map(renderGroup)}
-      {previewInferredGroups.length > 0 && <p className="bg-[var(--sage-soft)] px-3 py-2 text-xs font-bold text-[var(--sage-deep)]">食材名からの推測候補</p>}
-      {previewInferredGroups.map(renderGroup)}
-      {resultCount === 0 && <p className="px-3 py-4 text-xs text-[var(--muted)]">{catalogStatus === "loading" ? "食品データを読み込み中…" : "見つかりませんでした。別名や短い名前でお試しください。"}</p>}
-      {resultCount > previewGroups.length + previewInferredGroups.length && <button type="button" onClick={() => { setExpandedResults(true); setSearchEngaged(false); setVisibleCount(30); }} className="min-h-11 w-full border-t border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)]">{showPopular ? "全食品の一覧を見る" : `残り${(resultCount - previewGroups.length - previewInferredGroups.length).toLocaleString()}品目を見る`}</button>}
-      {catalogStatus === "error" && <button type="button" onClick={loadExtendedCatalog} className="text-link px-3">詳細データを再読み込み</button>}
+    {resultsMode !== "closed" && !activeGroup && <div className="mt-2 overflow-hidden rounded-lg border border-[var(--line)] bg-white" role="region" aria-label="食品の検索候補">
+      <div className="flex items-center gap-2 border-b border-[var(--line)] px-3 py-1">
+        <p className="min-w-0 flex-1 text-xs font-semibold text-[var(--ink)]">{showPopular ? "検索候補" : `検索結果 ${resultCount.toLocaleString()}品目`}</p>
+        <select aria-label="食品のカテゴリ" value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(30); loadExtendedCatalog(); }} className="min-h-10 max-w-[42%] rounded-md border border-[var(--line)] bg-white px-2 text-xs text-[var(--ink)]">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+        <button type="button" aria-label="検索候補を閉じる" onClick={() => setResultsMode("closed")} className="grid size-11 shrink-0 place-items-center text-[var(--muted)]"><Icon name="plus" className="size-4 rotate-45" /></button>
+      </div>
+      <div className="max-h-[min(22rem,45dvh)] overflow-y-auto overscroll-contain">
+        {results.usedFuzzy && <p className="px-3 py-2 text-xs text-[var(--sage-deep)]">入力に近い候補です。品目を確認してください。</p>}
+        {results.inferredGroups.length > 0 && <p className="border-b border-[var(--line)] px-3 py-2 text-xs text-[var(--muted)]">検索語：{results.searchTerms.join("・")}</p>}
+        {shownGroups.map(renderGroup)}
+        {shownInferredGroups.length > 0 && <p className="bg-[var(--sage-soft)] px-3 py-2 text-xs font-bold text-[var(--sage-deep)]">食材名からの推測候補</p>}
+        {shownInferredGroups.map(renderGroup)}
+        {resultCount === 0 && <p className="px-3 py-4 text-xs text-[var(--muted)]">{catalogStatus === "loading" ? "食品データを読み込み中…" : "見つかりませんでした。別名や短い名前でお試しください。"}</p>}
+        {!expandedResults && (showPopular || remainingResults > 0) && <button type="button" onClick={() => { setResultsMode("all"); setVisibleCount(30); }} className="min-h-11 w-full border-t border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--sage-deep)]">{showPopular ? "全食品の一覧を見る" : `残り${remainingResults.toLocaleString()}品目を見る`}</button>}
+        {expandedResults && remainingResults > 0 && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="min-h-11 w-full border-t border-[var(--line)] text-sm font-semibold text-[var(--sage-deep)]">さらに表示</button>}
+        {catalogStatus === "error" && <button type="button" onClick={loadExtendedCatalog} className="text-link px-3">詳細データを再読み込み</button>}
+      </div>
     </div>}
-    </div>
     {queuedFoods.length > 0 && <section aria-label="まとめて登録する食品" className="mt-4 rounded-lg border border-[var(--sage-deep)] bg-[var(--sage-soft)] p-3 sm:p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="text-sm font-bold text-[var(--ink)]">選択中の食品 · {queuedFoods.length}品</h3><p className="metric text-sm font-semibold text-[var(--sage-deep)]">合計 {queuedCalories} kcal</p></div>
       <ul className="mt-3 divide-y divide-[var(--line)]">{queuedFoods.map((selection, index) => <li key={selection.food.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
         <div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold text-[var(--ink)]">{selection.food.name}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{selection.inferred ? "推測候補 · " : ""}{selection.quantity}{selection.unit} · {queuedItems[index]?.calories} kcal</p></div>
-        <div className="flex shrink-0 gap-2"><button type="button" disabled={isAdding} onClick={() => chooseGroup({ name: selection.food.name, variants: [selection.food], inferred: selection.inferred })} className="min-h-11 rounded-md px-2 text-xs font-semibold text-[var(--sage-deep)] disabled:opacity-50">量を編集</button><button type="button" disabled={isAdding} onClick={() => setQueuedFoods((current) => current.filter((item) => item.food.id !== selection.food.id))} className="min-h-11 rounded-md px-2 text-xs font-semibold text-[var(--muted)] disabled:opacity-50">外す</button></div>
+        <div className="flex shrink-0 gap-2"><button type="button" disabled={isAdding} onClick={() => chooseGroup({ name: selection.food.name, variants: [selection.food], inferred: selection.inferred })} className="min-h-11 rounded-md px-2 text-xs font-semibold text-[var(--sage-deep)] disabled:opacity-50">量を編集</button><button type="button" disabled={isAdding} onClick={() => removeQueuedFood(selection.food.id)} className="min-h-11 rounded-md px-2 text-xs font-semibold text-[var(--muted)] disabled:opacity-50">外す</button></div>
       </li>)}</ul>
-      <Button type="button" className="mt-3 w-full" onClick={() => void saveQueuedFoods()} disabled={isAdding}>{isAdding ? "保存中…" : `${queuedFoods.length}品をまとめて保存`}</Button>
+      {!activeGroup && <Button type="button" className="mt-3 w-full" onClick={() => void saveQueuedFoods()} disabled={isAdding}>{isAdding ? "保存中…" : `${queuedFoods.length}品をまとめて保存`}</Button>}
     </section>}
-    {expandedResults && <div className="mt-4 rounded-lg border border-[var(--line)] bg-white" role="region" aria-label="食品の検索結果一覧">
-      <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2"><p className="text-sm font-semibold">検索結果 {resultCount.toLocaleString()}品目</p><button type="button" onClick={() => setExpandedResults(false)} className="text-link">閉じる</button></div>
-      {results.inferredGroups.length > 0 && <p className="px-3 py-2 text-sm text-[var(--muted)]">検索語：{results.searchTerms.join("・")}。推測候補は食品名と栄養値を確認してください。</p>}
-      {shownGroups.map(renderGroup)}
-      {results.groups.length > shownGroups.length && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="min-h-11 w-full border-t border-[var(--line)] text-sm font-semibold text-[var(--sage-deep)]">さらに30品目表示</button>}
-      {results.inferredGroups.length > 0 && <><p className="bg-[var(--sage-soft)] px-3 py-2 text-xs font-bold text-[var(--sage-deep)]">食材名からの推測候補</p>{results.inferredGroups.map(renderGroup)}</>}
-      {resultCount === 0 && <p className="p-3 text-xs text-[var(--muted)]">該当する食品はありません。</p>}
-    </div>}
     {activeGroup && <div className="mt-4 rounded-lg border border-[var(--sage-deep)] bg-white p-3 sm:p-4">
-      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">選択した食品</p><p className="mt-1 break-words text-base font-bold leading-6 text-[var(--ink)]">{activeGroup.name}</p></div><button type="button" onClick={clearSelection} aria-label="食品の選択を閉じる" className="delete-button -mr-2 -mt-2 shrink-0"><Icon name="plus" className="size-4 rotate-45" /></button></div>
+      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">選択した食品</p><h3 ref={foodDetails} tabIndex={-1} className="mt-1 break-words text-base font-bold leading-6 text-[var(--ink)]">{activeGroup.name}</h3></div><button type="button" onClick={clearSelection} aria-label="食品の選択を閉じる" className="delete-button -mr-2 -mt-2 shrink-0"><Icon name="plus" className="size-4 rotate-45" /></button></div>
       {activeGroup.inferred && <p className="mt-2 text-sm leading-6 text-[var(--muted)]">検索語からの推測候補です。実際に食べた食品と栄養値を確認してから保存してください。</p>}
       {activeGroup.variants.length > 1 && <div className="mt-3">
         <p className="text-xs font-semibold text-[var(--ink)]">元データの品目を選択してください（{activeGroup.variants.length.toLocaleString()}件）</p>
