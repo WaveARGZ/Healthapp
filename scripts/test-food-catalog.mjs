@@ -29,4 +29,23 @@ assert.ok(searchFoodGroups(foods, "チャーハン", "調理済み料理").group
 assert.ok(searchFoodGroups(foods, "バナナ", "果物").groups.every((group) => group.variants.every((food) => food.category === "果物")));
 assert.equal(searchFoodGroups(foods, "シャオエッセン", "すべて").groups[0]?.name, "シャウエッセン");
 
+for (const spelling of ["とりむね", "とりむねにく", "鶏胸肉", "ﾄﾘﾑﾈ"]) {
+  assert.equal(searchFoodGroups(foods, spelling, "すべて").groups[0]?.name, "鶏むね肉のグリル（皮なし）");
+}
+assert.equal(searchFoodGroups(foods, "鶏 むね肉", "すべて").groups[0]?.name, "鶏むね肉のグリル（皮なし）");
+assert.ok(searchFoodGroups(foods, "おやこどん", "すべて").groups[0]?.name.includes("親子丼"));
+assert.equal(searchFoodGroups(foods, "ぎゅうどん", "すべて").groups[0]?.name, "牛肉とごはん（しょうゆ味）");
+assert.ok(searchFoodGroups(foods, "やきそば", "すべて").groups.some((group) => group.name.includes("焼きそば")));
+const hamburgerTypo = searchFoodGroups(foods, "ハンバーク", "すべて");
+assert.equal(hamburgerTypo.groups[0]?.name, "牛ひき肉のパティ");
+assert.ok(!hamburgerTypo.groups.some((group) => /白ごはん|オートミール/.test(group.name)));
+
+// A missing dish must not become another dish, even when its spelling is close.
+const withoutBeefBowl = foods.filter((food) => !`${food.name} ${food.aliases}`.includes("牛丼"));
+assert.equal(searchFoodGroups(withoutBeefBowl, "ぎゅうどん", "すべて").groups.length, 0);
+assert.equal(searchFoodGroups(foods, "とりむね バナナ", "すべて").groups.length, 0);
+assert.ok(searchFoodGroups(foods, "とりむね", "果物").groups.length === 0);
+const aliasCollision = { ...foods[0], name: "別の食品", aliases: "チキン カレー" };
+assert.equal(searchFoodGroups([aliasCollision], "ンカレ", "すべて").groups.length, 0);
+
 console.log(`${foods.length} records grouped into ${all.groups.length} Japanese display names`);
