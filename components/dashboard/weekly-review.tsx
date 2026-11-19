@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AnatomyFigure } from "@/components/dashboard/anatomy-figure";
-import { Icon } from "@/components/ui/icon";
 import { muscleGroups, type MuscleGroup } from "@/lib/workouts/muscle-activity";
 import { summarizeWeeklyWorkoutAdvice } from "@/lib/workouts/weekly-advice";
 import { summarizeWeeklyMuscles } from "@/lib/workouts/weekly-muscle-review";
@@ -59,12 +58,12 @@ export function WeeklyReview({ workouts, meals, burns, today, goal, loading, wor
   const food = summarizeWeeklyMealReview(visibleMeals, endDate, visibleBurns);
   const groupDetails = muscle.groups[selectedGroup];
 
-  return <section aria-labelledby="weekly-review-title" aria-busy={loading} className="mt-6 overflow-hidden rounded-xl border border-[var(--line)] bg-white sm:mt-8">
-    <div className="bg-[var(--sand)] px-5 py-6 sm:px-8 sm:py-8">
-      <h2 id="weekly-review-title" className="text-2xl font-bold tracking-[-.03em] text-[var(--ink)]">1週間のふり返り</h2>
-      <div className="mt-5 border-t border-[var(--line)] pt-5">
+  return <section aria-labelledby="weekly-review-title" aria-busy={loading} className="mt-4 min-w-0 overflow-hidden rounded-lg border border-[var(--line)] bg-white">
+    <div className="grid items-end gap-4 border-b border-[var(--line)] bg-white px-5 py-6 sm:px-7 sm:py-7 md:grid-cols-[1fr_auto]">
+      <h1 id="weekly-review-title" className="text-[clamp(1.75rem,4vw,2.5rem)] font-bold leading-tight tracking-[-.045em] text-[var(--ink)]">1週間のふり返り</h1>
+      <div className="min-w-0">
         <label htmlFor="weekly-review-week" className="text-sm font-semibold text-[var(--ink)]">週を選ぶ
-          <select id="weekly-review-week" value={weeksAgo} onChange={(event) => setWeeksAgo(Number(event.target.value))} className="mt-2 block min-h-12 w-full max-w-[26rem] rounded-md border border-[var(--line)] bg-white px-3 text-base font-semibold text-[var(--ink)] focus:border-[var(--sage-deep)] focus:outline-none">
+          <select id="weekly-review-week" value={weeksAgo} onChange={(event) => setWeeksAgo(Number(event.target.value))} className="form-input mt-1 block max-w-[26rem] font-semibold">
             {Array.from({ length: selectableWeeks }, (_, offset) => {
               const weekEnd = reviewEndDate(currentWeekEnd, offset);
               const weekStart = weekStartForDate(weekEnd);
@@ -76,10 +75,10 @@ export function WeeklyReview({ workouts, meals, burns, today, goal, loading, wor
     </div>
 
     <div className="px-5 py-7 sm:px-8 sm:py-9">
-      <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-xl font-bold text-[var(--ink)]">筋トレ</h3><Link href="/workouts" className="text-link text-sm">記録を見る<Icon name="arrow-right" className="size-4" /></Link></div>
+      <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="section-title">筋トレ</h2><Link href="/workouts" className="text-link text-sm">記録を見る</Link></div>
       {loading || workoutUnavailable ? <p className="mt-5 text-sm text-[var(--muted)]">{loading ? "筋トレ記録を読み込み中…" : "筋トレ記録を読み込めませんでした。"}</p> : <>
-        <div className="mt-5 flex flex-wrap gap-x-9 gap-y-3 border-t border-[var(--line)] pt-5">
-          {[["記録日", `${advice.trainingDays}日`], ["筋トレ", `${advice.strengthDays}日`], ["有酸素", `${advice.cardioDays}日`]].map(([label, value]) => <div key={label}><p className="text-sm text-[var(--muted)]">{label}</p><p className="metric mt-1 text-[1.7rem] font-semibold text-[var(--ink)]">{value}</p></div>)}
+        <div className="mt-4 grid grid-cols-3 divide-x divide-[var(--line)] rounded-md bg-[var(--canvas)] py-3">
+          {[["記録日", `${advice.trainingDays}日`], ["筋トレ", `${advice.strengthDays}日`], ["有酸素", `${advice.cardioDays}日`]].map(([label, value]) => <div key={label} className="min-w-0 px-3 sm:px-5"><p className="text-sm text-[var(--muted)]">{label}</p><p className="metric mt-1 text-[1.7rem] font-semibold text-[var(--ink)]">{value}</p></div>)}
         </div>
         <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div>
@@ -89,10 +88,9 @@ export function WeeklyReview({ workouts, meals, burns, today, goal, loading, wor
               {muscleGroups.map((group) => <button key={group} type="button" aria-pressed={selectedGroup === group} aria-label={`${group} ${muscle.groups[group].days}日`} onClick={() => setSelectedGroup(group)} className={`min-h-12 rounded-md border px-2 py-2 text-sm font-semibold transition-colors ${selectedGroup === group ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] bg-white text-[var(--ink-soft)] hover:border-[var(--sage-deep)]"}`}>{group === "腹筋・体幹" ? "腹筋" : group}<span className="metric ml-1 text-xs">{muscle.groups[group].days}日</span></button>)}
             </div>
           </div>
-          <div className="relative rounded-xl border border-[#c8d8c7] bg-[var(--sage-soft)] p-5 sm:p-6">
-            <span aria-hidden="true" className="absolute -top-2 left-8 size-4 rotate-45 border-l border-t border-[#c8d8c7] bg-[var(--sage-soft)]" />
-            <h4 className="text-lg font-bold text-[var(--ink)]">{selectedGroup} <span className="metric ml-2 text-sm font-normal text-[var(--sage-deep)]">{groupDetails.days}日</span></h4>
-            {groupDetails.exercises.length === 0 ? <p className="mt-4 text-base text-[var(--muted)]">この週の記録はありません。</p> : <ul className="mt-4 divide-y divide-[#c8d8c7]">{groupDetails.exercises.map((exercise) => <li key={exercise.name} className="py-3 first:pt-0 last:pb-0">
+          <div className="min-w-0 rounded-md border border-[var(--line)] bg-white p-5 sm:p-6">
+            <h3 className="text-lg font-bold text-[var(--ink)]">{selectedGroup} <span className="metric ml-2 text-sm font-normal text-[var(--sage-deep)]">{groupDetails.days}日</span></h3>
+            {groupDetails.exercises.length === 0 ? <p className="mt-4 text-base text-[var(--muted)]">この週の記録はありません。</p> : <ul className="mt-4 divide-y divide-[var(--line)]">{groupDetails.exercises.map((exercise) => <li key={exercise.name} className="py-3 first:pt-0 last:pb-0">
               <p className="break-words text-base font-semibold text-[var(--ink)]">{exercise.name}</p>
               <p className="metric mt-1 text-base font-semibold text-[var(--sage-deep)]">最高 {exercise.maxWeightKg === null ? "重量未入力" : `${exercise.maxWeightKg.toLocaleString("ja-JP")} kg${exercise.repsAtMax === null ? "" : ` × ${exercise.repsAtMax}回`}`}</p>
               <p className="mt-1 text-sm text-[var(--muted)]">{exercise.dates.map(shortDate).join("・")}{exercise.recordedSets > 0 ? ` · ${exercise.recordedSets}セット` : ""}</p>
@@ -105,14 +103,14 @@ export function WeeklyReview({ workouts, meals, burns, today, goal, loading, wor
             <p>{advice.encouragement}<br />{advice.balance}</p>
             <p>{profileUnavailable ? "目標を読み込めなかったため、目標とのつながりは表示できません。" : advice.goal}<br />{!profileUnavailable && <span className="text-[var(--sage-deep)]">次の一歩：{advice.nextStep}</span>}</p>
           </div>
-          {!goal && !profileUnavailable && <Link href="/onboarding" className="text-link mt-2 text-sm">目標を設定<Icon name="arrow-right" className="size-4" /></Link>}
+          {!goal && !profileUnavailable && <Link href="/onboarding" className="text-link mt-2 text-sm">目標を設定</Link>}
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">部位は種目名か選択部位から判定。最高重量は登録値です。体型への効果量は判定できません。</p>
         </details>
       </>}
     </div>
 
     <div className="border-t border-[var(--line)] px-5 py-7 sm:px-8 sm:py-9">
-      <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-xl font-bold text-[var(--ink)]">食事と収支</h3><Link href="/meals" className="text-link text-sm">記録を見る<Icon name="arrow-right" className="size-4" /></Link></div>
+      <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="section-title">食事と収支</h2><Link href="/meals" className="text-link text-sm">記録を見る</Link></div>
       <p className="mt-2 text-sm text-[var(--muted)]">収支 = 消費 − 摂取</p>
       {loading || mealUnavailable ? <p className="mt-5 text-sm text-[var(--muted)]">{loading ? "食事記録を読み込み中…" : "食事記録を読み込めませんでした。"}</p> : <>
         {burnUnavailable && <p className="mt-3 text-xs text-[var(--coral)]">消費カロリーを読み込めなかったため、収支を表示できません。</p>}

@@ -89,8 +89,8 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
   );
   const resultCount = results.groups.length + results.inferredGroups.length;
   const shownGroups = results.groups.slice(0, visibleCount);
-  const previewGroups = results.groups.slice(0, 5);
-  const previewInferredGroups = results.inferredGroups.slice(0, Math.max(0, 5 - previewGroups.length));
+  const previewGroups = results.groups.slice(0, 8);
+  const previewInferredGroups = results.inferredGroups.slice(0, Math.max(0, 8 - previewGroups.length));
   const variantResults = useMemo(() => {
     if (!activeGroup) return [];
     const needle = variantQuery.trim().toLocaleLowerCase();
@@ -191,9 +191,8 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
 
   return <section className="mt-5">
     <label htmlFor="meal-food-search" className="text-sm font-bold text-[var(--ink)]">食品名</label>
-    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">食品を選んで量を設定すると、複数品をまとめて登録できます。</p>
-    <div onMouseLeave={() => setSearchEngaged(false)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchEngaged(false); }} className="relative mt-2">
-    <div onMouseEnter={() => { if (!expandedResults) setSearchEngaged(true); loadExtendedCatalog(); }} className="flex min-h-12 items-center gap-1 rounded-lg border border-[var(--line)] bg-white px-1.5 focus-within:outline-2 focus-within:outline-[var(--sage-deep)]">
+    <div onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchEngaged(false); }} className="relative mt-2">
+    <div className="flex min-h-12 items-center gap-1 rounded-lg border border-[var(--line)] bg-white px-1.5 focus-within:outline-2 focus-within:outline-[var(--sage-deep)]">
       <button type="button" aria-label="料理・食品の検索を開始" onClick={() => searchInput.current?.focus()} className="grid size-10 shrink-0 place-items-center rounded text-[var(--muted)] hover:text-[var(--sage-deep)]"><Icon name="search" className="size-4" /></button>
       <input id="meal-food-search" ref={searchInput} type="search" value={query} onFocus={() => { if (!expandedResults) setSearchEngaged(true); loadExtendedCatalog(); }} onChange={(event) => { setExpandedResults(false); setSearchEngaged(true); setSaveNotice(null); setQuery(event.target.value); setVisibleCount(30); clearSelection(); loadExtendedCatalog(); }} placeholder="例：白米、鶏肉と卵の炒め物" className="h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--ink)] outline-none placeholder:text-[#a6ada9]" />
     </div>
@@ -209,7 +208,7 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
       {catalogStatus === "error" && <button type="button" onClick={loadExtendedCatalog} className="text-link px-3">詳細データを再読み込み</button>}
     </div>}
     </div>
-    {queuedFoods.length > 0 && <section aria-label="まとめて登録する食品" className="mt-4 rounded-xl border border-[var(--sage-deep)] bg-[var(--sage-soft)] p-3 sm:p-4">
+    {queuedFoods.length > 0 && <section aria-label="まとめて登録する食品" className="mt-4 rounded-lg border border-[var(--sage-deep)] bg-[var(--sage-soft)] p-3 sm:p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="text-sm font-bold text-[var(--ink)]">選択中の食品 · {queuedFoods.length}品</h3><p className="metric text-sm font-semibold text-[var(--sage-deep)]">合計 {queuedCalories} kcal</p></div>
       <ul className="mt-3 divide-y divide-[var(--line)]">{queuedFoods.map((selection, index) => <li key={selection.food.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
         <div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold text-[var(--ink)]">{selection.food.name}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{selection.inferred ? "推測候補 · " : ""}{selection.quantity}{selection.unit} · {queuedItems[index]?.calories} kcal</p></div>
@@ -217,7 +216,7 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
       </li>)}</ul>
       <Button type="button" className="mt-3 w-full" onClick={() => void saveQueuedFoods()} disabled={isAdding}>{isAdding ? "保存中…" : `${queuedFoods.length}品をまとめて保存`}</Button>
     </section>}
-    {expandedResults && <div className="mt-4 rounded-xl border border-[var(--line)] bg-white" role="region" aria-label="食品の検索結果一覧">
+    {expandedResults && <div className="mt-4 rounded-lg border border-[var(--line)] bg-white" role="region" aria-label="食品の検索結果一覧">
       <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2"><p className="text-sm font-semibold">検索結果 {resultCount.toLocaleString()}品目</p><button type="button" onClick={() => setExpandedResults(false)} className="text-link">閉じる</button></div>
       {results.inferredGroups.length > 0 && <p className="px-3 py-2 text-sm text-[var(--muted)]">検索語：{results.searchTerms.join("・")}。推測候補は食品名と栄養値を確認してください。</p>}
       {shownGroups.map(renderGroup)}
@@ -225,7 +224,7 @@ export function FoodLibrarySearch({ onAddFood, onAddFoods }: FoodLibrarySearchPr
       {results.inferredGroups.length > 0 && <><p className="bg-[var(--sage-soft)] px-3 py-2 text-xs font-bold text-[var(--sage-deep)]">食材名からの推測候補</p>{results.inferredGroups.map(renderGroup)}</>}
       {resultCount === 0 && <p className="p-3 text-xs text-[var(--muted)]">該当する食品はありません。</p>}
     </div>}
-    {activeGroup && <div className="mt-4 rounded-xl border border-[var(--sage-deep)] bg-white p-3 sm:p-4">
+    {activeGroup && <div className="mt-4 rounded-lg border border-[var(--sage-deep)] bg-white p-3 sm:p-4">
       <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">選択した食品</p><p className="mt-1 break-words text-base font-bold leading-6 text-[var(--ink)]">{activeGroup.name}</p></div><button type="button" onClick={clearSelection} aria-label="食品の選択を閉じる" className="delete-button -mr-2 -mt-2 shrink-0"><Icon name="plus" className="size-4 rotate-45" /></button></div>
       {activeGroup.inferred && <p className="mt-2 text-sm leading-6 text-[var(--muted)]">検索語からの推測候補です。実際に食べた食品と栄養値を確認してから保存してください。</p>}
       {activeGroup.variants.length > 1 && <div className="mt-3">
