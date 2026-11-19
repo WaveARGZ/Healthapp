@@ -15,3 +15,9 @@ export function isSoftwareKeyboardOpen({ width, height, baselineHeight, scale, e
 export function workoutSetEditorTop(anchor: number | null, visualTop: number, editorOpen: boolean): number | null {
   return editorOpen ? anchor ?? visualTop : null;
 }
+
+/** Ignore a temporary viewport expansion while the keyboard changes between set fields. */
+export function workoutSetEditorHeight(previous: number | null, height: number, keyboardOpen: boolean, editorOpen: boolean): number | null {
+  if (!editorOpen) return null;
+  return keyboardOpen ? Math.min(previous ?? height, height) : previous;
+}
