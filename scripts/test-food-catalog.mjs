@@ -39,4 +39,28 @@ assert.ok(searchFoodGroups(foods, "鶏もも肉", "すべて").groups.some((grou
 assert.equal(searchFoodGroups(foods, "焼鮭", "すべて").groups[0]?.name, "焼き鮭");
 assert.equal(searchFoodGroups([curated.find((food) => food.id === "salad-chicken")], "サラダチキン", "すべて").groups.length, 0);
 
+const chickenAndEgg = searchFoodGroups(foods, "鶏肉と卵の炒め物", "すべて");
+assert.deepEqual(chickenAndEgg.searchTerms, ["鶏肉", "卵"]);
+assert.equal(chickenAndEgg.groups.length, 0);
+assert.ok(chickenAndEgg.inferredGroups.some((group) => group.matchedTerms?.includes("鶏肉")));
+assert.ok(chickenAndEgg.inferredGroups.some((group) => group.matchedTerms?.includes("卵")));
+assert.ok(chickenAndEgg.inferredGroups.every((group) => !group.name.includes("かも あひる")));
+assert.ok(searchFoodGroups(foods, "鶏肉", "すべて").groups.every((group) => !group.name.includes("かも あひる")));
+
+const tomatoTunaPasta = searchFoodGroups(foods, "トマトとツナのパスタ", "すべて");
+assert.deepEqual(tomatoTunaPasta.searchTerms, ["トマト", "ツナ", "パスタ"]);
+assert.equal(tomatoTunaPasta.groups.length, 0);
+assert.ok(tomatoTunaPasta.inferredGroups.some((group) => group.name === "ツナ缶"));
+assert.ok(tomatoTunaPasta.inferredGroups.every((group) => group.inferred && group.matchedTerms?.length));
+
+const salmonOnigiri = searchFoodGroups(foods, "鮭おにぎり", "すべて");
+assert.equal(salmonOnigiri.groups.length, 0);
+assert.ok(salmonOnigiri.inferredGroups.some((group) => group.matchedTerms?.includes("鮭")));
+assert.ok(salmonOnigiri.inferredGroups.some((group) => group.matchedTerms?.includes("おにぎり")));
+assert.ok(!searchFoodGroups(foods, "サラダチキン", "すべて").inferredGroups.some((group) => group.name === "チキンサラダ（ドレッシングなし）"));
+assert.equal(searchFoodGroups(foods, "チキンカレイ", "すべて").usedFuzzy, true);
+const pastaCategory = searchFoodGroups(foods, "トマトとツナのパスタ", "麺・パスタ").inferredGroups;
+assert.ok(pastaCategory.length > 0);
+assert.ok(pastaCategory.every((group) => group.variants.every((food) => food.category === "麺・パスタ")));
+
 console.log(`${foods.length} records grouped into ${all.groups.length} Japanese display names`);
