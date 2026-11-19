@@ -20,13 +20,13 @@ export function Button({
     danger: "border border-[var(--line)] bg-white text-[var(--coral)] hover:border-[var(--coral)] hover:bg-[var(--coral-soft)]",
   };
   const sizes = {
-    default: "min-h-12 px-5 text-sm",
-    small: "min-h-11 px-3.5 text-[13px]",
+    default: "min-h-12 px-5 text-base",
+    small: "min-h-11 px-3.5 text-sm",
   };
 
   return (
     <button
-      className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-xl py-2 font-semibold leading-5 transition-[background-color,border-color,opacity] duration-200 disabled:cursor-not-allowed disabled:opacity-45 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-md py-2 font-semibold leading-5 transition-[background-color,border-color,opacity] duration-200 disabled:cursor-not-allowed disabled:opacity-45 ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {children}

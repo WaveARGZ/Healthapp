@@ -145,13 +145,13 @@ export function MealRecorder() {
   }
 
   return <>
-    <PageHeader title="食事記録" description="記録日を選んで、朝食・昼食・夕食・間食に食品を追加できます。" />
+    <PageHeader title="食事" />
     <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2">
       <label htmlFor="meal-date" className="text-sm font-semibold text-[var(--ink-soft)]">記録日</label>
       <input id="meal-date" type="date" value={recordedAt} onChange={(event) => setRecordedAt(event.target.value)} required className="form-input w-auto max-w-full" />
     </div>
     <div className="grid items-start gap-5 md:grid-cols-[minmax(0,1.12fr)_minmax(0,.88fr)]">
-      <section aria-labelledby="meal-list-title" className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
+      <section aria-labelledby="meal-list-title" className="overflow-hidden rounded-lg border border-[var(--line)] bg-white">
         <h2 id="meal-list-title" className="section-title border-b border-[var(--line)] px-5 py-4 sm:px-6">食事の一覧</h2>
         {mealTypes.map(([type, label]) => {
           const entries = dayMeals.filter((entry) => entry.mealType === type);
@@ -164,7 +164,7 @@ export function MealRecorder() {
                 <h3 className="font-bold text-[var(--ink)]">{label}</h3>
                 <p className="metric mt-1 text-sm text-[var(--muted)]">{entries.length ? `${caloriesLabel} · ${entries.length}品` : "未記録"}</p>
               </div>
-              <button id={`meal-add-${type}`} type="button" onClick={() => openComposer(type)} aria-label={`${label}に食品を追加`} aria-expanded={composerOpen && mealType === type} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-[var(--sage-soft)] px-4 text-sm font-bold text-[var(--sage-deep)] hover:bg-[var(--sage-deep)] hover:text-white">
+              <button id={`meal-add-${type}`} type="button" onClick={() => openComposer(type)} aria-label={`${label}に食品を追加`} aria-expanded={composerOpen && mealType === type} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md bg-[var(--sage-soft)] px-4 text-sm font-bold text-[var(--sage-deep)] hover:bg-[var(--sage-deep)] hover:text-white">
                 <Icon name="plus" className="size-4" />追加
               </button>
             </div>
@@ -180,8 +180,8 @@ export function MealRecorder() {
           </article>;
         })}
       </section>
-      <section aria-labelledby="meal-nutrition-title" className="rounded-2xl border border-[var(--line)] bg-[var(--sage-soft)] p-5 sm:p-6">
-        <h2 id="meal-nutrition-title" className="section-title">栄養の内訳</h2>
+      <section aria-labelledby="meal-nutrition-title" className="rounded-lg border border-[var(--line)] bg-white p-5 sm:p-6">
+        <h2 id="meal-nutrition-title" className="section-title">1日の合計</h2>
         <p className="mt-5 text-sm font-semibold text-[var(--ink-soft)]">摂取カロリー{hasMissingCalories && dayCalories.countedMeals > 0 && "（入力済み分）"}</p>
         <p className="metric mt-1 text-4xl font-semibold text-[var(--ink)]">
           {dayCalories.countedMeals === 0 && dayCalories.mealCount > 0 ? "—" : Math.round(dayCalories.calories).toLocaleString("ja-JP")}
@@ -213,7 +213,7 @@ export function MealRecorder() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 ref={composerHeading} tabIndex={-1} className="section-title scroll-mt-6">{mealTypeLabels[mealType]}に追加</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">メニューを追加すると、そのまま食事記録に保存されます。</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">追加した食品はそのまま保存されます。</p>
           </div>
           <button type="button" onClick={() => { setComposerOpen(false); document.getElementById(`meal-add-${mealType}`)?.focus(); }} className="text-link">閉じる</button>
         </div>
@@ -223,15 +223,14 @@ export function MealRecorder() {
           ["photo", "camera", "写真"],
           ["manual", "plus", "手入力"],
           ["barcode", "barcode", "バーコード"],
-        ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border px-1 text-xs font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)] hover:bg-[var(--sand)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
+        ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg border px-1 text-xs font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)] hover:bg-[var(--sand)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
         <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} /></div>
         {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} />}
         {inputMode === "barcode" && <BarcodeMealEntry onAddFood={saveFood} barcode={barcodeDraft} onBarcodeChange={updateBarcodeDraft} />}
         {inputMode === "photo" && <p role="status" aria-live="polite" className="mt-4 text-sm text-[var(--sage-deep)]">{notice}</p>}
         {inputMode === "manual" && <>
-        <p className="mt-4 text-xs leading-6 text-[var(--muted)]">料理名・食べた量・栄養値を入力してください。不明な栄養値は空欄でも保存できます。</p>
-        <section className="mt-8">
-          <div className="mb-4 flex items-center justify-between"><h2 className="section-title">{mealTypeLabels[mealType]}のメニュー</h2></div>
+        <p className="mt-4 text-xs leading-6 text-[var(--muted)]">不明な栄養値は空欄のまま保存できます。</p>
+        <section className="mt-5">
           <div className="min-w-0 rounded-md border border-[var(--line)] p-3 min-[375px]:p-4 sm:p-5">
             <FieldLabel htmlFor={`food-${manualFood.id}`}>料理名</FieldLabel><TextInput id={`food-${manualFood.id}`} value={manualFood.name} onChange={(event) => updateManualFood({ name: event.target.value })} placeholder="例：卵" />
             {manualFood.portionGrams === undefined && <div className="mt-4"><FieldLabel htmlFor={`portion-${manualFood.id}`}>食べた量（任意）</FieldLabel><div className="mt-1 flex flex-wrap items-center gap-2"><TextInput id={`portion-${manualFood.id}`} type="number" min="1" max="3000" step="1" inputMode="numeric" value={manualFood.portionQuantity ?? ""} onChange={(event) => updateManualFood({ portionQuantity: event.target.value ? Number(event.target.value) : undefined })} placeholder="例：2" className="max-w-36" /><select aria-label="食べた量の単位" value={manualFood.portionUnit ?? "g"} onChange={(event) => updateManualFood({ portionUnit: event.target.value as "g" | "個" | "本" })} className="h-12 rounded border border-[var(--line)] bg-white px-3 text-base text-[var(--ink)]"><option value="g">g</option><option value="個">個</option><option value="本">本</option></select></div></div>}
@@ -251,7 +250,7 @@ export function MealRecorder() {
           ["脂質", manualFood.fatG, "g"],
           ["炭水化物", manualFood.carbsG, "g"],
         ] as const).map(([label, value, unit]) => <div key={label} className="min-w-0"><dt className="text-xs text-[var(--muted)]">{label}</dt><dd className="metric mt-1 flex flex-wrap items-baseline gap-x-1 break-all text-2xl font-semibold">{value === undefined ? "—" : Math.round(value * 10) / 10}<span className="text-xs font-normal text-[var(--muted)]">{unit}</span></dd></div>)}</dl></div>
-        <RecordActions label={isSaving ? "保存中…" : "このメニューを追加して保存"} summary={mealTypeLabels[mealType]} disabled={isSaving || !manualFood.name.trim() || invalidManualPortion(manualFood)} notice={notice} />
+        <RecordActions label={isSaving ? "保存中…" : "追加して保存"} summary={mealTypeLabels[mealType]} disabled={isSaving || !manualFood.name.trim() || invalidManualPortion(manualFood)} notice={notice} />
         </>}
       </form>
     </div>}

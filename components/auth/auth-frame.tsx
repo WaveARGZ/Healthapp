@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Logo } from "@/components/ui/logo";
-import { Icon } from "@/components/ui/icon";
 
 export function AuthFrame({ title, description, children, footer }: {
   title: string;
@@ -9,27 +8,22 @@ export function AuthFrame({ title, description, children, footer }: {
   footer: ReactNode;
 }) {
   return (
-    <main className="setup-page">
-      <div className="setup-content">
-        <Logo />
-        <div className="panel mt-7 sm:mt-10">
-          <header className="mb-6 border-b border-[var(--line)] pb-5">
-            <h1 className="setup-title mt-0">{title}</h1>
-            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{description}</p>
-          </header>
-          {children}
-        </div>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2 text-sm leading-6 text-[var(--muted)]">{footer}</div>
+    <main className="min-h-dvh bg-white pb-12 pt-[max(24px,env(safe-area-inset-top))]" style={{ paddingLeft: "max(24px, var(--page-gutter), env(safe-area-inset-left))", paddingRight: "max(24px, var(--page-gutter), env(safe-area-inset-right))" }}>
+      <div className="mx-auto max-w-6xl"><Logo /></div>
+      <div className="mx-auto w-full max-w-[400px] pt-12 sm:pt-24">
+        <header className="mb-8">
+          <h1 className="text-[30px] font-bold leading-tight tracking-tight text-[var(--ink)]">{title}</h1>
+          {description && <p className="mt-3 text-base leading-7 text-[var(--muted)]">{description}</p>}
+        </header>
+        {children}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-2 border-t border-[var(--line)] pt-5 text-sm leading-6 text-[var(--muted)]">{footer}</div>
       </div>
     </main>
   );
 }
 
 export function StorageNote({ children }: { children: ReactNode }) {
-  return <p className="flex items-start gap-3 rounded-xl bg-[var(--sage-soft)] p-4 text-sm leading-6 text-[var(--ink-soft)]">
-    <Icon name="lock" className="mt-1 size-4 shrink-0 text-[var(--sage-deep)]" />
-    <span>{children}</span>
-  </p>;
+  return <p className="text-sm leading-6 text-[var(--muted)]">{children}</p>;
 }
 
 export function GoogleMark() {

@@ -63,20 +63,20 @@ export function FirebaseAuthPage() {
   }
 
   return <AuthFrame
-    title="ログイン・新規登録"
-    description="Googleアカウントで記録を続けられます。"
+    title="ログイン"
+    description="初めての方も、Googleで登録できます。"
     footer={<Link href="/bodymake" className="text-link">トップへ戻る</Link>}
   >
     <div className="space-y-5">
       {isFirebaseConfigured ? <>
-        <label className="flex min-h-11 items-center gap-3 text-sm text-[var(--ink-soft)]"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="size-4 shrink-0 accent-[var(--sage-deep)]" />ログインを記憶し、次回からホームを開く</label>
+        <label className="flex min-h-11 items-center gap-3 text-sm text-[var(--ink-soft)]"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="size-4 shrink-0 accent-[var(--sage-deep)]" />ログイン状態を記憶する</label>
         <Button type="button" variant="secondary" className="w-full gap-3" disabled={busy || checking} onClick={() => void login()}><GoogleMark />{busy || checking ? "確認中…" : "Googleで続ける"}</Button>
       </> : <p role="alert" className="rounded-md bg-[var(--coral-soft)] p-4 text-sm leading-6 text-[var(--coral)]">Firebaseの接続設定が未完了です。利用開始前に管理者が設定してください。</p>}
       {error && <div>
         <p role="alert" className="break-words rounded-md bg-[var(--coral-soft)] p-3 text-sm text-[var(--coral)]">{error}</p>
         {isSharedTestEnvironment && <Button type="button" variant="secondary" className="mt-3 w-full" disabled={busy} onClick={() => void signOutFirebase().then(() => setError("")).catch(() => setError("ログアウトできませんでした。通信を確認してください。"))}>ログアウトして別のGoogleアカウントを使う</Button>}
       </div>}
-      <StorageNote>筋トレ・食事・体重はアカウントごとに保存します。身体写真はこの端末だけに保存し、クラウドへ送りません。</StorageNote>
+      <StorageNote>記録はアカウントに保存します。身体写真はこの端末だけに保存されます。</StorageNote>
     </div>
   </AuthFrame>;
 }

@@ -34,21 +34,21 @@ export function WeightRecorder() {
   async function deleteEntry(id: string) { await bodyMakeClient.deleteWeightEntry(id); await loadEntries(); }
 
   return <>
-    <PageHeader title="体重" description="測定した体重を日付と一緒に記録します。" />
+    <PageHeader title="体重" />
     <div className={latest ? "grid items-start gap-4 md:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]" : ""}>
       <form onSubmit={handleSubmit} className="panel space-y-5">
         <h2 className="section-title">新しい記録</h2>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2"><div><FieldLabel htmlFor="weight-date">日付</FieldLabel><TextInput id="weight-date" type="date" value={measuredOn} onChange={(event) => setMeasuredOn(event.target.value)} required /></div><div><FieldLabel htmlFor="weight-value">体重 (kg)</FieldLabel><TextInput id="weight-value" type="number" min="20" max="400" step="0.1" inputMode="decimal" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="例：62.5" required className="metric" /></div></div>
         <RecordActions label={isSaving ? "保存中…" : "体重を保存"} summary={weightKg ? `${weightKg} kg` : "体重の記録"} disabled={isSaving || !weightKg} notice={notice} />
       </form>
-      {latest && <section className="rounded-2xl bg-[var(--sage-soft)] p-5 sm:p-6">
+      {latest && <section className="rounded-lg border border-[var(--line)] bg-white p-5 sm:p-6">
         <h2 className="text-sm font-semibold text-[var(--ink-soft)]">最新の記録</h2>
         <p className="metric mt-3 text-4xl font-semibold text-[var(--ink)]">{latest.weightKg}<span className="ml-2 text-sm font-medium">kg</span></p>
         <p className="mt-2 text-sm text-[var(--muted)]">{formatDate(latest.measuredOn)}</p>
       </section>}
     </div>
     <section className="mt-8"><div className="mb-4 flex items-center justify-between"><h2 className="section-title">これまでの記録</h2><span className="text-xs text-[var(--muted)]">{entries.length}件</span></div>
-      {entries.length === 0 ? <EmptyState description="保存した体重はここに表示されます。" /> : <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white px-4 sm:px-5">{entries.map((entry) => <div key={entry.id} className="flex min-h-16 items-center gap-3 border-b border-[var(--line)] py-3 last:border-b-0"><p className="flex-1 text-xs text-[var(--muted)]">{formatDate(entry.measuredOn)}</p><p className="metric text-xl font-semibold">{entry.weightKg}<span className="ml-1 text-xs font-normal text-[var(--muted)]">kg</span></p><button type="button" aria-label="この体重記録を削除" onClick={() => void deleteEntry(entry.id)} className="delete-button"><Icon name="trash" className="size-4" /></button></div>)}</div>}
+      {entries.length === 0 ? <EmptyState description="まだ記録はありません。" /> : <div className="overflow-hidden rounded-lg border border-[var(--line)] bg-white px-4 sm:px-5">{entries.map((entry) => <div key={entry.id} className="flex min-h-16 items-center gap-3 border-b border-[var(--line)] py-3 last:border-b-0"><p className="flex-1 text-sm text-[var(--muted)]">{formatDate(entry.measuredOn)}</p><p className="metric text-xl font-semibold">{entry.weightKg}<span className="ml-1 text-xs font-normal text-[var(--muted)]">kg</span></p><button type="button" aria-label="この体重記録を削除" onClick={() => void deleteEntry(entry.id)} className="delete-button"><Icon name="trash" className="size-4" /></button></div>)}</div>}
     </section>
   </>;
 }

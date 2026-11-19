@@ -286,11 +286,11 @@ export function PublicFoodPhoto() {
         <p className="mt-2 text-xs leading-6">読み直すと入力中の内容は消えます。改善しない場合はSafari／ChromeにこのページのURLを貼り付けて開いてください。JavaScriptが無効の場合は有効にする必要があります。</p>
       </section>}
       <header className="pb-6 sm:pb-8">
-        <h1 className="text-3xl font-bold tracking-[-.04em] sm:text-5xl">食事写真AIを試す</h1>
-        <p className="mt-3 text-base leading-7 text-[var(--ink-soft)]">写真を選ぶと、端末上のAIが料理の候補を表示します。</p>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">無料・アカウント不要で解析できます。初回は約200MBのモデルをダウンロードします。</p>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">食事写真AIを試す</h1>
+        <p className="mt-3 text-base leading-7 text-[var(--ink-soft)]">写真から料理の候補を確認できます。</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">アカウント不要で解析できます。初回は約200MBをダウンロードします。</p>
       </header>
-      <section className="rounded-2xl bg-[var(--sage-soft)] p-4 text-sm leading-6 sm:px-6 sm:py-5" aria-label="写真とデータの取り扱い">
+      <section className="border-y border-[var(--line)] py-4 text-sm leading-6" aria-label="写真とデータの取り扱い">
         <h2 className="font-bold text-[var(--ink)]">写真の取り扱い</h2>
         <p className="mt-1 text-[var(--ink-soft)]">{isSharedTestEnvironment ? "このテスト環境では学習データの共有を行いません。食事写真は端末内で解析し、共有Driveには送信しません。" : "解析だけなら写真は端末内に留まります。学習用の共有は任意です。Google認証と同意の後に送信すると、位置情報などを除いた写真・料理名・AI候補・入力した栄養値を非公開のfoodDBへ保存します。人物や個人情報が写った写真は選ばないでください。"}</p>
       </section>
@@ -300,7 +300,7 @@ export function PublicFoodPhoto() {
       </div>}
       {!isSharedTestEnvironment && <section className="panel mt-5" aria-label="共有前のGoogle認証">
         <h2 ref={authHeading} tabIndex={-1} className="section-title scroll-mt-6">解析方法を選ぶ</h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">学習用に共有する方は、写真を選ぶ前にGoogle認証を済ませてください。認証後も、共有するまで写真は端末内に留まります。</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">共有する場合は、先にGoogle認証をしてください。認証だけでは送信されません。</p>
         <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
           {!mode && !authPending && <Button type="button" onClick={() => { setMode("analyze"); photoHeading.current?.focus(); }}>認証せず解析だけ試す</Button>}
           {!account && <Button type="button" variant={mode === "share" ? "primary" : "secondary"} disabled={busy || !clientId} onClick={() => void authenticate()}>{authPending ? "Google認証中…" : "Googleで認証してから入力する"}</Button>}
@@ -308,7 +308,7 @@ export function PublicFoodPhoto() {
         </div>
         {authMessage && <p role="status" className="mt-3 text-sm leading-6">{authMessage}</p>}
         <details className="mt-3 border-t border-[var(--line)] text-sm leading-6 text-[var(--muted)]">
-          <summary className="min-h-11 content-center py-2 font-semibold">複数の写真を共有するとき・再認証について</summary>
+          <summary className="min-h-11 content-center py-2 font-semibold">続けて共有する・再認証する</summary>
           <p>1回の認証で、食べ物を1品ずつ続けて登録できます。共有後は「次の食べ物を登録」を押してください。認証の期限が切れた場合は再認証が必要です。</p>
           <p className="mt-2">写真・入力・認証情報はこの画面のメモリ内だけで扱います。ページの再読み込みやブラウザの切り替えでは復元できません。認証後にこの画面が最初から表示された場合は、先にもう一度認証してから入力してください。</p>
         </details>
@@ -326,7 +326,7 @@ export function PublicFoodPhoto() {
         </div>}
       </section>}
       <section className="panel mt-5" aria-label="食事写真の解析">
-        <h2 ref={photoHeading} tabIndex={-1} className="section-title scroll-mt-6">1. 食事写真を選ぶ</h2>
+        <h2 ref={photoHeading} tabIndex={-1} className="section-title scroll-mt-6">食事写真を選ぶ</h2>
         {(authPending || !canChoosePhoto) && <p role="status" className="mt-2 text-sm leading-6">{authPending ? "Google認証の結果を待っています。上に「認証済み」と表示されたら写真を選べます。戻っても変わらない場合は「認証待ちを解除してやり直す」、またはSafari／Chromeへの切り替えをご利用ください。" : mode === "share" ? "上のGoogle認証を更新すると、写真を選べます。" : "上のGoogle認証を完了するか、「認証せず解析だけ試す」を選ぶと、写真を選べます。"}</p>}
         <div className={`mt-4 flex flex-col gap-4 sm:flex-row sm:items-start ${busy || !canChoosePhoto ? "opacity-50" : ""}`}>
           {preview && <div className="relative size-28 shrink-0 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--sand)]"><Image src={preview} alt="選んだ食事写真" fill unoptimized className="object-cover" /></div>}
@@ -345,11 +345,11 @@ export function PublicFoodPhoto() {
         {file && (phase === "idle" || phase === "error" || phase === "analyzing") && <Button type="button" variant="secondary" className="mt-3 w-full" onClick={enterManually}>{phase === "analyzing" ? "解析を待たずに料理名を入力" : isSharedTestEnvironment ? "料理名を入力して確認する" : "料理名を入力して共有する"}</Button>}
       </section>
       {(phase === "ready" || phase === "sending" || phase === "sent") && <section className="panel mt-5" aria-label="AI候補と正解">
-        <h2 className="section-title">2. AIの候補と正解を確認</h2>
+        <h2 className="section-title">料理名を確認</h2>
         <p className="mt-2 text-xs leading-6 text-[var(--muted)]">候補の確率・栄養値は目安です。写真だけでは量やPFCを正確に測れません。</p>
         <div className="mt-4 grid gap-2">{candidates.map((candidate) => <button type="button" key={candidate.id} disabled={busy || phase === "sent"} aria-pressed={selectedId === candidate.id} onClick={() => selectCandidate(candidate)} className={`min-h-14 rounded-md border px-4 py-3 text-left text-sm ${selectedId === candidate.id ? "border-[var(--sage-deep)] bg-[var(--sage-soft)]" : "border-[var(--line)]"}`}><span className="font-semibold">{plainName(candidate.food.name)}</span><span className="ml-2 text-xs text-[var(--muted)]">AI推測 {(candidate.modelScore * 100).toFixed(0)}%</span></button>)}</div>
         <label className="mt-5 block text-sm font-bold">正しい料理名<input className="form-input mt-2 w-full" value={correctName} disabled={busy || phase === "sent"} maxLength={100} placeholder="例：卵焼き" onChange={(event) => { setCorrectName(event.target.value); setSelectedId(""); setLabelChecked(false); }} /></label>
-        <label className="mt-3 flex items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={labelChecked} disabled={busy || phase === "sent" || !correctName.trim()} onChange={(event) => setLabelChecked(event.target.checked)} /><span>写真を見て、上の料理名が主料理として正しいことを確認しました。AI候補を見ただけではチェックしないでください。</span></label>
+        <label className="mt-3 flex items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={labelChecked} disabled={busy || phase === "sent" || !correctName.trim()} onChange={(event) => setLabelChecked(event.target.checked)} /><span>写真を見て、主料理の名前が正しいことを確認しました。AI候補だけで判断しないでください。</span></label>
         <fieldset className="mt-5"><legend className="text-sm font-bold">栄養値の目安（わかる範囲で修正）</legend><p className="mt-1 text-xs leading-6 text-[var(--muted)]">栄養値は利用者による目安として保存し、栄養の正解データとしては扱いません。</p><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="text-xs font-medium">{label}（{unit}）<input className="form-input mt-2 w-full" type="number" min="0" max="10000" step="0.1" inputMode="decimal" placeholder="0" value={nutritionDrafts[key] ?? (nutrition[key] === 0 ? "" : nutrition[key])} disabled={busy || phase === "sent"} onChange={(event) => { const draft = event.target.value; setNutritionDrafts((current) => ({ ...current, [key]: draft })); setNutrition((current) => ({ ...current, [key]: draft === "" ? 0 : Number(draft) })); }} /></label>)}</div></fieldset>
         {isSharedTestEnvironment ? <p className="mt-8 rounded-md bg-[var(--sand)] p-4 text-sm leading-6">テスト環境では学習データの共有を行いません。ここで確認した写真・正解は送信されません。</p> : <div className="mt-8 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4">
           <label className="flex cursor-pointer items-start gap-3 text-xs leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" checked={consent} disabled={busy || phase === "sent"} onChange={(event) => setConsent(event.target.checked)} /><span>学習用データの共有に同意します。写真（EXIF除去後）、AI候補、正しい料理名、入力した栄養値を非公開foodDBへ送ります。氏名・メール・認証トークンは学習データに保存しません。送信データは確認待ちとなり、すぐにAIへ反映されるわけではありません。</span></label>
@@ -361,9 +361,9 @@ export function PublicFoodPhoto() {
       {message && <p role="status" className={`mt-5 break-words rounded-md p-3 text-sm leading-6 ${phase === "error" ? "bg-[var(--coral-soft)] text-[var(--coral)]" : "bg-[var(--sage-soft)]"}`}>{message}</p>}
       {phase === "sent" && <div className="mt-4">
         <Button type="button" className="w-full" disabled={busy} onClick={startNextFood}>次の食べ物を登録</Button>
-        <p className="mt-2 text-xs leading-6 text-[var(--muted)]">ページを閉じずに続けられます。次の写真・料理名・栄養値を入力し、共有への同意は1品ごとに確認してください。</p>
+        <p className="mt-2 text-xs leading-6 text-[var(--muted)]">次の写真・料理名・栄養値を入力し、1品ごとに共有に同意してください。</p>
       </div>}
-      {registrations.length > 0 && <section className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-4" aria-label="この画面で登録した食べ物">
+      {registrations.length > 0 && <section className="mt-6 rounded-lg border border-[var(--line)] bg-white p-4" aria-label="この画面で登録した食べ物">
         <h2 className="text-sm font-bold">登録済みの食べ物（{registrations.length}件）</h2>
         <ul className="mt-3 space-y-3">{registrations.map((item) => <li key={item.id} className="break-words text-sm">
           <p className="font-semibold">{item.name}</p>
@@ -372,7 +372,7 @@ export function PublicFoodPhoto() {
         <p className="mt-3 text-xs leading-6 text-[var(--muted)]">この一覧は今開いている画面の中だけに表示します。再読み込みや画面を閉じる前に、必要な受付番号を控えてください。</p>
       </section>}
       <details className="mt-3 rounded-md border border-[var(--line)] p-3 text-xs leading-6 text-[var(--muted)]">
-        <summary className="min-h-11 cursor-pointer content-center font-semibold">Discord・LINEなどから開いた方／接続できない方へ</summary>
+        <summary className="min-h-11 cursor-pointer content-center font-semibold">接続・ログインで困ったとき</summary>
         <p>アプリ内の画面では認証や通信が制限される場合があります。右下のコンパス、共有メニュー、または「…」から「Safariで開く」「ブラウザで開く」を選んでください。AndroidはChromeで開いてください。</p>
         <p className="mt-2">切り替え先には写真・入力内容を引き継げません。切り替えてから写真を選び直してください。この画面の「再接続」なら写真・入力内容はそのままです。</p>
         <label className="mt-2 block">ブラウザに貼り付けるURL（長押しでコピー）<input aria-label="食事写真ページのURL" className="form-input mt-1 w-full" readOnly value={handoffUrl} onFocus={(event) => event.currentTarget.select()} /></label>

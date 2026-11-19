@@ -29,12 +29,12 @@ export function GoogleDriveSettings() {
     }
   }
 
-  if (isSharedTestEnvironment) return <section className="panel" aria-labelledby="drive-settings-title"><h2 id="drive-settings-title" className="section-title">学習データの共有</h2><p className="mt-2 text-sm leading-7 text-[var(--muted)]">テスト環境では学習データの共有を行いません。食事写真のAI解析と食事記録を確認できます。</p></section>;
+  if (isSharedTestEnvironment) return <section className="panel" aria-labelledby="drive-settings-title"><h2 id="drive-settings-title" className="section-title">学習データの共有</h2><p className="mt-2 text-sm leading-7 text-[var(--muted)]">テスト環境では学習データの共有は無効です。</p></section>;
 
   return <section className="panel" aria-labelledby="drive-settings-title">
-    <h2 id="drive-settings-title" className="section-title">共有Driveへの学習データ保存</h2>
-    <p className="mt-3 text-sm leading-7 text-[var(--muted)]">全ユーザーの正解データをアプリ所有者のDriveへ集約します。共有する場合はGoogleログインと毎回の同意が必要です。Drive APIへのユーザー個人のアクセス権は要求しません。</p>
-    <dl className="mt-4 grid gap-3 rounded-xl bg-[var(--sand)] p-4 text-sm leading-6 text-[var(--ink-soft)] sm:grid-cols-2"><div><dt className="font-semibold">共有先</dt><dd>{savedEndpoint ? "アプリ共通のDriveに設定済み" : "運営側で準備中"}</dd></div><div><dt className="font-semibold">Googleログイン</dt><dd>{savedClientId ? "設定済み" : "未設定"}</dd></div></dl>
+    <h2 id="drive-settings-title" className="section-title">学習データの共有</h2>
+    <p className="mt-3 text-sm leading-7 text-[var(--muted)]">共有は任意です。Googleログインと毎回の同意の後、アプリ所有者の非公開Driveへ送信します。個人のDriveへのアクセスは要求しません。</p>
+    <dl className="mt-4 grid gap-3 rounded-lg bg-[var(--sand)] p-4 text-sm leading-6 text-[var(--ink-soft)] sm:grid-cols-2"><div><dt className="font-semibold">共有先</dt><dd>{savedEndpoint ? "アプリ共通のDriveに設定済み" : "運営側で準備中"}</dd></div><div><dt className="font-semibold">Googleログイン</dt><dd>{savedClientId ? "設定済み" : "未設定"}</dd></div></dl>
     <div className="mt-4"><Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={() => void connect()} disabled={!savedClientId || busy}>{busy ? "確認中…" : "Googleログインを確認"}</Button></div>
     {status ? <p role="status" className="mt-3 break-words text-sm leading-6 text-[var(--muted)]">{status}</p> : null}
     <details className="mt-4 border-t border-[var(--line)] text-sm leading-7 text-[var(--muted)]"><summary className="min-h-11 py-3 font-medium">管理者向けの接続設定</summary><p className="mt-2">OAuthの承認済みJavaScript生成元には <span className="select-all break-all">https://waveargz.github.io</span> と、ローカル開発用の <span className="select-all break-all">http://localhost:3000</span> を登録してください。写真を再圧縮して位置情報などのEXIFを除いてから、修正済み料理名・候補・栄養値とともに共有Driveへ送ります。受け口URLは運営側で一元管理します。</p></details>

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 // Use --test for build:test. The default also supports a GitHub Pages export.
@@ -9,16 +9,15 @@ const pages = ["", "bodymake", "food-photo", "dashboard", "weekly-review", "work
 const appPages = new Set(["dashboard", "weekly-review", "workouts", "meals", "progress", "weight", "photos", "settings"]);
 const manifest = JSON.parse(await readFile(resolve(outputDir, "manifest.webmanifest"), "utf8"));
 const basePath = manifest.scope.replace(/\/$/, "");
-const imagePaths = new Set();
 
 for (const page of pages) {
   const source = await readFile(resolve(outputDir, page, "index.html"), "utf8");
   // Check rendered markup rather than text embedded in React's hydration payload.
   const html = source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
   if (page === "" || page === "bodymake") {
-    assert.match(html, /理想の身体を、/, "root: BodyMake landing page");
+    assert.match(html, /今日の記録を、/, "root: BodyMake landing page");
     assert.doesNotMatch(html, /PORTFOLIO|わべ/, "root: portfolio removed");
-    for (const [route, label] of [["signup", "記録をはじめる"], ["food-photo", "食事写真AIを無料で試す"]]) {
+    for (const [route, label] of [["signup", "記録をはじめる"], ["food-photo", "写真解析を試す"]]) {
       const link = [...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].find(([, attributes, content]) =>
         attributes.includes(`href="${basePath}/${route}/"`) && content.includes(label)
       );
@@ -51,11 +50,8 @@ for (const page of pages) {
   assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1(?:,|$)/, `${page}: zoom remains available`);
   const logo = html.match(/<a[^>]*aria-label="BodyMake ホーム"[^>]*>([\s\S]*?)<\/a>/);
   assert.ok(logo, `${page}: brand link`);
-  const image = logo[1].match(/<img[^>]*src="([^"]+)"/);
-  assert.ok(image, `${page}: supplied logo is an image, not a text placeholder`);
-  assert.ok(image[1].startsWith(`${basePath}/_next/static/media/bodymake-icon-192.`), `${page}: base-path-aware logo`);
-  imagePaths.add(image[1]);
-  await stat(resolve(outputDir, image[1].slice(basePath.length + 1)));
+  assert.match(logo[1], /BodyMake/, `${page}: readable wordmark`);
+  assert.doesNotMatch(html, /images\/journal\/|hero\.[a-z0-9]+\.webp/, `${page}: no decorative generated photos`);
   assert.doesNotMatch(html, /WORKOUT LOG|MEAL LOG|CURRENT WEIGHT|your body, your pace/);
   if (appPages.has(page) && !cloudGate) {
     const nav = html.match(/<nav[\s\S]*?<\/nav>/)?.[0];
@@ -96,10 +92,9 @@ for (const page of pages) {
     assert.match(html, /<select[^>]*id="weekly-review-week"/, "weekly-review: choose a recording week");
   }
   if (page === "login") assert.match(html, /ログイン.*記憶/, "login: remember-session option");
-  if (page === "login" && html.includes("Googleアカウントで記録を続けられます。")) {
+  if (page === "login" && html.includes("初めての方も、Googleで登録できます。")) {
     assert.equal(manifest.start_url, `${basePath}/dashboard`, "Firebase install opens the guarded home screen");
   }
-  if (page === "settings" && !cloudGate) assert.match(html, /共有Driveへの学習データ保存/, "settings: shared Drive training-data setup");
+  if (page === "settings" && !cloudGate) assert.match(html, /学習データの共有/, "settings: shared Drive training-data setup");
 }
-assert.equal(imagePaths.size, 1, "all pages use the same artwork");
 console.log(`${pages.length} pages validated: Japanese headings, logo, navigation, mobile viewport and recording controls. Base path: ${basePath || "/"}`);

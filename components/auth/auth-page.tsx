@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
-import { Icon } from "@/components/ui/icon";
 import { AuthFrame, GoogleMark, StorageNote } from "@/components/auth/auth-frame";
 import { hasDemoSession, setDemoSession } from "@/lib/auth/demo-session";
 import { beginCloudSignIn, hasCloudSession } from "@/lib/auth/cognito-session";
@@ -38,10 +37,10 @@ export function AuthPage({ mode }: AuthPageProps) {
   return (
     <AuthFrame
       title={isLogin ? "ログイン" : "新規登録"}
-      description={isLogin ? "今日の記録をつけましょう。" : isCloudConfigured ? "アカウントを作って、身体づくりをはじめましょう。" : "まずは基本情報を入力してください。"}
+      description={isLogin ? "" : "登録後に、名前と目標を設定します。"}
       footer={<>
-        <span>{isLogin ? "アカウントをお持ちでないですか？" : "すでにアカウントをお持ちですか？"}</span>
-        <Link href={isLogin ? "/signup" : "/login"} className="text-link">{isLogin ? "新規登録" : "ログイン"}<Icon name="chevron-right" className="size-4" /></Link>
+        <span>{isLogin ? "初めての方" : "登録済みの方"}</span>
+        <Link href={isLogin ? "/signup" : "/login"} className="text-link">{isLogin ? "新規登録" : "ログイン"}</Link>
       </>}
     >
       {isCloudConfigured ? <div className="space-y-4">
@@ -49,9 +48,9 @@ export function AuthPage({ mode }: AuthPageProps) {
         <Button type="button" className="w-full" onClick={() => void beginCloudSignIn(!isLogin, isLogin ? rememberLogin : true).catch((error) => setAuthError(error instanceof Error ? error.message : "ログインを開始できませんでした。"))}>{isLogin ? "メールアドレスでログイン" : "メールアドレスで新規登録"}</Button>
         {cloudConfig.googleSignInEnabled && <Button type="button" variant="secondary" className="w-full" onClick={() => void beginCloudSignIn(false, isLogin ? rememberLogin : true, "Google").catch((error) => setAuthError(error instanceof Error ? error.message : "Googleログインを開始できませんでした。"))}><GoogleMark />Googleで続ける</Button>}
         {authError && <p role="alert" className="break-words rounded-md bg-[var(--coral-soft)] p-3 text-sm leading-6 text-[var(--coral)]">{authError}</p>}
-        <StorageNote>{isLogin ? "記録はあなたのアカウントに保存されます。" : "登録後に名前と目標を設定します。記録はあなたのアカウントに保存されます。"}</StorageNote>
+        <StorageNote>記録はあなたのアカウントに保存されます。</StorageNote>
       </div> : <>
-        <StorageNote>現在は認証未接続のデモ版です。パスワードは送信・保存されません。{isLogin ? "チェックを付けると、この端末にログイン状態を記憶します。" : "登録すると、この端末にログイン状態を記憶します。"}</StorageNote>
+        <StorageNote>デモ版です。パスワードは送信・保存されません。{!isLogin && "登録後は、この端末にログイン状態を記憶します。"}</StorageNote>
         <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
           {!isLogin ? (
             <div>
@@ -61,17 +60,11 @@ export function AuthPage({ mode }: AuthPageProps) {
           ) : null}
           <div>
             <FieldLabel htmlFor="email">メールアドレス</FieldLabel>
-            <div className="relative">
-              <Icon name="mail" className="pointer-events-none absolute left-3.5 top-3.5 size-5 text-[var(--muted)]" />
-              <TextInput id="email" name="email" type="email" placeholder="you@example.com" autoComplete="email" className="pl-11" required />
-            </div>
+            <TextInput id="email" name="email" type="email" placeholder="you@example.com" autoComplete="email" required />
           </div>
           <div>
             <FieldLabel htmlFor="password">パスワード</FieldLabel>
-            <div className="relative">
-              <Icon name="lock" className="pointer-events-none absolute left-3.5 top-3.5 size-5 text-[var(--muted)]" />
-              <TextInput id="password" name="password" type="password" placeholder="8文字以上" autoComplete={isLogin ? "current-password" : "new-password"} className="pl-11" required minLength={8} />
-            </div>
+            <TextInput id="password" name="password" type="password" placeholder="8文字以上" autoComplete={isLogin ? "current-password" : "new-password"} required minLength={8} />
           </div>
           {isLogin ? <label className="flex min-h-11 items-center gap-3 text-sm font-medium text-[var(--muted)]"><input type="checkbox" checked={rememberLogin} onChange={(event) => setRememberLogin(event.target.checked)} className="size-4 shrink-0 accent-[var(--sage-deep)]" />ログイン状態を記憶する</label> : null}
           {!isLogin ? (
@@ -81,7 +74,7 @@ export function AuthPage({ mode }: AuthPageProps) {
             </div>
           ) : null}
           <Button type="submit" className="w-full">
-            {isLogin ? "ログイン" : "登録してはじめる"}<Icon name="arrow-right" className="size-4" />
+            {isLogin ? "ログイン" : "登録してはじめる"}
           </Button>
         </form>
       </>}

@@ -38,7 +38,7 @@ export function AnatomyFigure({ view, activity, compact = false }: { view: "fron
     </svg>;
 
   if (compact) return figure;
-  return <div className="rounded-xl border border-[#b7c8bb] bg-white px-2 pb-4 pt-4 text-center">
+  return <div className="rounded-md border border-[var(--line)] bg-white px-2 pb-4 pt-4 text-center">
     <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
     {figure}
   </div>;

@@ -159,12 +159,12 @@ export function FoodLibrarySearch({ onAddFood }: FoodLibrarySearchProps) {
       {catalogStatus === "error" && <button type="button" onClick={loadExtendedCatalog} className="text-link px-3">詳細データを再読み込み</button>}
     </div>}
     </div>
-    {expandedResults && <div className="mt-4 rounded-xl border border-[var(--line)] bg-white" role="region" aria-label="食品の検索結果一覧">
+    {expandedResults && <div className="mt-4 rounded-lg border border-[var(--line)] bg-white" role="region" aria-label="食品の検索結果一覧">
       <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2"><p className="text-sm font-semibold">検索結果 {results.groups.length.toLocaleString()}品目</p><button type="button" onClick={() => setExpandedResults(false)} className="text-link">閉じる</button></div>
       {shownGroups.length ? shownGroups.map(renderGroup) : <p className="p-3 text-xs text-[var(--muted)]">該当する食品はありません。</p>}
       {results.groups.length > shownGroups.length && <button type="button" onClick={() => setVisibleCount((count) => count + 30)} className="min-h-11 w-full border-t border-[var(--line)] text-sm font-semibold text-[var(--sage-deep)]">さらに30品目表示</button>}
     </div>}
-    {activeGroup && <div className="mt-4 rounded-xl border border-[var(--sage-deep)] bg-white p-3 sm:p-4">
+    {activeGroup && <div className="mt-4 rounded-lg border border-[var(--sage-deep)] bg-white p-3 sm:p-4">
       <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">選択した食品</p><p className="mt-1 break-words text-base font-bold leading-6 text-[var(--ink)]">{activeGroup.name}</p></div><button type="button" onClick={clearSelection} aria-label="食品の選択を閉じる" className="delete-button -mr-2 -mt-2 shrink-0"><Icon name="plus" className="size-4 rotate-45" /></button></div>
       {activeGroup.variants.length > 1 && <div className="mt-3">
         <p className="text-xs font-semibold text-[var(--ink)]">元データの品目を選択してください（{activeGroup.variants.length.toLocaleString()}件）</p>
