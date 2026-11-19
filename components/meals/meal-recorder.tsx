@@ -218,7 +218,7 @@ export function MealRecorder() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 ref={composerHeading} tabIndex={-1} className="section-title scroll-mt-6">{mealTypeLabels[mealType]}に追加</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">追加した食品はそのまま保存されます。</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{inputMode === "search" ? "食品を選んでまとめて保存できます。" : "追加した食品はそのまま保存されます。"}</p>
           </div>
           <button type="button" onClick={() => { setComposerOpen(false); document.getElementById(`meal-add-${mealType}`)?.focus(); }} className="text-link">閉じる</button>
         </div>
