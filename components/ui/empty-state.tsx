@@ -7,9 +7,9 @@ export function EmptyState({ title = "まだ記録がありません", descripti
   href?: string;
   action?: string;
 }) {
-  return <div className="border-y border-[var(--line)] py-8">
+  return <div className="rounded-xl border border-dashed border-[var(--field-line)] bg-[var(--canvas)] px-5 py-5 sm:px-6">
     <p className="text-sm font-semibold">{title}</p>
-    <p className="mt-2 text-xs leading-6 text-[var(--muted)]">{description}</p>
+    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{description}</p>
     {href && action && <Link href={href} className="text-link mt-2">{action}<Icon name="arrow-right" className="size-4" /></Link>}
   </div>;
 }

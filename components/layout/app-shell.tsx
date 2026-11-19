@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { AppTopBar } from "@/components/ui/page-header";
@@ -14,6 +14,7 @@ import { assertSharedTestAccess } from "@/lib/auth/shared-test-access";
 
 export function AppShell({ children, recording = false }: { children: ReactNode; recording?: boolean }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [firebaseReady, setFirebaseReady] = useState(false);
   const ready = useSyncExternalStore(() => () => {}, () => isFirebaseSelected || !isCloudConfigured || hasCloudSession(), () => !isCloudConfigured);
   useEffect(() => {
@@ -41,8 +42,8 @@ export function AppShell({ children, recording = false }: { children: ReactNode;
   return (
     <MobileViewport>
       <a href="#main-content" className="sr-only z-50 bg-white p-3 focus:not-sr-only focus:fixed">本文へ移動</a>
-      <AppTopBar />
-      <div className="mx-auto max-w-7xl lg:grid lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-16 lg:px-10">
+      <AppTopBar showWeeklyReview={pathname.replace(/\/$/, "") !== "/weekly-review"} />
+      <div className="mx-auto max-w-7xl lg:grid lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-8 lg:px-10 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-12">
         <BottomNav />
         <main id="main-content" data-recording={recording} className="app-content mx-auto w-full min-w-0 max-w-[940px]">{children}</main>
       </div>

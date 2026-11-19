@@ -25,12 +25,12 @@ export function WeightTrendChart({ entries, loading = false, detail = false }: {
           <h2 id="weight-trend-title" className="section-title">体重の変化</h2>
           <p className="mt-1 text-xs text-[var(--muted)]">記録した直近7日分</p>
         </div>
-        <Link href={detail ? "/weight" : "/progress"} className="text-link shrink-0">{detail ? "体重を記録" : "詳しく見る"} <span aria-hidden="true">↗</span></Link>
+        {!detail && <Link href="/progress" className="text-link shrink-0">詳しく見る <span aria-hidden="true">→</span></Link>}
       </div>
       {loading ? (
         <p className="border-t border-[var(--line)] py-8 text-center text-xs text-[var(--muted)]">体重記録を読み込み中…</p>
       ) : recent.length === 0 ? (
-        <div className="border-t border-[var(--line)]"><EmptyState description="体重を記録すると、変化がグラフに表示されます。" href="/weight" action="体重を記録" /></div>
+        <div className="border-t border-[var(--line)]"><EmptyState description="体重を記録すると、変化がグラフに表示されます。" href={detail ? undefined : "/weight"} action={detail ? undefined : "体重を記録"} /></div>
       ) : (
         <div className="mt-4 border-t border-[var(--line)] pt-4">
           <div className="grid grid-cols-[36px_minmax(0,1fr)] gap-x-1">

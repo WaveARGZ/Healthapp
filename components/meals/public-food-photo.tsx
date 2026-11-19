@@ -276,7 +276,7 @@ export function PublicFoodPhoto() {
 
   const busy = authPending || phase === "analyzing" || phase === "sending";
   const canChoosePhoto = !!mode && (mode === "analyze" || !!account);
-  return <div className="min-h-dvh bg-[var(--sand)] text-[var(--ink)]">
+  return <div className="min-h-dvh bg-[var(--canvas)] text-[var(--ink)]">
     <header className="safe-top border-b border-[var(--line)] bg-white"><div className="mx-auto flex min-h-20 max-w-3xl items-center justify-between gap-3 safe-gutters"><Logo /><Link href="/login" className="text-link text-sm">記録アプリへ</Link></div></header>
     <main className="mx-auto max-w-3xl safe-gutters safe-bottom pb-16 pt-8 sm:pt-12">
       {!interactive && <section data-food-photo-startup="pending" className="mb-6 rounded-md border border-[var(--line)] bg-[var(--sand)] p-4" aria-label="画面の読み込み状態">
@@ -285,29 +285,33 @@ export function PublicFoodPhoto() {
         <a href="./?reload=food-photo-startup-v1" className="text-link mt-3 flex min-h-12 items-center text-sm font-bold">操作できないときは、ページを読み直す</a>
         <p className="mt-2 text-xs leading-6">読み直すと入力中の内容は消えます。改善しない場合はSafari／ChromeにこのページのURLを貼り付けて開いてください。JavaScriptが無効の場合は有効にする必要があります。</p>
       </section>}
-      <section className="border-b border-[var(--line)] pb-9 sm:pb-12">
-        <p className="text-[11px] font-bold tracking-[.16em] text-[var(--sage-deep)]">BODYMAKE / FOOD PHOTO</p>
-        <h1 className="mt-4 text-3xl font-bold tracking-[-.04em] sm:text-5xl">食事写真AIを試す</h1>
-        <p className="mt-5 max-w-prose text-sm leading-7 text-[var(--muted)]">写真を選ぶと、端末上のAIが料理候補を表示します。初回は約200MBの無料モデルをダウンロードします。{isSharedTestEnvironment ? "本番と同じ認識モデルで、料理候補と修正画面を確認できます。" : "判定が違えば正しい料理名を教えてください。学習用の共有は任意で、Google認証と同意をした時だけ送信します。"}</p>
-        <p className="mt-5 inline-flex rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs font-semibold text-[var(--muted)]">無料 · アカウント不要で解析</p>
+      <header className="pb-6 sm:pb-8">
+        <h1 className="text-3xl font-bold tracking-[-.04em] sm:text-5xl">食事写真AIを試す</h1>
+        <p className="mt-3 text-base leading-7 text-[var(--ink-soft)]">写真を選ぶと、端末上のAIが料理の候補を表示します。</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">無料・アカウント不要で解析できます。初回は約200MBのモデルをダウンロードします。</p>
+      </header>
+      <section className="rounded-2xl bg-[var(--sage-soft)] p-4 text-sm leading-6 sm:px-6 sm:py-5" aria-label="写真とデータの取り扱い">
+        <h2 className="font-bold text-[var(--ink)]">写真の取り扱い</h2>
+        <p className="mt-1 text-[var(--ink-soft)]">{isSharedTestEnvironment ? "このテスト環境では学習データの共有を行いません。食事写真は端末内で解析し、共有Driveには送信しません。" : "解析だけなら写真は端末内に留まります。学習用の共有は任意です。Google認証と同意の後に送信すると、位置情報などを除いた写真・料理名・AI候補・入力した栄養値を非公開のfoodDBへ保存します。人物や個人情報が写った写真は選ばないでください。"}</p>
       </section>
-      <section className="mt-4 rounded-2xl border border-[var(--line)] bg-white p-4 text-xs leading-6 sm:p-5" aria-label="写真とデータの取り扱い"><p className="font-bold">写真の取り扱い</p><p className="mt-1 text-[var(--muted)]">{isSharedTestEnvironment ? "このテスト環境では学習データの共有を行いません。食事写真は端末内で解析し、共有Driveには送信しません。" : "解析だけなら食事写真は送信されません。共有する場合は写真の位置情報などを除去し、料理名・AI候補・入力した栄養値と一緒に非公開のfoodDBへ保存します。人物や個人情報が写った写真は選ばないでください。"}</p></section>
       {!isSharedTestEnvironment && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-6 text-[var(--muted)]" aria-label="共有先の接続状態">
         <p role="status">{connection.ready ? "共有先に接続済み" : connection.checking ? "共有先を確認中… 通信が遅い場合は自動で再接続します。Google認証または「解析だけ試す」は先に進められます。" : connection.error}</p>
         {!connection.ready && !connection.checking && <a href="./?reload=food-photo-connection-v1" aria-disabled={busy} className={`inline-flex min-h-12 items-center rounded-md border border-[var(--line)] bg-white px-5 text-sm font-semibold ${busy ? "pointer-events-none opacity-45" : ""}`} onClick={(event) => { event.preventDefault(); if (!busy) connection.retry(); }}>再接続</a>}
       </div>}
-      <details className="mt-3 rounded-md border border-[var(--line)] p-3 text-xs leading-6 text-[var(--muted)]">
-        <summary className="min-h-11 cursor-pointer content-center font-semibold">Discord・LINEなどから開いた方／接続できない方へ</summary>
-        <p>アプリ内の画面では認証や通信が制限される場合があります。右下のコンパス、共有メニュー、または「…」から「Safariで開く」「ブラウザで開く」を選んでください。AndroidはChromeで開いてください。</p>
-        <p className="mt-2">切り替え先には写真・入力内容を引き継げません。切り替えてから写真を選び直してください。この画面の「再接続」なら写真・入力内容はそのままです。</p>
-        <label className="mt-2 block">ブラウザに貼り付けるURL（長押しでコピー）<input aria-label="食事写真ページのURL" className="form-input mt-1 w-full" readOnly value={handoffUrl} onFocus={(event) => event.currentTarget.select()} /></label>
-        <p className="mt-2">Safari／Chromeでも接続できない場合はWi-Fiとモバイル通信を切り替えて「再接続」をお試しください。接続確認だけでは写真は送信されません。</p>
-      </details>
-      {!isSharedTestEnvironment && <section className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5" aria-label="共有前のGoogle認証">
-        <h2 ref={authHeading} tabIndex={-1} className="scroll-mt-6 font-bold">共有する方は、写真を選ぶ前にGoogle認証</h2>
-        <p className="mt-2 text-xs leading-6 text-[var(--muted)]">2段階認証を先に済ませてから入力します。認証だけでは写真は送信されません。解析だけなら認証は不要です。</p>
-        <p className="mt-2 text-xs leading-6 text-[var(--muted)]">1回の認証で、食べ物を1品ずつ続けて登録できます。共有後は「次の食べ物を登録」を押してください。認証の期限が切れた場合は再認証が必要です。</p>
-        <p className="mt-2 text-xs leading-6 text-[var(--muted)]">写真・入力・認証情報はこの画面のメモリ内だけで扱います。ページの再読み込みやブラウザの切り替えでは復元できません。認証後にこの画面が最初から表示された場合は、先にもう一度認証してから入力してください。</p>
+      {!isSharedTestEnvironment && <section className="panel mt-5" aria-label="共有前のGoogle認証">
+        <h2 ref={authHeading} tabIndex={-1} className="section-title scroll-mt-6">解析方法を選ぶ</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">学習用に共有する方は、写真を選ぶ前にGoogle認証を済ませてください。認証後も、共有するまで写真は端末内に留まります。</p>
+        <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
+          {!mode && !authPending && <Button type="button" onClick={() => { setMode("analyze"); photoHeading.current?.focus(); }}>認証せず解析だけ試す</Button>}
+          {!account && <Button type="button" variant={mode === "share" ? "primary" : "secondary"} disabled={busy || !clientId} onClick={() => void authenticate()}>{authPending ? "Google認証中…" : "Googleで認証してから入力する"}</Button>}
+          {authPending && <Button type="button" variant="secondary" onClick={cancelAuthentication}>認証待ちを解除してやり直す</Button>}
+        </div>
+        {authMessage && <p role="status" className="mt-3 text-sm leading-6">{authMessage}</p>}
+        <details className="mt-3 border-t border-[var(--line)] text-sm leading-6 text-[var(--muted)]">
+          <summary className="min-h-11 content-center py-2 font-semibold">複数の写真を共有するとき・再認証について</summary>
+          <p>1回の認証で、食べ物を1品ずつ続けて登録できます。共有後は「次の食べ物を登録」を押してください。認証の期限が切れた場合は再認証が必要です。</p>
+          <p className="mt-2">写真・入力・認証情報はこの画面のメモリ内だけで扱います。ページの再読み込みやブラウザの切り替えでは復元できません。認証後にこの画面が最初から表示された場合は、先にもう一度認証してから入力してください。</p>
+        </details>
         {file && !account && <p className="mt-2 text-xs leading-6 text-[var(--coral)]">入力後の再認証中にスマホがページを再読み込みすると、写真と入力を選び直す必要があります。</p>}
         {(standalone || authPending) && <div className="mt-3 rounded-md bg-[var(--sand)] p-3" aria-label="ブラウザで認証を続ける">
           <p className="text-sm font-bold">{standalone ? "ホーム画面・全画面からの認証について" : "Googleから戻っても認証済みにならない場合"}</p>
@@ -320,19 +324,13 @@ export function PublicFoodPhoto() {
           <label className="mt-2 block text-xs">通常ブラウザで開くURL<input aria-label="通常ブラウザで開くURL" className="form-input mt-1 w-full" readOnly value={handoffUrl} onFocus={(event) => event.currentTarget.select()} /></label>
           {copyMessage && <p role="status" className="mt-2 text-sm leading-6">{copyMessage}</p>}
         </div>}
-        <div className="mt-3 flex flex-wrap gap-3">
-          {!account && <Button type="button" disabled={busy || !clientId} onClick={() => void authenticate()}>{authPending ? "Google認証中…" : "Googleで認証してから入力する"}</Button>}
-          {authPending && <Button type="button" variant="secondary" onClick={cancelAuthentication}>認証待ちを解除してやり直す</Button>}
-          {!mode && !authPending && <Button type="button" variant="secondary" onClick={() => setMode("analyze")}>認証せず解析だけ試す</Button>}
-        </div>
-        {authMessage && <p role="status" className="mt-3 text-sm leading-6">{authMessage}</p>}
       </section>}
-      <section className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5" aria-label="食事写真の解析">
-        <h2 ref={photoHeading} tabIndex={-1} className="scroll-mt-6 text-lg font-bold">1. 食事写真を選ぶ</h2>
+      <section className="panel mt-5" aria-label="食事写真の解析">
+        <h2 ref={photoHeading} tabIndex={-1} className="section-title scroll-mt-6">1. 食事写真を選ぶ</h2>
         {(authPending || !canChoosePhoto) && <p role="status" className="mt-2 text-sm leading-6">{authPending ? "Google認証の結果を待っています。上に「認証済み」と表示されたら写真を選べます。戻っても変わらない場合は「認証待ちを解除してやり直す」、またはSafari／Chromeへの切り替えをご利用ください。" : mode === "share" ? "上のGoogle認証を更新すると、写真を選べます。" : "上のGoogle認証を完了するか、「認証せず解析だけ試す」を選ぶと、写真を選べます。"}</p>}
-        <div className={`mt-4 flex items-start gap-4 ${busy || !canChoosePhoto ? "opacity-50" : ""}`}>
+        <div className={`mt-4 flex flex-col gap-4 sm:flex-row sm:items-start ${busy || !canChoosePhoto ? "opacity-50" : ""}`}>
           {preview && <div className="relative size-28 shrink-0 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--sand)]"><Image src={preview} alt="選んだ食事写真" fill unoptimized className="object-cover" /></div>}
-          <div className="grid min-w-0 flex-1 gap-3">
+          <div className="grid w-full min-w-0 flex-1 gap-3 sm:grid-cols-2">
             <label className="relative flex min-h-14 cursor-pointer items-center justify-center rounded-md border border-[var(--sage-deep)] bg-[var(--sage-soft)] px-3 text-center text-sm font-semibold text-[var(--sage-deep)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--sage-deep)]">
               {file ? "別の写真をアルバムから選ぶ" : "写真をアルバムから選ぶ"}
               <input type="file" accept="image/*" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="写真をアルバムから選ぶ" disabled={busy || !canChoosePhoto} onChange={chooseFile} />
@@ -346,8 +344,8 @@ export function PublicFoodPhoto() {
         {file && phase !== "sent" && <Button type="button" className="mt-4 w-full" disabled={busy} onClick={() => void analyze()}>{phase === "analyzing" ? "解析中…" : "写真をAIで解析"}</Button>}
         {file && (phase === "idle" || phase === "error" || phase === "analyzing") && <Button type="button" variant="secondary" className="mt-3 w-full" onClick={enterManually}>{phase === "analyzing" ? "解析を待たずに料理名を入力" : isSharedTestEnvironment ? "料理名を入力して確認する" : "料理名を入力して共有する"}</Button>}
       </section>
-      {(phase === "ready" || phase === "sending" || phase === "sent") && <section className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5" aria-label="AI候補と正解">
-        <h2 className="text-lg font-bold">2. AIの候補と正解を確認</h2>
+      {(phase === "ready" || phase === "sending" || phase === "sent") && <section className="panel mt-5" aria-label="AI候補と正解">
+        <h2 className="section-title">2. AIの候補と正解を確認</h2>
         <p className="mt-2 text-xs leading-6 text-[var(--muted)]">候補の確率・栄養値は目安です。写真だけでは量やPFCを正確に測れません。</p>
         <div className="mt-4 grid gap-2">{candidates.map((candidate) => <button type="button" key={candidate.id} disabled={busy || phase === "sent"} aria-pressed={selectedId === candidate.id} onClick={() => selectCandidate(candidate)} className={`min-h-14 rounded-md border px-4 py-3 text-left text-sm ${selectedId === candidate.id ? "border-[var(--sage-deep)] bg-[var(--sage-soft)]" : "border-[var(--line)]"}`}><span className="font-semibold">{plainName(candidate.food.name)}</span><span className="ml-2 text-xs text-[var(--muted)]">AI推測 {(candidate.modelScore * 100).toFixed(0)}%</span></button>)}</div>
         <label className="mt-5 block text-sm font-bold">正しい料理名<input className="form-input mt-2 w-full" value={correctName} disabled={busy || phase === "sent"} maxLength={100} placeholder="例：卵焼き" onChange={(event) => { setCorrectName(event.target.value); setSelectedId(""); setLabelChecked(false); }} /></label>
@@ -373,7 +371,14 @@ export function PublicFoodPhoto() {
         </li>)}</ul>
         <p className="mt-3 text-xs leading-6 text-[var(--muted)]">この一覧は今開いている画面の中だけに表示します。再読み込みや画面を閉じる前に、必要な受付番号を控えてください。</p>
       </section>}
-      <p className="mt-5 text-xs leading-6 text-[var(--muted)]">{isSharedTestEnvironment ? "この画面の写真・正解データはメモリ内だけで扱います。テスト用の食事記録は「記録アプリへ」から保存できます。" : "写真・正解データは解析や送信のためにこの画面で扱い、個人の食事記録には保存しません。共有後に削除を希望する場合は受付番号をお知らせください。"}</p>
+      <details className="mt-3 rounded-md border border-[var(--line)] p-3 text-xs leading-6 text-[var(--muted)]">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold">Discord・LINEなどから開いた方／接続できない方へ</summary>
+        <p>アプリ内の画面では認証や通信が制限される場合があります。右下のコンパス、共有メニュー、または「…」から「Safariで開く」「ブラウザで開く」を選んでください。AndroidはChromeで開いてください。</p>
+        <p className="mt-2">切り替え先には写真・入力内容を引き継げません。切り替えてから写真を選び直してください。この画面の「再接続」なら写真・入力内容はそのままです。</p>
+        <label className="mt-2 block">ブラウザに貼り付けるURL（長押しでコピー）<input aria-label="食事写真ページのURL" className="form-input mt-1 w-full" readOnly value={handoffUrl} onFocus={(event) => event.currentTarget.select()} /></label>
+        <p className="mt-2">Safari／Chromeでも接続できない場合はWi-Fiとモバイル通信を切り替えて「再接続」をお試しください。接続確認だけでは写真は送信されません。</p>
+      </details>
+      <p className="mt-5 text-sm leading-6 text-[var(--muted)]">{isSharedTestEnvironment ? "この画面の写真・正解データはメモリ内だけで扱います。テスト用の食事記録は「記録アプリへ」から保存できます。" : "写真・正解データは解析や送信のためにこの画面で扱い、個人の食事記録には保存しません。共有後に削除を希望する場合は受付番号をお知らせください。"}</p>
     </main>
   </div>;
 }
