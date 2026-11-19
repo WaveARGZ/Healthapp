@@ -135,6 +135,11 @@ html { scroll-padding-bottom: 180px; }
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
+  .exercise-dialog-scroll {
+    overflow-x: hidden;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
   .workout-guide-enter { animation: workout-guide-enter 240ms ease-out both; }
   .workout-favorite-nudge { animation: workout-guide-pulse 900ms ease-in-out 2; background: var(--sage-soft); }
   .workout-recommendation-nudge { animation: workout-guide-pulse 900ms ease-in-out 2; }
