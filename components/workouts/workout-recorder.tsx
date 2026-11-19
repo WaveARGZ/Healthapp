@@ -49,7 +49,7 @@ function WorkoutCalendarMuscleMap({ history }: { history: WorkoutEntry[] }) {
     <h3 id="workout-calendar-map-title" className="text-lg font-bold">筋トレ部位マップ</h3>
     <p className="mt-1 text-sm text-[var(--muted)]">直近14日間に鍛えた部位</p>
     <div className="mt-4 grid grid-cols-2 gap-3"><AnatomyFigure view="front" activity={activity} /><AnatomyFigure view="back" activity={activity} /></div>
-    <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-[var(--muted)]" aria-label="0日は緑の輪郭、1日は薄い赤、2日以上は濃い赤">
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-[var(--muted)]" aria-label="0日は青の輪郭、1日は薄い赤、2日以上は濃い赤">
       <span className="size-3 rounded-full border-2 bg-white" style={{ borderColor: inactiveOutlineColor }} />0日
       <span className="size-3 rounded-full" style={{ backgroundColor: activityTint(1).color }} />1日
       <span className="size-3 rounded-full" style={{ backgroundColor: activityTint(2).color }} />2日以上

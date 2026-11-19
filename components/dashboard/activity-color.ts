@@ -1,5 +1,5 @@
 export const maxActivityDays = 2;
-export const inactiveOutlineColor = "#175322";
+export const inactiveOutlineColor = "#2456a6";
 
 const activityTints = [
   { color: "transparent", opacity: 0 },
