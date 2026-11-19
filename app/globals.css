@@ -138,8 +138,8 @@ html { scroll-padding-bottom: 180px; }
   .exercise-dialog[data-set-editor] {
     top: 0;
     height: 100vh;
-    height: 100lvh;
-    overflow: hidden;
+    height: 100dvh;
+    overflow: clip;
   }
   .exercise-dialog[data-set-editor] .exercise-dialog-panel { height: 100%; }
   .exercise-dialog-scroll {
@@ -148,7 +148,49 @@ html { scroll-padding-bottom: 180px; }
     scrollbar-gutter: stable;
     padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
-  .exercise-dialog[data-set-editor] .exercise-dialog-scroll { padding-bottom: 50vh; }
+  .workout-set-scroll {
+    overscroll-behavior: contain;
+    touch-action: pan-y pinch-zoom;
+  }
+  .workout-set-row {
+    display: grid;
+    grid-template-columns: 20px repeat(2, minmax(0, 1fr)) 40px;
+    align-items: center;
+    column-gap: 6px;
+    padding-inline: 8px;
+  }
+  .workout-number-pad {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(4, clamp(36px, 5.7dvh, 48px));
+    flex: none;
+    gap: 6px;
+    padding: 8px 16px max(8px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--canvas);
+  }
+  .workout-number-pad button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: white;
+    color: var(--ink);
+    font-weight: 600;
+    touch-action: manipulation;
+  }
+  .workout-number-pad button:active { background: var(--sand); }
+  .workout-number-pad button:disabled { opacity: .4; }
+  .workout-number-pad .workout-number-pad-next {
+    flex-direction: column;
+    border-color: var(--sage-deep);
+    background: var(--sage-deep);
+    color: white;
+  }
+  .workout-number-pad .workout-number-pad-next:active { opacity: .85; }
   .workout-guide-enter { animation: workout-guide-enter 240ms ease-out both; }
   .workout-favorite-nudge { animation: workout-guide-pulse 900ms ease-in-out 2; background: var(--sage-soft); }
   .workout-recommendation-nudge { animation: workout-guide-pulse 900ms ease-in-out 2; }
