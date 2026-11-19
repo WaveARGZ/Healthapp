@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { isSoftwareKeyboardOpen } from "@/lib/utils/mobile-viewport";
+import { isSoftwareKeyboardOpen, workoutSetEditorTop } from "@/lib/utils/mobile-viewport";
 
 /** Observe the visible screen without moving focus, scrolling, or changing form values. */
 export function MobileViewport({ children }: { children: ReactNode }) {
@@ -21,8 +21,7 @@ export function MobileViewport({ children }: { children: ReactNode }) {
       const editing = active instanceof HTMLTextAreaElement ||
         (active instanceof HTMLInputElement && ["text", "search", "email", "password", "number", "tel", "url"].includes(active.type)) ||
         (active instanceof HTMLElement && active.isContentEditable);
-      const editingWorkoutSet = active instanceof HTMLInputElement && active.type === "number" &&
-        Boolean(active.closest("[data-workout-set-editor]"));
+      const setEditorOpen = Boolean(document.querySelector("[data-workout-set-editor]"));
 
       if (Math.abs(lastWidth - window.innerWidth) > 80) {
         baselineHeight = window.innerHeight;
@@ -32,20 +31,23 @@ export function MobileViewport({ children }: { children: ReactNode }) {
       if (Math.abs(scale - 1) >= 0.05) setEditorTop = null;
       if (Math.abs(scale - 1) < 0.05) baselineHeight = Math.max(baselineHeight, window.innerHeight, height);
 
-      const keyboard = isSoftwareKeyboardOpen({ width: window.innerWidth, height, baselineHeight, scale, editing });
       const visualTop = Math.round(visual?.offsetTop ?? 0);
-      if (editingWorkoutSet && setEditorTop === null) setEditorTop = visualTop;
-      if (!editingWorkoutSet) setEditorTop = null;
-      // Keep the set editor anchored while the keyboard pans the visual viewport.
+      setEditorTop = workoutSetEditorTop(setEditorTop, visualTop, setEditorOpen && Math.abs(scale - 1) < 0.05);
+      const keyboard = isSoftwareKeyboardOpen({ width: window.innerWidth, height, baselineHeight, scale, editing: editing || (setEditorOpen && setEditorTop !== null) });
+      // A focus change between weight and reps must not recalculate the dialog's top.
       // At pinch zoom, leave the dialog on the layout viewport so it can be panned normally.
       const next = Math.abs(scale - 1) < 0.05
-        ? { height, top: editingWorkoutSet ? setEditorTop ?? visualTop : visualTop, keyboard }
+        ? { height, top: setEditorTop ?? visualTop, keyboard }
         : { height: 0, top: 0, keyboard: false };
       setViewport((previous) => previous.height === next.height && previous.top === next.top && previous.keyboard === next.keyboard ? previous : next);
     }
     function schedule() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(update);
+    }
+    function handleVisualScroll() {
+      if (setEditorTop !== null && document.querySelector("[data-workout-set-editor]")) return;
+      schedule();
     }
     function handleFocusIn(event: FocusEvent) {
       const target = event.target;
@@ -57,14 +59,14 @@ export function MobileViewport({ children }: { children: ReactNode }) {
 
     schedule();
     visual?.addEventListener("resize", schedule);
-    visual?.addEventListener("scroll", schedule);
+    visual?.addEventListener("scroll", handleVisualScroll);
     window.addEventListener("resize", schedule);
     document.addEventListener("focusin", handleFocusIn);
     document.addEventListener("focusout", schedule);
     return () => {
       cancelAnimationFrame(frame);
       visual?.removeEventListener("resize", schedule);
-      visual?.removeEventListener("scroll", schedule);
+      visual?.removeEventListener("scroll", handleVisualScroll);
       window.removeEventListener("resize", schedule);
       document.removeEventListener("focusin", handleFocusIn);
       document.removeEventListener("focusout", schedule);
