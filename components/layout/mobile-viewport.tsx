@@ -14,12 +14,12 @@ export function MobileViewport({ children }: { children: ReactNode }) {
     let frame = 0;
 
     function update() {
-      // The full-screen set editor owns its scrolling. Resizing this wrapper
-      // for each keyboard event makes its rows and the backdrop jump.
-      if (document.querySelector("[data-workout-set-editor]")) return;
+      const active = document.activeElement;
+      const editingSetNote = active?.matches("[data-workout-set-note]");
+      // The number pad has a fixed layout. Only notes use the device keyboard.
+      if (document.querySelector("[data-workout-set-editor]") && !editingSetNote) return;
       const height = Math.round(visual?.height ?? window.innerHeight);
       const scale = visual?.scale ?? 1;
-      const active = document.activeElement;
       const editing = active instanceof HTMLTextAreaElement ||
         (active instanceof HTMLInputElement && ["text", "search", "email", "password", "number", "tel", "url"].includes(active.type)) ||
         (active instanceof HTMLElement && active.isContentEditable);
