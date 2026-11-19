@@ -276,7 +276,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
 
   return <>
     <Button type="button" variant="secondary" size="small" className="mt-3 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setShowEquipmentEditor(false); setActiveCategory(null); setIsEditingSets(Boolean(exerciseName)); setVideoExercise(null); setQuery(""); setCustomExerciseInput(""); setCustomExerciseNotice(""); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />{exerciseName ? "登録内容を編集" : "登録"}</Button>
-    {isOpen ? <div ref={dialogRef} className="exercise-dialog" role="dialog" aria-modal="true" aria-label={videoExercise ? `${videoExercise}の動作動画` : "筋トレ種目を選択"} onClick={(event) => { if (event.target === event.currentTarget) { if (videoExercise) setVideoExercise(null); else closePicker(); } }}>
+    {isOpen ? <div ref={dialogRef} className="exercise-dialog" data-set-editor={isEditingSets || undefined} role="dialog" aria-modal="true" aria-label={videoExercise ? `${videoExercise}の動作動画` : "筋トレ種目を選択"} onClick={(event) => { if (event.target === event.currentTarget && !isEditingSets) { if (videoExercise) setVideoExercise(null); else closePicker(); } }}>
       {videoExercise ? <section className="exercise-dialog-panel">
         <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5">
           <div><p className="text-base font-bold">{videoExercise}</p><p className="mt-0.5 text-xs text-white/70">動作説明の動画</p></div>
@@ -288,18 +288,18 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
         </div>
       </section> : <>
       <section className="exercise-dialog-panel">
-        <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5"><div><p className="text-base font-bold">{isEditingSets ? "重量・レップ数を入力" : tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-white/70">{isEditingSets ? "セットごとに入力できます" : `初心者向けの${beginnerExerciseCount}種目と自分で追加した種目から選べます`}</p></div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded-lg border border-white/30 text-xl leading-none text-white hover:bg-white/10" aria-label="種目メニューを閉じる">×</button></header>
-        <div ref={listScrollRef} className="exercise-dialog-scroll min-h-0 flex-1 overscroll-contain pb-[max(16px,env(safe-area-inset-bottom))]">
+        <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5"><div><p className="text-base font-bold">{isEditingSets ? "重量・レップ数を入力" : tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-white/70">{isEditingSets ? "セットごとに入力できます" : `初心者向けの${beginnerExerciseCount}種目と自分で追加した種目から選べます`}</p></div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded-lg border border-white/30 text-sm font-semibold leading-none text-white hover:bg-white/10" aria-label={isEditingSets ? "入力を完了" : "種目メニューを閉じる"}>{isEditingSets ? "完了" : "×"}</button></header>
+        <div ref={listScrollRef} className="exercise-dialog-scroll min-h-0 flex-1 overscroll-contain">
         {isEditingSets ? <section data-workout-set-editor aria-label={`${exerciseName}のセット入力`} className="px-4 py-5 sm:px-5">
           <button type="button" onClick={() => { setIsEditingSets(false); requestAnimationFrame(() => document.getElementById("exercise-category-back")?.focus()); }} className="mb-4 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目選択へ戻る</button>
           <h2 className="text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
-          <p className="mt-2 text-xs leading-5 text-[var(--muted)]">キーボードの✓／完了で次の欄へ。入力後、記録画面で保存してください。</p>
+          <p className="mt-2 text-xs leading-5 text-[var(--muted)]">キーボードの次へ／完了で次の欄へ。入力後、記録画面で保存してください。</p>
           <div className="mt-5 overflow-hidden rounded-lg border border-[var(--line)] bg-white">
             <div className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-2 border-b border-[var(--line)] bg-[var(--sand)] px-3 py-3 text-center text-xs font-semibold text-[var(--muted)]"><span>#</span><span>重量 kg</span><span>レップ数</span><span className="sr-only">削除</span></div>
             <div className="divide-y divide-[var(--line)]">{sets.map((set, index) => <div key={set.id} className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-2 px-3 py-2">
               <span className="metric text-center text-xs font-semibold text-[var(--muted)]">{index + 1}</span>
               <WorkoutSetNumberField autoFocusTarget value={set.weightKg} onCommit={(weightKg) => onUpdateSet(set.id, { weightKg })} previousValue={sets[index - 1]?.weightKg} label={`セット${index + 1}の重量 kg`} copyLabel={index > 0 ? `セット${index}の重量をセット${index + 1}にコピー` : undefined} step="0.5" inputMode="decimal" />
-              <WorkoutSetNumberField value={set.reps} onCommit={(reps) => onUpdateSet(set.id, { reps })} previousValue={sets[index - 1]?.reps} label={`セット${index + 1}のレップ数`} copyLabel={index > 0 ? `セット${index}のレップ数をセット${index + 1}にコピー` : undefined} step="1" inputMode="decimal" />
+              <WorkoutSetNumberField value={set.reps} onCommit={(reps) => onUpdateSet(set.id, { reps })} previousValue={sets[index - 1]?.reps} label={`セット${index + 1}のレップ数`} copyLabel={index > 0 ? `セット${index}のレップ数をセット${index + 1}にコピー` : undefined} step="1" inputMode="decimal" lastField={index === sets.length - 1} />
               <button type="button" disabled={sets.length === 1} onClick={() => onRemoveSet(set.id)} aria-label={`セット${index + 1}を削除`} className="grid size-10 place-items-center text-[var(--muted)] hover:text-[var(--coral)] disabled:opacity-25"><Icon name="trash" className="size-4" /></button>
             </div>)}</div>
             <div className="border-t border-[var(--line)] p-3"><Button type="button" variant="secondary" className="w-full text-[var(--sage-deep)]" onClick={() => { onAddSet(); if (window.matchMedia("(min-width: 640px)").matches) requestAnimationFrame(() => { const inputs = dialogRef.current?.querySelectorAll<HTMLInputElement>('[data-set-weight="true"]'); inputs?.[inputs.length - 1]?.focus(); }); }}><Icon name="plus" className="size-4" />セットを1つ追加</Button></div>
@@ -358,9 +358,6 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
         </div>
         </>}
         </div>
-        {isEditingSets && <div className="shrink-0 border-t border-[var(--line)] bg-white px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-5">
-          <Button type="button" className="w-full" onClick={closePicker}>記録画面へ戻る</Button>
-        </div>}
         {tutorialStage && <div className="shrink-0 border-t border-[var(--line)] bg-white px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 sm:px-5">
           <div key={tutorialStage} className="workout-guide-enter grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 sm:flex sm:gap-3" aria-live="polite">
             <span className="metric shrink-0 rounded bg-[var(--sage-soft)] px-2 py-1 text-xs font-bold text-[var(--sage-deep)]">{tutorialStage === "equipment" ? "1 / 3" : tutorialStage === "favorite" ? "2 / 3" : "3 / 3"}</span>

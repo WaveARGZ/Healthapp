@@ -13,6 +13,7 @@ interface WorkoutSetNumberFieldProps {
   step: string;
   inputMode: "decimal" | "numeric";
   autoFocusTarget?: boolean;
+  lastField?: boolean;
 }
 
 function focusNextSetField(input: HTMLInputElement) {
@@ -27,12 +28,15 @@ function focusNextSetField(input: HTMLInputElement) {
   if (!scroller) return;
   const fieldRect = next.getBoundingClientRect();
   const scrollRect = scroller.getBoundingClientRect();
+  const visualTop = window.visualViewport?.offsetTop ?? 0;
+  const visibleTop = Math.max(scrollRect.top, visualTop);
+  const visibleBottom = Math.min(scrollRect.bottom, visualTop + (window.visualViewport?.height ?? window.innerHeight));
   const margin = 12;
-  if (fieldRect.bottom > scrollRect.bottom - margin) scroller.scrollTop += fieldRect.bottom - scrollRect.bottom + margin;
-  else if (fieldRect.top < scrollRect.top + margin) scroller.scrollTop -= scrollRect.top + margin - fieldRect.top;
+  if (fieldRect.bottom > visibleBottom - margin) scroller.scrollTop += fieldRect.bottom - visibleBottom + margin;
+  else if (fieldRect.top < visibleTop + margin) scroller.scrollTop -= visibleTop + margin - fieldRect.top;
 }
 
-export function WorkoutSetNumberField({ value, onCommit, previousValue, label, copyLabel, step, inputMode, autoFocusTarget = false }: WorkoutSetNumberFieldProps) {
+export function WorkoutSetNumberField({ value, onCommit, previousValue, label, copyLabel, step, inputMode, autoFocusTarget = false, lastField = false }: WorkoutSetNumberFieldProps) {
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
 
@@ -50,21 +54,12 @@ export function WorkoutSetNumberField({ value, onCommit, previousValue, label, c
       min="0"
       step={step}
       inputMode={inputMode}
-      enterKeyHint="done"
+      enterKeyHint={lastField ? "done" : "next"}
       aria-label={label}
       value={editing ? draft : value ?? ""}
       onFocus={() => { setDraft(value === undefined ? "" : String(value)); setEditing(true); }}
       onChange={(event) => { if (step !== "1" || /^\d*$/.test(event.target.value)) setDraft(event.target.value); }}
-      onBlur={(event) => {
-        const input = event.currentTarget;
-        setEditing(false);
-        commit(input.value);
-        // When Done blurs without Enter, advance only if no tapped control
-        // has taken focus by the next frame.
-        if (!event.relatedTarget) requestAnimationFrame(() => {
-          if (input.isConnected && (document.activeElement === document.body || document.activeElement === document.documentElement)) focusNextSetField(input);
-        });
-      }}
+      onBlur={(event) => { setEditing(false); commit(event.currentTarget.value); }}
       onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); focusNextSetField(event.currentTarget); } }}
       placeholder="0"
       className={`metric h-12 appearance-none px-2 text-left [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none ${copyLabel ? "pr-10" : ""}`}
