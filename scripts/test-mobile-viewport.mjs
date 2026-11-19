@@ -23,6 +23,7 @@ const cases = [
 for (const [label, patch, expected] of cases) {
   assert.equal(isSoftwareKeyboardOpen({ ...phone, ...patch }), expected, label);
 }
+
 console.log(`${cases.length} mobile keyboard detection cases passed. Physical-device viewport events still require device testing.`);
 
 function loadModule(source, modules, globals) {
@@ -57,14 +58,22 @@ assert.equal(restoredScroll.left, 8);
 let effect;
 let viewportState;
 let queuedFrame;
-let editorOpen = true;
+let dialogMode = "picker";
 class Element { isContentEditable = false; }
-class Input extends Element { type = "number"; closest() { return editorOpen ? {} : null; } }
-class Textarea extends Element {}
+class Input extends Element {
+  type = "search";
+  closest() { return dialogMode === "picker" ? {} : null; }
+}
+class Textarea extends Element { hasAttribute(name) { return name === "data-workout-set-note"; } }
 const activeInput = new Input();
 const listeners = new Map();
 const visual = { height: 844, offsetTop: 0, scale: 1, addEventListener: (event, handler) => listeners.set(event, handler), removeEventListener() {} };
-const documentMock = { activeElement: activeInput, querySelector: () => editorOpen ? {} : null, addEventListener: (event, handler) => listeners.set(event, handler), removeEventListener() {} };
+const documentMock = {
+  activeElement: activeInput,
+  querySelector: () => dialogMode ? { hasAttribute: (name) => name === "data-set-editor" && dialogMode === "sets" } : null,
+  addEventListener: (event, handler) => listeners.set(event, handler),
+  removeEventListener() {},
+};
 const windowMock = { visualViewport: visual, innerHeight: 844, innerWidth: 390, addEventListener() {}, removeEventListener() {} };
 const viewport = loadModule(await readFile("components/layout/mobile-viewport.tsx", "utf8"), {
   react: { useEffect: (callback) => { effect = callback; }, useState: (initial) => { viewportState = initial; return [initial, (next) => { viewportState = next(viewportState); }]; } },
@@ -82,7 +91,7 @@ queuedFrame();
 update("resize", 510, 110);
 assert.equal(viewportState.top, 0);
 assert.equal(viewportState.height, 510);
-// During weight -> reps, the browser briefly focuses the document or a button.
+// Focus gaps in the picker must not replace the dialog anchor.
 update("focusout", 510, 170, new Element());
 assert.equal(viewportState.top, 0, "focus gaps must not replace the editor anchor");
 update("focusin", 510, 190);
@@ -90,7 +99,14 @@ assert.equal(viewportState.top, 0);
 update("resize", 844, 40, new Element());
 assert.equal(viewportState.top, 0, "keyboard dismissal must not move the editor");
 assert.equal(viewportState.keyboard, false);
-editorOpen = false;
+dialogMode = "sets";
+update("resize", 510, 160, new Element());
+assert.equal(viewportState.height, 844, "the numeric keypad is not resized by viewport events");
+update("focusin", 510, 110, new Textarea());
+assert.equal(viewportState.height, 510, "the memo panel fits above the device keyboard");
+assert.equal(viewportState.top, 110, "the memo panel uses the visible viewport's position");
+assert.equal(viewportState.keyboard, true);
+dialogMode = null;
 update("focusout", 844, 0, new Element());
 visual.scale = 2;
 update("resize", 422, 90);
