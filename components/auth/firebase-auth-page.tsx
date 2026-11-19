@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { User } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { AuthFrame, GoogleMark, StorageNote } from "@/components/auth/auth-frame";
-import { bodyMakeClient } from "@/lib/api/client";
-import { completeGoogleRedirect, currentFirebaseUser, signInWithGoogle, signOutFirebase, watchFirebaseUser } from "@/lib/auth/firebase-session";
+import { completeGoogleRedirect, signInWithGoogle, signOutFirebase, watchFirebaseUser } from "@/lib/auth/firebase-session";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { isSharedTestEnvironment } from "@/lib/cloud/config";
-import { assertSharedTestAccess } from "@/lib/auth/shared-test-access";
+import { firebaseLoginDestination } from "@/lib/auth/firebase-login-destination";
 
 export function FirebaseAuthPage() {
   const router = useRouter();
@@ -19,10 +19,8 @@ export function FirebaseAuthPage() {
   const [error, setError] = useState("");
   const loginInProgress = useRef(false);
 
-  const openRecords = useCallback(async () => {
-    await assertSharedTestAccess(await currentFirebaseUser());
-    const profile = await bodyMakeClient.getProfile();
-    router.replace(profile ? "/dashboard" : "/onboarding?from=signup");
+  const openRecords = useCallback(async (user: User) => {
+    router.replace(await firebaseLoginDestination(user));
   }, [router]);
 
   useEffect(() => {
@@ -39,7 +37,7 @@ export function FirebaseAuthPage() {
           setChecking(false);
           if (!user || loginInProgress.current) return;
           setBusy(true);
-          void openRecords()
+          void openRecords(user)
             .catch((reason) => { if (active) { setBusy(false); setError(reason instanceof Error ? reason.message : "記録の読み込みに失敗しました。"); } });
         });
       });
@@ -53,7 +51,7 @@ export function FirebaseAuthPage() {
     try {
       const user = await signInWithGoogle(remember);
       // A redirect reloads this page; the effect above completes that flow.
-      if (user) await openRecords();
+      if (user) await openRecords(user);
     } catch (reason) {
       setBusy(false);
       setError(reason instanceof Error ? reason.message : "Googleログインを完了できませんでした。");

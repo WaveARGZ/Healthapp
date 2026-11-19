@@ -1,18 +1,22 @@
 import {
-  browserLocalPersistence, browserSessionPersistence, GoogleAuthProvider,
+  browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver, GoogleAuthProvider,
   getRedirectResult, onAuthStateChanged, setPersistence, signInWithPopup, signInWithRedirect,
   signOut, type User,
 } from "firebase/auth";
 import { firebaseAuth } from "@/lib/firebase/app";
 import { isSharedTestEnvironment } from "@/lib/cloud/config";
+import { hasPendingGoogleRedirect, markGoogleRedirectPending } from "@/lib/auth/google-redirect-state";
 
 let redirectResultPromise: Promise<User | null> | undefined;
 
 export function completeGoogleRedirect(): Promise<User | null> {
+  if (isSharedTestEnvironment && !hasPendingGoogleRedirect()) return Promise.resolve(null);
   const auth = firebaseAuth();
   if (window.location.hostname !== auth.app.options.authDomain) return Promise.resolve(null);
   // React can mount the login page twice in development. Consume the result once.
-  redirectResultPromise ??= getRedirectResult(auth).then((result) => result?.user ?? null);
+  redirectResultPromise ??= getRedirectResult(auth, browserPopupRedirectResolver)
+    .then((result) => result?.user ?? null)
+    .finally(() => { if (isSharedTestEnvironment) markGoogleRedirectPending(false); });
   return redirectResultPromise;
 }
 
@@ -37,12 +41,17 @@ export async function signInWithGoogle(remember: boolean): Promise<User | null> 
     // On Firebase Hosting, the redirect helper is same-origin with the app.
     // Mobile browsers often block popups or partition cross-origin storage.
     await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-    await signInWithRedirect(auth, provider);
+    if (isSharedTestEnvironment) markGoogleRedirectPending(true);
+    try { await signInWithRedirect(auth, provider, browserPopupRedirectResolver); }
+    catch (error) {
+      if (isSharedTestEnvironment) markGoogleRedirectPending(false);
+      throw error;
+    }
     return null;
   }
   let user: User;
   try {
-    user = (await signInWithPopup(auth, provider)).user;
+    user = (await signInWithPopup(auth, provider, browserPopupRedirectResolver)).user;
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error
       && (error.code === "auth/popup-blocked" || error.code === "auth/operation-not-supported-in-this-environment")) {
