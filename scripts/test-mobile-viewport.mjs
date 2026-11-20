@@ -94,6 +94,8 @@ assert.equal(viewportState.height, 510);
 // Focus gaps in the picker must not replace the dialog anchor.
 update("focusout", 510, 170, new Element());
 assert.equal(viewportState.top, 0, "focus gaps must not replace the editor anchor");
+assert.equal(viewportState.editing, false);
+assert.equal(viewportState.keyboard, true, "keep navigation hidden until the keyboard actually closes");
 update("focusin", 510, 190);
 assert.equal(viewportState.top, 0);
 update("resize", 844, 40, new Element());
@@ -107,7 +109,15 @@ assert.equal(viewportState.height, 510, "the memo panel fits above the device ke
 assert.equal(viewportState.top, 110, "the memo panel uses the visible viewport's position");
 assert.equal(viewportState.keyboard, true);
 dialogMode = null;
+update("focusout", 510, 0, new Element());
+assert.equal(viewportState.keyboard, true, "keep navigation hidden if the page changes before the keyboard closes");
 update("focusout", 844, 0, new Element());
+assert.equal(viewportState.keyboard, false, "restore navigation when the visible area recovers");
+update("resize", 510, 0);
+update("resize", 844, 0);
+assert.equal(viewportState.editing, false, "restore navigation when Android dismisses the keyboard but keeps the input focused");
+update("focusin", 844, 0, new Input());
+assert.equal(viewportState.editing, true, "hide navigation again when another text input is focused");
 visual.scale = 2;
 update("resize", 422, 90);
 assert.equal(viewportState.height, 0, "pinch zoom keeps the browser's native viewport");
