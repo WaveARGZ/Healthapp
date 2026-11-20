@@ -1,3 +1,5 @@
+import { canonicalExerciseName } from "../lib/data/registration-exercise-catalog.ts";
+
 export const workoutExerciseCategories = ["胸", "背中", "腕", "肩", "腹筋・体幹", "脚", "有酸素"] as const;
 export type WorkoutExerciseCategory = typeof workoutExerciseCategories[number];
 
@@ -60,6 +62,12 @@ export function normalizeWorkoutPreferences(value: unknown): WorkoutPreferences 
       seenExercises.add(key);
       return [{ name, category: candidate.category as WorkoutExerciseCategory }];
     }) : [];
+  const customNames = new Set(customExercises.map((item) => item.name));
+  const favoriteExercises = Array.isArray(stored.favoriteExercises)
+    ? [...new Set(stored.favoriteExercises.filter((name): name is string => typeof name === "string")
+      .map((name) => customNames.has(name) ? name : canonicalExerciseName(name))
+      .filter(Boolean))]
+    : [];
   const customByWeekday = plan?.customByWeekday && typeof plan.customByWeekday === "object"
     ? Object.fromEntries(Object.entries(plan.customByWeekday)
       .filter(([day, categories]) => /^[0-6]$/.test(day) && Array.isArray(categories))
@@ -68,7 +76,7 @@ export function normalizeWorkoutPreferences(value: unknown): WorkoutPreferences 
   return {
     facilityEquipment: Array.isArray(stored.facilityEquipment) ? stored.facilityEquipment.filter((item): item is string => typeof item === "string") : [],
     customEquipment: Array.isArray(stored.customEquipment) ? stored.customEquipment.filter((item): item is string => typeof item === "string") : [],
-    favoriteExercises: Array.isArray(stored.favoriteExercises) ? stored.favoriteExercises.filter((item): item is string => typeof item === "string") : [],
+    favoriteExercises,
     customExercises,
     ...(typeof stored.isGymMember === "boolean" ? { isGymMember: stored.isGymMember } : {}),
     ...(validPlan ? { splitPlan: { kind: plan.kind, trainingDays: [...trainingDays].sort((a, b) => a - b), anchorDate: plan.anchorDate, ...(plan.kind === "custom" ? { customByWeekday } : {}) } as WorkoutSplitPlan } : {}),

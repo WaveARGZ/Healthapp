@@ -1,25 +1,15 @@
-import { beginnerExerciseCatalog } from "@/lib/data/beginner-exercise-catalog";
+import { canonicalExerciseName, matchesExerciseName, normalizeExerciseSearch, registeredExerciseForName, registrationExercises } from "../data/registration-exercise-catalog.ts";
 import type { FitnessGoal } from "@/types/user";
 import type { WorkoutEntry } from "@/types/workout";
-import type { CustomExercise, WorkoutSplitPlan } from "@/types/workout-preferences";
-import { getWorkoutDayPlan } from "@/lib/workouts/workout-split";
+import type { CustomExercise, WorkoutExerciseCategory, WorkoutSplitPlan } from "@/types/workout-preferences";
+import { getWorkoutDayPlan } from "./workout-split.ts";
 
 export interface WorkoutSuggestion {
   name: string;
-  category: string;
+  category: WorkoutExerciseCategory;
   group: string;
   reasons: string[];
 }
-
-interface Candidate {
-  name: string;
-  category: string;
-  group: string;
-}
-
-const catalogCandidates: Candidate[] = [...new Map(beginnerExerciseCatalog.flatMap((category) => category.groups.flatMap((group) =>
-  group.exercises.map((name) => [name, { name, category: category.label, group: group.label }] as const),
-))).values()];
 
 const muscleFocusPatterns: Array<[string, RegExp]> = [
   ["胸", /胸|大胸筋|胸筋/],
@@ -32,10 +22,13 @@ const muscleFocusPatterns: Array<[string, RegExp]> = [
 ];
 
 export function detectMuscleFocus(query: string): string | undefined {
+  if (registeredExerciseForName(query)) return undefined;
   return muscleFocusPatterns.find(([, pattern]) => pattern.test(query.trim()))?.[0];
 }
 
 function requirementsFor(name: string): string[] {
+  const registered = registeredExerciseForName(name);
+  if (registered) return registered.requiredEquipment;
   const requirements = new Set<string>();
   if (/バーベル|EZバー/.test(name)) requirements.add("バーベル");
   if (/^(バックスクワット|フロントスクワット|デッドリフト|ルーマニアンデッドリフト|ラックプル|グッドモーニング)$/.test(name)) requirements.add("バーベル");
@@ -72,6 +65,7 @@ const equipmentAliases: Record<string, string[]> = {
   "ローイングマシン": ["ローイングマシン", "ローイング"],
   "スキーエルゴ": ["スキーエルゴ"],
   "縄跳び": ["縄跳び", "なわとび"],
+  "腹筋ローラー": ["腹筋ローラー", "アブローラー"],
   "TRX": ["trx", "サスペンショントレーナー"],
 };
 
@@ -101,7 +95,7 @@ export function recommendExercises(input: {
   date?: string;
 }): WorkoutSuggestion[] {
   const { goal = "maintain", availableEquipment, favorites, workouts, selectedCategory, query } = input;
-  const search = query.trim().toLocaleLowerCase();
+  const search = normalizeExerciseSearch(query);
   const focus = selectedCategory !== "すべて" && selectedCategory !== "お気に入り"
     ? selectedCategory
     : detectMuscleFocus(search);
@@ -113,18 +107,22 @@ export function recommendExercises(input: {
     const daysAgo = Math.max(0, (Date.now() - new Date(`${workout.performedAt}T12:00:00`).getTime()) / 86_400_000);
     if (daysAgo > 28) continue;
     for (const exercise of workout.exercises) {
-      const key = exercise.name.trim();
+      const key = canonicalExerciseName(exercise.name);
       if (key && (!recentlyUsed.has(key) || daysAgo < (recentlyUsed.get(key) ?? Infinity))) recentlyUsed.set(key, daysAgo);
     }
   }
 
-  const candidates = [...catalogCandidates, ...(input.customExercises ?? []).map(({ name, category }) => ({ name, category, group: "自分で追加した種目" }))];
+  const customCandidates = (input.customExercises ?? []).map(({ name, category }) => ({ name, category, group: "自分で追加した種目" }));
+  const customNames = new Set(customCandidates.map((item) => item.name));
+  const candidates = [...registrationExercises.filter((item) => !customNames.has(item.name)), ...customCandidates];
+  const matchesQuery = (candidate: Omit<WorkoutSuggestion, "reasons">) =>
+    matchesExerciseName(candidate.name, search) || normalizeExerciseSearch(`${candidate.category} ${candidate.group}`).includes(search);
   const ranked = candidates
     // Recommendations are deliberately restricted to the user's gym favorites.
     .filter((candidate) => favorites.includes(candidate.name))
     .filter((candidate) => selectedCategory === "すべて" || selectedCategory === "お気に入り" || candidate.category === selectedCategory)
     .filter((candidate) => !useSchedule || scheduledDay.categories.includes(candidate.category))
-    .filter((candidate) => search.length < 2 || `${candidate.name} ${candidate.category} ${candidate.group}`.toLocaleLowerCase().includes(search) || focus === candidate.category)
+    .filter((candidate) => search.length < 2 || matchesQuery(candidate) || focus === candidate.category)
     .filter((candidate) => {
       const requirements = requirementsFor(candidate.name);
       return availableEquipment.length === 0 || requirements.every((item) => hasEquipment(availableEquipment, item));
@@ -134,7 +132,7 @@ export function recommendExercises(input: {
       const reasons: string[] = [];
       if (focus === candidate.category) { score += 4; reasons.push(`${candidate.category}を重点的に`); }
       if (useSchedule && scheduledDay.categories.includes(candidate.category)) { score += 4; reasons.push(`今日の${scheduledDay.label}の日に対応`); }
-      if (search && `${candidate.name} ${candidate.category} ${candidate.group}`.toLocaleLowerCase().includes(search)) { score += 2; reasons.push("入力内容に一致"); }
+      if (search && matchesQuery(candidate)) { score += 2; reasons.push("入力内容に一致"); }
       if (favorites.includes(candidate.name)) { score += 3; reasons.push("お気に入り"); }
 
       const compound = /ベンチプレス|スクワット|デッドリフト|ロー|プレス|懸垂|プルアップ|ランジ/.test(candidate.name);
@@ -142,7 +140,7 @@ export function recommendExercises(input: {
       if (goal === "lose-fat" && (candidate.category === "有酸素" || compound)) { score += 2; reasons.push("活動量を高めやすい種目"); }
       if (goal === "maintain" && !compound) score += 0.5;
 
-      const daysAgo = recentlyUsed.get(candidate.name);
+      const daysAgo = recentlyUsed.get(canonicalExerciseName(candidate.name));
       if (daysAgo !== undefined && daysAgo < 3) { score -= 3; reasons.push("直近に実施済み"); }
       else if (daysAgo !== undefined && daysAgo < 7) score -= 1;
       else if (daysAgo === undefined && workouts.length > 0) { score += 0.5; reasons.push("最近の記録にない種目"); }

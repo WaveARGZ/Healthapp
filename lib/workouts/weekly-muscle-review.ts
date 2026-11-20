@@ -1,4 +1,5 @@
 import { groupsForExercise, muscleGroups, type MuscleActivity, type MuscleGroup } from "./muscle-activity.ts";
+import { canonicalExerciseName, registeredExerciseForName } from "../data/registration-exercise-catalog.ts";
 import type { WorkoutEntry } from "../../types/workout";
 
 export interface WeeklyMuscleExercise {
@@ -24,7 +25,9 @@ export function summarizeWeeklyMuscles(workouts: readonly WorkoutEntry[], startD
   for (const workout of workouts) {
     if (workout.performedAt < startDate || workout.performedAt > endDate) continue;
     for (const exercise of workout.exercises) {
-      const name = exercise.name.trim();
+      const originalName = exercise.name.trim();
+      const defaultExercise = registeredExerciseForName(originalName);
+      const name = !exercise.category || exercise.category === defaultExercise?.category ? canonicalExerciseName(originalName) : originalName;
       if (!name) continue;
       const weights = (exercise.setRecords ?? []).filter((set) => validNumber(set.weightKg))
         .map((set) => ({ weight: set.weightKg!, reps: validNumber(set.reps) ? set.reps : null }));
@@ -32,7 +35,7 @@ export function summarizeWeeklyMuscles(workouts: readonly WorkoutEntry[], startD
       const peak = weights.sort((a, b) => b.weight - a.weight || (b.reps ?? 0) - (a.reps ?? 0))[0];
       const recordedSets = exercise.setRecords?.filter((set) => validNumber(set.weightKg) || validNumber(set.reps) || set.completed).length
         ?? (validNumber(exercise.sets) ? exercise.sets : 0);
-      for (const group of groupsForExercise(name, exercise.category)) {
+      for (const group of groupsForExercise(originalName, exercise.category)) {
         const existing = grouped[group].get(name) ?? { name, dates: [], maxWeightKg: null, repsAtMax: null, recordedSets: 0 };
         if (!existing.dates.includes(workout.performedAt)) existing.dates.push(workout.performedAt);
         existing.recordedSets += recordedSets;
