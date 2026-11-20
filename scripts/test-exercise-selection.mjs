@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { equipmentGroupForExercise, exerciseCatalog, groupExercisesByEquipment } from "../lib/data/exercise-catalog.ts";
+import { matchesExerciseName, registeredExerciseForName, registrationExercises } from "../lib/data/registration-exercise-catalog.ts";
+import { recommendExercises } from "../lib/workouts/workout-recommender.ts";
+import { normalizeWorkoutPreferences } from "../types/workout-preferences.ts";
 
 test("胸の種目はマシーン、バーベル、ダンベル、自重の順に表示する", () => {
   const chest = exerciseCatalog.find((category) => category.label === "胸");
@@ -26,4 +29,40 @@ test("自重のレッグカールとアダクションはマシーンに分類�
   assert.equal(equipmentGroupForExercise("サイドライイングアダクション"), "その他・自重");
   assert.equal(equipmentGroupForExercise("エアロバイク"), "マシーン種目");
   assert.equal(equipmentGroupForExercise("ランドマインプレス"), "バーベル種目");
+});
+
+test("登録メニューで定番種目を正しい部位と器具に分類する", () => {
+  assert.equal(new Set(registrationExercises.map((item) => item.name)).size, registrationExercises.length);
+  for (const [name, bodyPart, group] of [
+    ["ベンチプレス", "胸", "バーベル種目"],
+    ["シーテッドケーブルロー", "背中", "マシーン種目"],
+    ["ダンベルブルガリアンスクワット", "脚", "ダンベル種目"],
+    ["ルーマニアンデッドリフト", "脚", "バーベル種目"],
+    ["サイドプランク", "腹筋・体幹", "その他・自重"],
+    ["リバースペックデック", "肩", "マシーン種目"],
+    ["EZバーカール", "腕", "バーベル種目"],
+  ]) {
+    const exercise = registeredExerciseForName(name);
+    assert.deepEqual([exercise?.category, exercise?.group], [bodyPart, group]);
+  }
+  assert.deepEqual(registeredExerciseForName("シーテッドケーブルロー").requiredEquipment, ["ケーブルマシン"]);
+});
+
+test("旧名での検索とお気に入りが、新しい表示名でも使える", () => {
+  assert.equal(matchesExerciseName("腕立て伏せ", "ぷっしゅ・あっぷ"), true);
+  assert.equal(matchesExerciseName("ペックフライ", "ペックデックフライ"), true);
+  assert.equal(matchesExerciseName("懸垂", "チンニング"), true);
+  assert.equal(matchesExerciseName("ルーマニアンデッドリフト", "ｒｄｌ"), true);
+  assert.equal(matchesExerciseName("ダンベルサイドレイズ", "サイドレイズ"), true);
+  const preferences = normalizeWorkoutPreferences({
+    favoriteExercises: ["バーベルベンチプレス", "ベンチプレス", "アダクション", "プッシュアップ"],
+    customExercises: [{ name: "プッシュアップ", category: "腕" }],
+  });
+  assert.deepEqual(preferences.favoriteExercises, ["ベンチプレス", "ヒップアダクション", "プッシュアップ"]);
+});
+
+test("おすすめでは追加した種目に必要な器具を確認する", () => {
+  const favorites = ["ゴブレットスクワット", "バーベルスクワット", "ダンベルブルガリアンスクワット"];
+  const result = recommendExercises({ favorites, workouts: [], query: "", selectedCategory: "脚", availableEquipment: ["ダンベル"] });
+  assert.deepEqual(result.map((item) => item.name), ["ゴブレットスクワット"]);
 });

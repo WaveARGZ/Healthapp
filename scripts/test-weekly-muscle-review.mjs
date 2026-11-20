@@ -31,3 +31,14 @@ test("unweighted exercises remain unweighted and repeated records count one day"
   assert.equal(review.groups["腕"].exercises[0].maxWeightKg, null);
   assert.equal(review.groups["腕"].exercises[0].recordedSets, 2);
 });
+
+test("旧名と新しい表示名で登録したベンチプレスを同じ種目として集計する", () => {
+  const review = summarizeWeeklyMuscles([
+    workout("2026-11-19", [{ id: "old", name: "バーベルベンチプレス", weightKg: 60, reps: 5, sets: 1 }]),
+    workout("2026-11-20", [{ id: "new", name: "ベンチプレス", category: "胸", weightKg: 65, reps: 5, sets: 1 }]),
+  ], "2026-11-16", "2026-11-22");
+  assert.equal(review.groups["胸"].exercises.length, 1);
+  assert.equal(review.groups["胸"].exercises[0].name, "ベンチプレス");
+  assert.equal(review.groups["胸"].exercises[0].maxWeightKg, 65);
+  assert.equal(review.groups["胸"].exercises[0].recordedSets, 2);
+});
