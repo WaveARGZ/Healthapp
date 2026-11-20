@@ -26,6 +26,9 @@ export function AnatomyFigure({ view, activity, compact = false }: { view: "fron
 
   const figure = <svg viewBox={viewBox} aria-hidden="true" className={compact ? "anatomy-compact block h-[112px] w-auto max-w-full" : "mx-auto mt-2 block w-full max-w-[240px]"}>
       <defs>
+        <mask id={`${maskPrefix}-outline-mask`} maskUnits="userSpaceOnUse" x="0" y="0" width={imageWidth} height={imageHeight} style={{ maskType: "alpha" }}>
+          <image href={anatomyOutline.src} width={imageWidth} height={imageHeight} />
+        </mask>
         {Object.values(regionMasks).map(({ src, key }) => <mask key={key} id={`${maskPrefix}-${key}-mask`} maskUnits="userSpaceOnUse" x="0" y="0" width={imageWidth} height={imageHeight} style={{ maskType: "alpha" }}>
           <image href={src} width={imageWidth} height={imageHeight} />
         </mask>)}
@@ -34,11 +37,11 @@ export function AnatomyFigure({ view, activity, compact = false }: { view: "fron
         const tint = activityTint(activity[group as MuscleGroup]);
         return tint.opacity > 0 ? <rect key={group} width={imageWidth} height={imageHeight} fill={tint.color} mask={`url(#${maskPrefix}-${key}-mask)`} /> : null;
       })}
-      <image href={anatomyOutline.src} width={imageWidth} height={imageHeight} />
+      <rect width={imageWidth} height={imageHeight} fill="#2456a6" mask={`url(#${maskPrefix}-outline-mask)`} />
     </svg>;
 
   if (compact) return figure;
-  return <div className="rounded-xl border border-[#b7c8bb] bg-white px-2 pb-4 pt-4 text-center">
+  return <div className="rounded-md border border-[var(--line)] bg-white px-2 pb-4 pt-4 text-center">
     <p className="text-sm font-bold tracking-[0.18em] text-[var(--ink)]">{view === "front" ? "正面" : "背面"}</p>
     {figure}
   </div>;

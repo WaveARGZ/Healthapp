@@ -1,5 +1,6 @@
+import Link from "next/link";
+import { Icon } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
-import { isTestEnvironment } from "@/lib/cloud/config";
 
 interface PageHeaderProps {
   title: string;
@@ -9,14 +10,23 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, compact = false }: PageHeaderProps) {
   return (
-    <header className={`border-b border-[var(--line)] text-[var(--ink)] ${compact ? "mb-7 pb-6" : "mb-9 pb-8 sm:mb-12 sm:pb-10"}`}>
-      <p className="mb-3 text-[11px] font-bold tracking-[.16em] text-[var(--sage-deep)]">BODYMAKE / JOURNAL</p>
-      <h1 className="text-[clamp(2rem,7vw,3rem)] font-bold leading-[1.15] tracking-[-0.045em] text-balance">{title}</h1>
-      {description ? <p className="mt-3 max-w-prose text-sm leading-7 text-[var(--muted)]">{description}</p> : null}
+    <header className={compact ? "mb-6 text-[var(--ink)]" : "mb-7 text-[var(--ink)] sm:mb-9"}>
+      <h1 className="text-balance text-[clamp(1.65rem,4vw,2rem)] font-semibold leading-tight tracking-[-.025em]">{title}</h1>
+      {description && <p className="mt-2 max-w-prose text-[15px] leading-7 text-[var(--muted)]">{description}</p>}
     </header>
   );
 }
 
-export function AppTopBar() {
-  return <header className="safe-top border-b border-[var(--line)] bg-white"><div className="safe-gutters mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-3 sm:min-h-[84px]"><Logo href="/dashboard" /><span className={`shrink-0 border-l border-[var(--line)] pl-3 text-[11px] font-medium tracking-wide ${isTestEnvironment ? "text-[var(--coral)]" : "text-[var(--muted)]"}`}>{isTestEnvironment ? "テスト環境" : "身体の記録帳"}</span></div></header>;
+export function AppTopBar({ showWeeklyReview }: { showWeeklyReview: boolean }) {
+  return (
+    <header className="safe-top border-b border-[var(--line)] bg-white">
+      <div className="safe-gutters mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 sm:min-h-[76px]">
+        <Logo href="/dashboard" />
+        {showWeeklyReview && <Link href="/weekly-review" className="inline-flex min-h-11 items-center gap-2 rounded-md px-3.5 text-[13px] font-semibold text-[var(--sage-deep)] transition-colors hover:border-[var(--sage-deep)] hover:bg-[var(--sage-soft)] sm:px-4 sm:text-sm">
+          <Icon name="progress" className="size-4 shrink-0" />
+          週の記録
+        </Link>}
+      </div>
+    </header>
+  );
 }

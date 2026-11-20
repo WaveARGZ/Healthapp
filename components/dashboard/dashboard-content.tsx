@@ -19,6 +19,7 @@ interface DashboardData {
   workouts: WorkoutEntry[];
   meals: MealEntry[];
   weights: WeightEntry[];
+  weightsUnavailable?: boolean;
   burns: DailyBurnEntry[];
 }
 const initialData: DashboardData = { profile: null, workouts: [], meals: [], weights: [], burns: [] };
@@ -69,6 +70,7 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
           workouts: workouts.status === "fulfilled" ? workouts.value : [],
           meals: meals.status === "fulfilled" ? meals.value : [],
           weights: weights.status === "fulfilled" ? weights.value : [],
+          weightsUnavailable: weights.status === "rejected",
           burns: burns.status === "fulfilled" ? burns.value : [],
         });
         setProfileLoadFailed(profile.status === "rejected");
@@ -103,7 +105,6 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
       weightDone: data.weights.some((entry) => entry.measuredOn === today),
     };
   }, [data, today]);
-  const doneCount = [summary.workouts.length > 0, summary.meals.length > 0, summary.weightDone].filter(Boolean).length;
   const dailyCalories = useMemo(() => summarizeDailyCalories(data.meals, today), [data.meals, today]);
   const dailyMacros = useMemo(() => summarizeDailyMacros(data.meals, today), [data.meals, today]);
   const dailyFeedback = useMemo(() => summarizeDailyFeedback(dailyCalories, data.workouts, today), [dailyCalories, data.workouts, today]);
@@ -114,9 +115,13 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
   return <div className="dashboard-unified">
     {view === "dashboard" ? <MobileDashboard
       today={today}
-      doneCount={doneCount}
+      recordedToday={{
+        workout: workoutLoadFailed ? null : summary.workouts.length > 0,
+        meal: mealLoadFailed ? null : summary.meals.length > 0,
+        weight: data.weightsUnavailable ? null : summary.weightDone,
+      }}
       weight={summary.currentWeight ?? null}
-      goal={data.profile ? fitnessGoalLabels[data.profile.goal] : "目標未設定"}
+      goal={data.profile ? fitnessGoalLabels[data.profile.goal] : "未設定"}
       profile={data.profile}
       macros={dailyMacros}
       intake={recordedCalories}

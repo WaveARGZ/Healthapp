@@ -158,3 +158,102 @@ test("production login never reads the test developer access list", async () => 
   });
   await access.assertSharedTestAccess({});
 });
+
+test("ordinary shared-test startup restores persistence without initializing the OAuth iframe", () => {
+  let initialized = 0;
+  const app = {};
+  const auth = {};
+  const firebase = load("lib/firebase/app.ts", sharedEnvironment, {
+    "firebase/app": { getApps: () => [app], getApp: () => app },
+    "firebase/auth": {
+      indexedDBLocalPersistence: "indexedDB", browserLocalPersistence: "local", browserSessionPersistence: "session",
+      initializeAuth(instance, options) {
+        initialized++;
+        assert.equal(instance, app);
+        assert.deepEqual(Array.from(options.persistence), ["indexedDB", "local", "session"]);
+        assert.equal(options.popupRedirectResolver, undefined);
+        return auth;
+      },
+      getAuth() { assert.fail("ordinary startup must not preload the redirect iframe"); },
+    },
+    "firebase/firestore": {},
+    "@/lib/firebase/config": { assertFirebaseConfigured() {}, firebaseConfig: {} },
+    "@/lib/cloud/config": runtime(sharedEnvironment),
+    "@/lib/auth/google-redirect-state": { hasPendingGoogleRedirect: () => false },
+  });
+  assert.equal(firebase.firebaseAuth(), auth);
+  assert.equal(firebase.firebaseAuth(), auth);
+  assert.equal(initialized, 1);
+});
+
+test("redirect return retains the SDK's normal auth initialization", () => {
+  const auth = {};
+  const firebase = load("lib/firebase/app.ts", sharedEnvironment, {
+    "firebase/app": { getApps: () => [{}], getApp: () => ({}) },
+    "firebase/auth": { getAuth: () => auth, initializeAuth() { assert.fail("redirect recovery needs the default resolver"); } },
+    "firebase/firestore": {},
+    "@/lib/firebase/config": { assertFirebaseConfigured() {}, firebaseConfig: {} },
+    "@/lib/cloud/config": runtime(sharedEnvironment),
+    "@/lib/auth/google-redirect-state": { hasPendingGoogleRedirect: () => true },
+  });
+  assert.equal(firebase.firebaseAuth(), auth);
+});
+
+test("redirect completion is skipped on ordinary visits and consumed once on return", async () => {
+  let pending = false;
+  let calls = 0;
+  const resolver = {};
+  const session = load("lib/auth/firebase-session.ts", sharedEnvironment, {
+    "firebase/auth": { browserPopupRedirectResolver: resolver, getRedirectResult: async (_auth, actualResolver) => {
+      calls++;
+      assert.equal(actualResolver, resolver);
+      return { user: { uid: "synthetic-user" } };
+    } },
+    "@/lib/firebase/app": { firebaseAuth: () => ({ app: { options: { authDomain: "test.invalid" } } }) },
+    "@/lib/cloud/config": runtime(sharedEnvironment),
+    "@/lib/auth/google-redirect-state": { hasPendingGoogleRedirect: () => pending, markGoogleRedirectPending: (value) => { pending = value; } },
+  }, { window: { location: { hostname: "test.invalid" } } });
+  assert.equal(await session.completeGoogleRedirect(), null);
+  assert.equal(calls, 0);
+  pending = true;
+  await Promise.all([session.completeGoogleRedirect(), session.completeGoogleRedirect()]);
+  assert.equal(calls, 1);
+  assert.equal(pending, false);
+});
+
+test("redirect flags tolerate restricted browser storage without storing credentials", () => {
+  const values = new Map();
+  const flags = load("lib/auth/google-redirect-state.ts", {}, {}, { window: { sessionStorage: {
+    getItem: (key) => values.get(key), setItem: (key, value) => values.set(key, value), removeItem: (key) => values.delete(key),
+  } } });
+  assert.equal(flags.hasPendingGoogleRedirect(), false);
+  flags.markGoogleRedirectPending(true);
+  assert.equal(flags.hasPendingGoogleRedirect(), true);
+  assert.deepEqual([...values.values()], ["true"]);
+  flags.markGoogleRedirectPending(false);
+  assert.equal(values.size, 0);
+  const restricted = load("lib/auth/google-redirect-state.ts", {}, {}, { window: { get sessionStorage() { throw new Error("blocked"); } } });
+  assert.equal(restricted.hasPendingGoogleRedirect(), true);
+  assert.doesNotThrow(() => restricted.markGoogleRedirectPending(true));
+});
+
+test("login checks access and profile concurrently but never opens records on denied access", async () => {
+  let allow;
+  let profileReads = 0;
+  const access = new Promise((resolve) => { allow = resolve; });
+  const destination = load("lib/auth/firebase-login-destination.ts", {}, {
+    "@/lib/auth/shared-test-access": { assertSharedTestAccess: () => access },
+    "@/lib/api/client": { bodyMakeClient: { getProfile: async () => { profileReads++; return { id: "synthetic" }; } } },
+  });
+  const result = destination.firebaseLoginDestination({});
+  assert.equal(profileReads, 1, "profile request starts before the access request finishes");
+  allow();
+  assert.equal(await result, "/dashboard");
+  for (const profile of [null, { id: "synthetic" }]) {
+    const denied = load("lib/auth/firebase-login-destination.ts", {}, {
+      "@/lib/auth/shared-test-access": { assertSharedTestAccess: async () => { throw new Error("denied"); } },
+      "@/lib/api/client": { bodyMakeClient: { getProfile: async () => profile } },
+    });
+    await assert.rejects(denied.firebaseLoginDestination({}), /denied/);
+  }
+});

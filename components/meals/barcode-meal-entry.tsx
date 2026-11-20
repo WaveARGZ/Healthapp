@@ -156,25 +156,25 @@ export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange }: Barcod
     }
   }
 
-  return <section className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--sand)] p-4 sm:p-5">
+  return <section className="mt-5 rounded-lg border border-[var(--line)] bg-[var(--sand)] p-4 sm:p-5">
     <h3 className="text-sm font-bold text-[var(--ink)]">バーコードから商品を登録</h3>
-    <p className="mt-2 text-xs leading-6 text-[var(--muted)]">市販食品のバーコードを読み取り、商品情報を確認してから食事に追加します。</p>
+    <p className="mt-2 text-xs leading-6 text-[var(--muted)]">バーコードで商品を検索できます。</p>
     <Button type="button" variant="secondary" className="mt-4 flex min-h-12 w-full items-center justify-center gap-2" onClick={() => { setScanning((current) => !current); setNotice(""); }} disabled={isSaving}>
       <Icon name="barcode" className="size-5" />{scanning ? "カメラを停止" : "カメラでバーコードを読む"}
     </Button>
-    {scanning && <div className="mt-3 overflow-hidden rounded-xl bg-black"><video ref={videoRef} autoPlay muted playsInline aria-label="バーコード読み取りカメラ" className="aspect-[4/3] w-full object-cover" /><p className="bg-[var(--ink)] px-3 py-2 text-center text-xs text-white">商品の線状バーコードを画面中央に合わせてください</p></div>}
+    {scanning && <div className="mt-3 overflow-hidden rounded-lg bg-black"><video ref={videoRef} autoPlay muted playsInline aria-label="バーコード読み取りカメラ" className="aspect-[4/3] w-full object-cover" /><p className="bg-[var(--ink)] px-3 py-2 text-center text-xs text-white">商品の線状バーコードを画面中央に合わせてください</p></div>}
     <label className="mt-4 block text-xs font-bold text-[var(--ink)]">バーコード番号を入力
       <input value={barcode} onChange={(event) => { lookupAbort.current?.abort(); setIsLookingUp(false); onBarcodeChange(event.target.value); setProduct(null); setNotice(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); setScanning(false); void searchBarcode(barcode); } }} inputMode="numeric" autoComplete="off" placeholder="例：3017620422003" className="form-input mt-2" />
     </label>
     <Button type="button" className="mt-3 w-full" onClick={() => { setScanning(false); void searchBarcode(barcode); }} disabled={isLookingUp || isSaving || !normalizeBarcode(barcode)}>{isLookingUp ? "検索中…" : "商品を検索"}</Button>
-    {product && <div className="mt-5 rounded-xl border border-[var(--line)] bg-white p-4">
+    {product && <div className="mt-5 rounded-lg border border-[var(--line)] bg-white p-4">
       <p className="text-xs font-bold text-[var(--sage-deep)]">検索した商品</p>
       <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{product.name || "商品名未登録"}{product.brand ? ` · ${product.brand}` : ""}</p>
       {product.packageQuantity && <p className="mt-1 text-xs text-[var(--muted)]">内容量：{product.packageQuantity}</p>}
       <a href={product.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-[var(--sage-deep)] underline">出典：Open Food Factsで商品情報を見る</a>
       <label className="mt-4 block text-xs font-bold text-[var(--ink)]">登録する商品名<input value={name} onChange={(event) => setName(event.target.value)} className="form-input mt-2" placeholder="商品名を入力" /></label>
       <div className="mt-4 flex items-end gap-3"><label className="min-w-0 flex-1 text-xs font-bold text-[var(--ink)]">食べた量<input type="number" min="1" max="3000" step="any" inputMode="decimal" value={amount} onChange={(event) => changeAmount(event.target.value)} className="form-input mt-2" /></label><label className="text-xs font-bold text-[var(--ink)]">単位<select value={unit} onChange={(event) => setUnit(event.target.value as "g" | "ml")} className="form-input mt-2 min-w-20"><option value="g">g</option><option value="ml">ml</option></select></label></div>
-      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">栄養値は登録された100g／100mlあたりの値から計算します。量を変更すると推定値を再計算します。</p>
+      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">100g／100mlあたりの登録値から計算します。</p>
       <fieldset className="mt-4"><legend className="text-xs font-bold text-[var(--ink)]">登録する栄養値（修正できます）</legend><div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, suffix]) => <label key={key} className="min-w-0 text-xs font-medium text-[var(--muted)]">{label}（{suffix}）<input type="number" min="0" max="10000" step="any" inputMode="decimal" placeholder="未入力" value={drafts[key]} onChange={(event) => setDrafts((current) => ({ ...current, [key]: event.target.value }))} className="form-input mt-2 min-w-0" /></label>)}</div></fieldset>
       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">空欄は未入力として保存します。パッケージの表示と照らして確認してください。</p>
       <Button type="button" className="mt-4 w-full" onClick={() => void saveProduct()} disabled={!name.trim() || !validAmount(amount) || isSaving}>{isSaving ? "保存中…" : "この商品を食事に追加"}</Button>
