@@ -1,4 +1,6 @@
-// YouTube Shorts selected for the beginner exercise menu. Keep these links
+import { registeredExerciseForName } from "./registration-exercise-catalog.ts";
+
+// YouTube Shorts selected for individual exercises. Keep these links
 // separate from the catalog so past workout names never depend on video availability.
 export const exerciseShortVideoIds: Record<string, string> = {
   "チェストプレス": "jS0rZBpWpdc",
@@ -50,6 +52,8 @@ export const exerciseShortVideoIds: Record<string, string> = {
 };
 
 export function getExerciseShortEmbedUrl(exerciseName: string): string | undefined {
-  const videoId = exerciseShortVideoIds[exerciseName];
-  return videoId ? `https://www.youtube.com/embed/${videoId}?playlist=${videoId}&loop=1&playsinline=1&rel=0&autoplay=1` : undefined;
+  const key = registeredExerciseForName(exerciseName)?.previousName ?? exerciseName;
+  if (!Object.hasOwn(exerciseShortVideoIds, key)) return undefined;
+  const videoId = exerciseShortVideoIds[key];
+  return `https://www.youtube.com/embed/${videoId}?playlist=${videoId}&loop=1&playsinline=1&rel=0&autoplay=1`;
 }

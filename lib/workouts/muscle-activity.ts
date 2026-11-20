@@ -1,4 +1,5 @@
 import { exerciseCatalog } from "../data/exercise-catalog.ts";
+import { registeredExerciseForName } from "../data/registration-exercise-catalog.ts";
 import type { WorkoutEntry } from "../../types/workout";
 
 export const muscleGroups = ["胸", "背中", "腕", "肩", "腹筋・体幹", "脚"] as const;
@@ -29,6 +30,8 @@ export function groupsForExercise(name: string, category?: string | null): Muscl
   if (catalogGroups) return catalogGroups;
   const freeTextGroups = commonFreeTextExercises.get(trimmed);
   if (freeTextGroups) return freeTextGroups;
+  const registered = registeredExerciseForName(trimmed);
+  if (registered) return registered.category === "有酸素" ? [] : [registered.category];
   const matches: MuscleGroup[] = [];
   if (/胸|大胸筋/.test(trimmed)) matches.push("胸");
   if (/背中|背筋|広背筋/.test(trimmed)) matches.push("背中");
