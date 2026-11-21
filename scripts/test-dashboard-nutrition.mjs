@@ -186,6 +186,36 @@ test("PFC markers and displayed ratios follow recorded grams against the target 
   assert.match(aboveTarget, /200g.*目安上限比 148%/);
 });
 
+test("the calorie target uses one bar with an actual marker and a separate upper bound", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  const below = renderDashboard([known], { profile });
+  assert.match(below, /aria-label="今日の摂取カロリー" aria-valuemin="0" aria-valuemax="3375" aria-valuenow="500"/);
+  assert.match(below, /width:80%;background-color:color-mix\(in srgb, var\(--sage-deep\) 22%, white\)/);
+  assert.match(below, /left:14\.814[0-9]*%;background-color:var\(--sage-deep\)/);
+  assert.match(below, /1日の摂取目安.*2,400～2,700 kcal.*目安上限比 19%/);
+
+  const above = renderDashboard([{ ...known, calories: 3600 }], { profile });
+  assert.match(above, /aria-label="今日の摂取カロリー" aria-valuemin="0" aria-valuemax="3600" aria-valuenow="3600"/);
+  assert.match(above, /width:75%;background-color:color-mix\(in srgb, var\(--sage-deep\) 22%, white\)/);
+  assert.match(above, /left:100%;background-color:var\(--sage-deep\)/);
+  assert.match(above, /1日の摂取目安.*目安上限比 133%/);
+});
+
+test("the calorie target distinguishes unrecorded intake, recorded zero and missing profiles", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  for (const meals of [[], [empty]]) {
+    const html = renderDashboard(meals, { profile });
+    const meter = html.match(/aria-label="今日の摂取カロリー"[^>]+/);
+    assert.ok(meter);
+    assert.match(meter[0], /未入力。目安2,400～2,700 kcal/);
+    assert.doesNotMatch(meter[0], /aria-valuenow/);
+  }
+  const zero = renderDashboard([{ ...known, calories: 0 }], { profile });
+  assert.match(zero, /aria-label="今日の摂取カロリー"[^>]+aria-valuenow="0"/);
+  assert.match(zero, /1日の摂取目安.*目安上限比 0%/);
+  assert.doesNotMatch(renderDashboard([known]), /aria-label="今日の摂取カロリー"/);
+});
+
 test("calculation details retain resting and total expenditure estimates", () => {
   const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
   const html = renderToStaticMarkup(PersonalNutritionGuide({ profile, weightKg: 70, loading: false, unavailable: false }));
