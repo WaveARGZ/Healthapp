@@ -1,9 +1,9 @@
 import type { User } from "firebase/auth";
-import { bodyMakeClient } from "@/lib/api/client";
+import { getProfileDestination, type ProfileDestination } from "@/lib/auth/profile-destination";
 import { assertSharedTestAccess } from "@/lib/auth/shared-test-access";
 
-export async function firebaseLoginDestination(user: User): Promise<string> {
+export async function firebaseLoginDestination(user: User): Promise<ProfileDestination> {
   // Firestore rules independently enforce access on the profile read, too.
-  const [, profile] = await Promise.all([assertSharedTestAccess(user), bodyMakeClient.getProfile()]);
-  return profile ? "/dashboard" : "/onboarding?from=signup";
+  const [, destination] = await Promise.all([assertSharedTestAccess(user), getProfileDestination()]);
+  return destination;
 }
