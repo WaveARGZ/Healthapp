@@ -63,6 +63,11 @@ class Element { isContentEditable = false; }
 class Input extends Element {
   type = "search";
   closest() { return dialogMode === "picker" ? {} : null; }
+  hasAttribute() { return false; }
+}
+class TimerInput extends Input {
+  type = "text";
+  hasAttribute(name) { return name === "data-workout-timer-input"; }
 }
 class Textarea extends Element { hasAttribute(name) { return name === "data-workout-set-note"; } }
 const activeInput = new Input();
@@ -107,6 +112,10 @@ assert.equal(viewportState.height, 844, "the numeric keypad is not resized by vi
 update("focusin", 510, 110, new Textarea());
 assert.equal(viewportState.height, 510, "the memo panel fits above the device keyboard");
 assert.equal(viewportState.top, 110, "the memo panel uses the visible viewport's position");
+assert.equal(viewportState.keyboard, true);
+update("focusin", 480, 135, new TimerInput());
+assert.equal(viewportState.height, 480, "the timer fields fit above the device keyboard");
+assert.equal(viewportState.top, 135, "the timer fields use the visible viewport's position");
 assert.equal(viewportState.keyboard, true);
 dialogMode = null;
 update("focusout", 510, 0, new Element());
