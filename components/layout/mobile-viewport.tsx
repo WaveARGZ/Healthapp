@@ -20,10 +20,10 @@ export function MobileViewport({ children }: { children: ReactNode }) {
       const active = document.activeElement;
       const dialog = document.querySelector(".exercise-dialog");
       const setEditorOpen = dialog?.hasAttribute("data-set-editor") ?? false;
-      const editingSetNote = setEditorOpen && active instanceof HTMLTextAreaElement &&
-        active.hasAttribute("data-workout-set-note");
-      // The number pad has a fixed layout. Only notes use the device keyboard.
-      if (setEditorOpen && !editingSetNote) {
+      const editingSetText = (active instanceof HTMLTextAreaElement && active.hasAttribute("data-workout-set-note")) ||
+        (active instanceof HTMLInputElement && active.hasAttribute("data-workout-timer-input"));
+      // Sets use the fixed number pad. Notes and timer settings use the device keyboard.
+      if (setEditorOpen && !editingSetText) {
         dialogTop = null;
         return;
       }
@@ -44,8 +44,8 @@ export function MobileViewport({ children }: { children: ReactNode }) {
       if (Math.abs(scale - 1) < 0.05) baselineHeight = Math.max(baselineHeight, window.innerHeight, height);
 
       const visualTop = Math.round(visual?.offsetTop ?? 0);
-      // Keep the picker anchored across focus changes. The note editor instead
-      // fits its inner panel to the part of the screen above the keyboard.
+      // Keep the picker anchored across focus changes. Text inputs in the set
+      // editor use the available area above the keyboard.
       dialogTop = anchorDialog ? dialogTop ?? visualTop : null;
       // Keep the keyboard state across brief focus gaps until the visible area recovers.
       const nextKeyboardOpen = isSoftwareKeyboardOpen({

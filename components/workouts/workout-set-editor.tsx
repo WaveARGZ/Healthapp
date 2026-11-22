@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, typ
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { WorkoutSetNumberField } from "@/components/workouts/workout-set-number-field";
+import { WorkoutTimer } from "@/components/workouts/workout-timer";
 import type { WorkoutSet } from "@/types/workout";
 
 interface WorkoutSetEditorProps {
@@ -68,8 +69,8 @@ export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, on
     const scroller = scrollerRef.current;
     if (!scroller) return;
     const observer = new ResizeObserver(() => {
-      const note = scroller.querySelector<HTMLTextAreaElement>("[data-workout-set-note]:focus");
-      if (note) revealSetControl(scroller, note);
+      const input = scroller.querySelector<HTMLElement>("[data-workout-set-note]:focus, [data-workout-timer-input]:focus");
+      if (input) revealSetControl(scroller, input);
     });
     observer.observe(scroller);
     return () => observer.disconnect();
@@ -122,6 +123,9 @@ export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, on
         <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
           {keypadMode ? "入力欄を選び、✓で次の欄へ。" : "Enterで次の欄へ。"} 入力後は記録画面で保存してください。
         </p>
+        <div className="mt-4" onFocusCapture={(event) => {
+          if (event.target instanceof HTMLInputElement) setSelected(null);
+        }}><WorkoutTimer compact /></div>
         <div className="mt-4 overflow-hidden rounded-lg border border-[var(--line)] bg-white">
           <div className="workout-set-row border-b border-[var(--line)] bg-[var(--sand)] py-2 text-center text-xs font-semibold text-[var(--muted)]">
             <span>#</span><span>重量 kg</span><span>レップ数</span><span className="sr-only">削除</span>

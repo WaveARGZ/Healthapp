@@ -1,12 +1,28 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { SelectInput, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { alarmSamples, scheduledRestAlarm } from "@/lib/workouts/rest-timer-audio";
 
 const timeFields = [{ unit: "minutes", label: "分" }, { unit: "seconds", label: "秒" }] as const;
+type TimerMode = "rest" | "cardio";
+type DurationUnit = (typeof timeFields)[number]["unit"];
+
+const TimerContext = createContext<{
+  mode: TimerMode;
+  durationDraft: Record<DurationUnit, string>;
+  seconds: number;
+  validDuration: boolean;
+  running: boolean;
+  finished: boolean;
+  hasElapsed: boolean;
+  changeMode: (mode: TimerMode) => void;
+  changeDuration: (unit: DurationUnit, value: string) => void;
+  reset: () => void;
+  toggle: (timestamp: number) => void;
+} | null>(null);
 
 function clock(seconds: number) {
   return [Math.floor(seconds / 60), seconds % 60].map((part) => String(part).padStart(2, "0")).join(":");
@@ -35,9 +51,8 @@ function countdownTime(startedAt: number, timestamp: number, scheduled: RefObjec
   return timestamp;
 }
 
-export function WorkoutTimer() {
-  const id = useId();
-  const [mode, setMode] = useState<"rest" | "cardio">("rest");
+export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
+  const [mode, setMode] = useState<TimerMode>("rest");
   const [durationDraft, setDurationDraft] = useState({ minutes: "1", seconds: "30" });
   const [elapsed, setElapsed] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -52,7 +67,6 @@ export function WorkoutTimer() {
   const milliseconds = elapsed + (startedAt === null ? 0 : Math.max(0, now - startedAt));
   const finished = restMode && validDuration && milliseconds >= durationMs;
   const running = startedAt !== null && !finished;
-  const timeLocked = running || finished;
   const seconds = restMode ? (validDuration ? Math.max(0, Math.ceil((durationMs - milliseconds) / 1000)) : 0) : Math.floor(milliseconds / 1000);
 
   useEffect(() => {
@@ -123,7 +137,12 @@ export function WorkoutTimer() {
     setElapsed(0);
   }
 
-  function changeDuration(unit: keyof typeof durationDraft, input: string) {
+  function changeMode(next: TimerMode) {
+    setMode(next);
+    reset();
+  }
+
+  function changeDuration(unit: DurationUnit, input: string) {
     const value = input.normalize("NFKC");
     if (!/^\d*$/.test(value)) return;
     setDurationDraft((current) => ({ ...current, [unit]: value }));
@@ -171,42 +190,63 @@ export function WorkoutTimer() {
     setStartedAt(timestamp);
   }
 
-  return <details className="group mb-6 rounded-lg border border-[var(--line)] bg-white px-4">
-    <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 py-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
-      <Icon name="timer" className="size-5 shrink-0 text-[var(--sage-deep)]" />
-      <span className="min-w-0 flex-1">筋トレ・有酸素タイマー</span>
-      <output role="timer" aria-label={restMode ? "休憩の残り時間" : "有酸素の経過時間"} className="metric shrink-0 text-lg tabular-nums text-[var(--sage-deep)]">{clock(seconds)}</output>
-      <Icon name="chevron-right" className="size-4 shrink-0 group-open:rotate-90" />
-    </summary>
+  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsed > 0, changeMode, changeDuration, reset, toggle }}>
     <audio ref={alarmPlayer} aria-hidden="true" />
-    <div className="grid gap-3 border-t border-[var(--line)] py-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <label htmlFor={id} className="block min-w-0 flex-1 basis-40 text-sm font-medium">計測方法
-          <SelectInput id={id} className="mt-1" value={mode} disabled={timeLocked} onChange={(event) => {
-            setMode(event.target.value === "cardio" ? "cardio" : "rest");
-            reset();
-          }}>
-            <option value="rest">休憩タイマー</option>
-            <option value="cardio">有酸素の経過時間</option>
-          </SelectInput>
-        </label>
-        {restMode && <fieldset className="min-w-0 flex-1 basis-40" disabled={timeLocked}>
-          <legend className="text-sm font-medium">休憩時間</legend>
-          <div className="mt-1 grid grid-cols-2 gap-2">
-            {timeFields.map(({ unit, label }) => <label key={unit} className="flex min-w-0 items-center gap-1 text-sm">
-              <TextInput aria-label={`休憩時間の${label}`} type="text" inputMode="numeric" value={durationDraft[unit]} onChange={(event) => changeDuration(unit, event.target.value)} />{label}
-            </label>)}
-          </div>
-        </fieldset>}
+    {children}
+  </TimerContext.Provider>;
+}
+
+export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
+  const id = useId();
+  const timer = useContext(TimerContext);
+  if (!timer) return null;
+  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, changeMode, changeDuration, reset, toggle } = timer;
+  const restMode = mode === "rest";
+  const timeLocked = running || finished;
+  const action = <Button type="button" size={compact ? "small" : "default"} className={compact ? "w-24 shrink-0 whitespace-nowrap px-2!" : undefined}
+    disabled={restMode && !validDuration} onClick={() => toggle(Date.now())}>
+    {finished ? "音を止める" : running ? "一時停止" : hasElapsed ? "再開" : "開始"}
+  </Button>;
+
+  return <div className={compact ? "flex items-start gap-2 rounded-lg border border-[var(--line)] bg-white px-2 py-1.5 sm:px-3" : "mb-6 rounded-lg border border-[var(--line)] bg-white px-4"}>
+    <details className="group min-w-0 flex-1">
+      <summary className={`flex cursor-pointer list-none items-center text-sm font-semibold [&::-webkit-details-marker]:hidden ${compact ? "min-h-11 gap-1 sm:gap-2" : "min-h-12 gap-2 py-3"}`}>
+        <Icon name="timer" className={`size-5 shrink-0 text-[var(--sage-deep)] ${compact ? "hidden sm:block" : ""}`} />
+        <span className="min-w-0 flex-1 truncate">{compact ? (restMode ? "休憩タイマー" : "有酸素タイマー") : "筋トレ・有酸素タイマー"}</span>
+        <output role="timer" aria-label={restMode ? "休憩の残り時間" : "有酸素の経過時間"} className="metric shrink-0 text-lg tabular-nums text-[var(--sage-deep)]">{clock(seconds)}</output>
+        <Icon name="chevron-right" className={`${compact ? "size-3 sm:size-4" : "size-4"} shrink-0 group-open:rotate-90`} />
+      </summary>
+      <div className="grid gap-3 border-t border-[var(--line)] py-3 sm:py-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <label htmlFor={id} className="block min-w-0 flex-1 basis-40 text-sm font-medium">計測方法
+            <SelectInput id={id} className="mt-1" value={mode} disabled={timeLocked} onChange={(event) => changeMode(event.target.value === "cardio" ? "cardio" : "rest")}>
+              <option value="rest">休憩タイマー</option>
+              <option value="cardio">有酸素の経過時間</option>
+            </SelectInput>
+          </label>
+          {restMode && <fieldset className="min-w-0 flex-1 basis-40" disabled={timeLocked}>
+            <legend className="text-sm font-medium">休憩時間</legend>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {timeFields.map(({ unit, label }) => <label key={unit} className="flex min-w-0 items-center gap-1 text-sm">
+                <TextInput aria-label={`休憩時間の${label}`} data-workout-timer-input={compact || undefined} type="text" inputMode="numeric" enterKeyHint="done" value={durationDraft[unit]}
+                  onChange={(event) => changeDuration(unit, event.target.value)} onKeyDown={(event) => {
+                    if (event.key !== "Enter") return;
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  }} />{label}
+              </label>)}
+            </div>
+          </fieldset>}
+        </div>
+        {restMode && !validDuration && <p role="status" className="text-sm text-[var(--coral)]">1秒以上の休憩時間を入力してください。秒は0〜59で設定できます。</p>}
+        {finished && !compact && <p role="status" className="text-sm font-semibold text-[var(--sage-deep)]">休憩時間が終了しました。</p>}
+        {(!compact || !finished) && <div className="flex flex-wrap gap-2">
+          {!compact && action}
+          {!finished && <Button type="button" size={compact ? "small" : "default"} variant="secondary" onClick={reset}>リセット</Button>}
+        </div>}
       </div>
-      {restMode && !validDuration && <p role="status" className="text-sm text-[var(--coral)]">1秒以上の休憩時間を入力してください。秒は0〜59で設定できます。</p>}
-      {finished && <p role="status" className="text-sm font-semibold text-[var(--sage-deep)]">休憩時間が終了しました。</p>}
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" disabled={restMode && !validDuration} onClick={() => toggle(Date.now())}>
-          {finished ? "音を止める" : running ? "一時停止" : elapsed > 0 ? "再開" : "開始"}
-        </Button>
-        {!finished && <Button type="button" variant="secondary" onClick={reset}>リセット</Button>}
-      </div>
-    </div>
-  </details>;
+    </details>
+    {compact && action}
+    {compact && finished && <span role="status" className="sr-only">休憩時間が終了しました。</span>}
+  </div>;
 }
