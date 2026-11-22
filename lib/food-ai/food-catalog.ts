@@ -9,6 +9,7 @@ export interface FoodCatalogItem {
   id: string;
   clipLabel: string;
   food: Omit<MealFoodItem, "id">;
+  origin?: "history";
 }
 
 const library = libraryJson as FoodLibraryDataset;

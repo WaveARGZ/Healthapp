@@ -5,12 +5,24 @@ import vm from "node:vm";
 import ts from "typescript";
 import * as jsxRuntime from "react/jsx-runtime";
 
+function pureModule(relative) {
+  const source = ts.transpileModule(readFileSync(new URL(relative, import.meta.url), "utf8"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+  }).outputText;
+  const exports = {};
+  vm.runInNewContext(source, { exports, require(id) { assert.fail(`unexpected pure-module dependency: ${id}`); } });
+  return exports;
+}
+const portions = pureModule("../../lib/food-portions.ts");
+const photoNutrition = pureModule("../../lib/food-ai/photo-nutrition-estimate.ts");
+const photoHistory = pureModule("../../lib/food-ai/photo-history.ts");
+
 // Real component events, synthetic in-memory input. No browser storage or network.
-function harness({ sharedTest = false, saveFails = false } = {}) {
+function harness({ sharedTest = false, saveFails = false, previousMeals = [], historyLoading = false, analysisResult = null } = {}) {
   const source = ts.transpileModule(readFileSync(new URL("../../components/meals/photo-meal-analyzer.tsx", import.meta.url), "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
-  const states = [], refs = [], effects = [], saved = [], released = [];
+  const states = [], refs = [], effects = [], saved = [], released = [], analyses = [];
   let stateIndex = 0, refIndex = 0, effectIndex = 0;
   const modules = {
     react: {
@@ -20,15 +32,13 @@ function harness({ sharedTest = false, saveFails = false } = {}) {
     },
     "react/jsx-runtime": jsxRuntime, "next/image": { default: "img" }, "next/link": { default: "a" },
     "@/components/ui/button": { Button: "button" }, "@/components/ui/icon": { Icon: "span" },
-    "@/lib/food-ai/food-photo-analyzer": {},
-    "@/lib/food-ai/photo-nutrition-estimate": { PHOTO_NUTRITION_UPLIFT: 0.15 },
-    "@/lib/drive/google-drive-client": { isSupportedFoodPhoto: () => true },
+    "@/lib/food-ai/food-photo-analyzer": { async analyzeFoodPhotoDetailed(_photo, _progress, options) { analyses.push(options); return analysisResult; } },
+    "@/lib/food-ai/photo-history": photoHistory,
+    "@/lib/food-ai/photo-nutrition-estimate": photoNutrition,
+    "@/lib/drive/google-drive-client": { isSupportedFoodPhoto: () => true, sanitizeTrainingPhoto: async (photo) => photo },
     "@/lib/cloud/config": { isSharedTestEnvironment: sharedTest },
-    "@/lib/data/food-library.json": { foods: [] },
-    "@/lib/food-portions": {
-      validPortion: (quantity) => quantity > 0 && quantity <= 3000,
-      portionGrams: (quantity, unit, gramsPerPiece) => unit === "個" ? quantity * gramsPerPiece : quantity,
-    },
+    "@/lib/data/food-library.json": { default: { foods: [] } },
+    "@/lib/food-portions": portions,
   };
   const exports = {};
   vm.runInNewContext(source, { exports, require(id) { assert.ok(modules[id], `unexpected dependency: ${id}`); return modules[id]; },
@@ -36,7 +46,7 @@ function harness({ sharedTest = false, saveFails = false } = {}) {
   });
   const onAddFood = async (item) => { if (saveFails) throw Error("synthetic failure"); saved.push(structuredClone(item)); };
   function nodes(node) { if (!node || typeof node !== "object") return []; if (Array.isArray(node)) return node.flatMap(nodes); return [node, ...nodes(node.props?.children)]; }
-  function render() { stateIndex = refIndex = effectIndex = 0; return nodes(exports.PhotoMealAnalyzer({ onAddFood })); }
+  function render() { stateIndex = refIndex = effectIndex = 0; return nodes(exports.PhotoMealAnalyzer({ onAddFood, previousMeals, historyLoading })); }
   function find(predicate) { const node = render().find(predicate); assert.ok(node); return node; }
   function click(label) { const node = find((n) => n.type === "button" && n.props.children === label); assert.notEqual(node.props.disabled, true); node.props.onClick(); }
   function choose() { find((n) => n.props.type === "file").props.onChange({ target: { files: [{ name: "synthetic.jpg", size: 10 }], value: "" } }); }
@@ -45,7 +55,7 @@ function harness({ sharedTest = false, saveFails = false } = {}) {
     find((n) => n.props.placeholder === "例：鶏むね肉の照り焼き").props.onChange({ target: { value: "テストの食事" } });
   }
   async function flush() { for (let i = 0; i < 5; i++) await Promise.resolve(); render(); }
-  return { render, find, click, choose, draft, flush, saved, released };
+  return { render, find, click, choose, draft, flush, saved, released, analyses };
 }
 
 test("camera meal saves only nutritional record, releases preview, then offers a separate optional share page", async () => {
@@ -88,4 +98,42 @@ test("shared test does not expose learning submission from ordinary meal registr
   const h = harness({ sharedTest: true }); h.draft(); h.click("食事に追加して保存"); await h.flush();
   assert.equal(h.saved.length, 1);
   assert.equal(h.render().some((n) => n.type === "a"), false);
+});
+
+test("photo analysis uses loaded personal history and a recommended saved dish without adding calories again", async () => {
+  const previousMeals = [{ id: "meal", name: "焼きそば", createdAt: "2026-11-22T00:00:00Z" }];
+  const history = { id: "history:yakisoba", origin: "history", food: { name: "焼きそば", calories: 200, portionGrams: 300 }, modelScore: .7, score: .7 };
+  const h = harness({ previousMeals, analysisResult: { candidates: [], historyCandidates: [history], recommendedCandidateId: history.id } });
+  h.choose(); h.click("写真をAIで解析"); await h.flush();
+  assert.equal(h.analyses[0].previousMeals, previousMeals);
+  assert.equal(h.find((n) => n.props.placeholder === "例：鶏むね肉の照り焼き").props.value, "焼きそば");
+  const fields = h.render().filter((n) => n.props.type === "number" && n.props.placeholder === "未入力");
+  assert.deepEqual(fields.map((n) => n.props.value), [200, "", "", ""]);
+  assert.ok(h.render().some((n) => n.props.children === "前に登録した料理"));
+  h.click("食事に追加して保存"); await h.flush();
+  assert.equal(h.saved[0].calories, 200);
+  assert.equal(Object.hasOwn(h.saved[0], "fatG"), false);
+  assert.equal(Object.keys(h.saved[0]).some((name) => /image|embedding|photo/i.test(name)), false);
+});
+
+test("old nutrition without a serving does not invent a gram weight", async () => {
+  const history = { id: "history:yakisoba", origin: "history", food: { name: "焼きそば", calories: 200 }, modelScore: .7, score: .7 };
+  const h = harness({ analysisResult: { candidates: [], historyCandidates: [history], recommendedCandidateId: history.id } });
+  h.choose(); h.click("写真をAIで解析"); await h.flush();
+  assert.equal(h.find((n) => n.props["aria-label"] === "写真から登録する食べた量").props.value, "");
+  assert.equal(h.find((n) => n.type === "button" && n.props.children === "食事に追加して保存").props.disabled, true);
+});
+
+test("photo analysis waits until existing dishes have finished loading", () => {
+  const h = harness({ historyLoading: true }); h.choose();
+  assert.equal(h.find((n) => n.type === "button" && n.props.children === "写真をAIで解析").props.disabled, true);
+  assert.equal(h.analyses.length, 0);
+});
+
+test("switching a remembered serving to pieces requires the piece weight to be entered", async () => {
+  const history = { id: "history:yakisoba", origin: "history", food: { name: "焼きそば", calories: 200, portionGrams: 300 }, modelScore: .7, score: .7 };
+  const h = harness({ analysisResult: { candidates: [], historyCandidates: [history], recommendedCandidateId: history.id } });
+  h.choose(); h.click("写真をAIで解析"); await h.flush(); h.click("個");
+  assert.equal(h.find((n) => n.props["aria-label"] === "写真の食品1個あたりの重さ").props.value, "");
+  assert.equal(h.find((n) => n.type === "button" && n.props.children === "食事に追加して保存").props.disabled, true);
 });

@@ -73,6 +73,7 @@ export function MealRecorder() {
   const [recordedTime, setRecordedTime] = useState("");
   const [manualFood, setManualFood] = useState<MealFoodItem>(newFood);
   const [history, setHistory] = useState<MealEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [inputMode, setInputMode] = useState<"search" | "photo" | "manual" | "barcode">("search");
   const barcodeDraft = useSyncExternalStore(subscribeBarcodeDraft, readBarcodeDraft, () => "");
@@ -97,8 +98,14 @@ export function MealRecorder() {
   }, []);
   async function loadHistory() {
     const revision = historyRevision.current;
-    const entries = await bodyMakeClient.getMeals();
-    if (revision === historyRevision.current) setHistory(entries);
+    try {
+      const entries = await bodyMakeClient.getMeals();
+      if (revision === historyRevision.current) setHistory(entries);
+    } catch {
+      setNotice("以前の食事を読み込めませんでした。通信状態を確認してページを開き直してください。");
+    } finally {
+      setHistoryLoading(false);
+    }
   }
   function updateManualFood(patch: Partial<MealFoodItem>) { setManualFood((current) => ({ ...current, ...patch })); }
   async function saveFoods(foods: FoodInput[]) {
@@ -230,7 +237,7 @@ export function MealRecorder() {
           ["barcode", "barcode", "バーコード"],
         ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg border px-1 text-xs font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)] hover:bg-[var(--sand)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
         <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} onAddFoods={saveFoods} /></div>
-        {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} />}
+        {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} previousMeals={history} historyLoading={historyLoading} />}
         {inputMode === "barcode" && <BarcodeMealEntry onAddFood={saveFood} barcode={barcodeDraft} onBarcodeChange={updateBarcodeDraft} />}
         {inputMode === "photo" && <p role="status" aria-live="polite" className="mt-4 text-sm text-[var(--sage-deep)]">{notice}</p>}
         {inputMode === "manual" && <>

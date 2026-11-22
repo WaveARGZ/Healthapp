@@ -119,6 +119,7 @@ test("shared inference uses deployed calibration and never contacts the local le
     "@/lib/food-ai/deployed-calibration.json": deployedCalibration,
     "@/lib/food-ai/test-calibration.json": { marker: "experimental" },
     "@/lib/food-ai/clip-features.mjs": {},
+    "@/lib/food-ai/photo-history": { buildPhotoHistory: () => [] },
     "@/lib/food-ai/food-calibration.mjs": {
       FOOD_BASE_MODEL: "synthetic-model", FOOD_BASE_REVISION: "synthetic-revision",
       applyFoodCalibration(scores, _ids, calibration) { usedCalibration = calibration; return scores; },

@@ -4,6 +4,8 @@ import deployedCalibration from "@/lib/food-ai/deployed-calibration.json";
 import testCalibration from "@/lib/food-ai/test-calibration.json";
 import { useTestFoodModel } from "@/lib/cloud/config";
 import { applyEmbeddingCalibration, extractClipFeatures } from "@/lib/food-ai/clip-features.mjs";
+import { buildPhotoHistory } from "@/lib/food-ai/photo-history";
+import type { MealEntry } from "@/types/meal";
 
 export interface FoodPhotoCandidate extends FoodCatalogItem {
   score: number;
@@ -14,6 +16,8 @@ export interface FoodPhotoAnalysis {
   candidates: FoodPhotoCandidate[];
   /** Scores in the stable order of foodCatalog; used only with a confirmed label. */
   scores: number[];
+  historyCandidates?: FoodPhotoCandidate[];
+  recommendedCandidateId?: string;
 }
 
 export interface ModelProgress {
@@ -69,26 +73,34 @@ export async function analyzeFoodPhoto(
 export async function analyzeFoodPhotoDetailed(
   image: Blob,
   onProgress?: (progress: ModelProgress) => void,
+  options: { previousMeals?: readonly MealEntry[] } = {},
 ): Promise<FoodPhotoAnalysis> {
+  const history = buildPhotoHistory(options.previousMeals ?? [], foodCatalog);
+  const compared = [...foodCatalog, ...history];
+  const clipLabels = compared.map((food) => food.clipLabel);
   const classifier = await getClassifier(onProgress);
   onProgress?.({ label: useTestFoodModel ? "テストモデルの保存先を確認しています" : "写真から料理候補を探しています" });
   const streamingModel = await getStreamingTestModel();
   onProgress?.({ label: "写真から料理候補を探しています" });
+  let allScores: number[];
+  let embedding: number[] | undefined;
   if (streamingModel) {
     const { RawImage, env } = await import("@huggingface/transformers");
     if (env.version !== "4.3.0") throw new Error("テストモデルとAIライブラリの版が一致しません。");
-    const clipLabels = foodCatalog.map((food) => food.clipLabel);
-    const { scores, embedding } = await extractClipFeatures(classifier, image, clipLabels, RawImage);
-    const calibrated = applyEmbeddingCalibration(scores, embedding, foodCatalog.map((food) => food.id), clipLabels, streamingModel);
-    return { scores, candidates: foodCatalog.map((food, i) => ({ ...food, score: calibrated[i], modelScore: calibrated[i] })).sort((a, b) => b.score - a.score).slice(0, 5) };
+    const features = await extractClipFeatures(classifier, image, clipLabels, RawImage);
+    allScores = features.scores;
+    embedding = features.embedding;
+  } else {
+    const outputs = await classifier(image, clipLabels);
+    const rawScores = new Map(outputs.map((output) => [output.label, output.score]));
+    allScores = clipLabels.map((label) => rawScores.get(label) ?? 0);
   }
-  const outputs = await classifier(image, foodCatalog.map((food) => food.clipLabel));
-  const rawScores = new Map(outputs.map((output) => [output.label, output.score]));
   const labelIds = foodCatalog.map((food) => food.id);
-  const raw = foodCatalog.map((food) => rawScores.get(food.clipLabel) ?? 0);
+  const raw = allScores.slice(0, foodCatalog.length);
   const total = raw.reduce((sum, value) => sum + value, 0);
   const normalized = total > 0 ? raw.map((value) => value / total) : raw.map(() => 1 / raw.length);
-  const probabilities = applyFoodCalibration(
+  // The existing correction head still receives exactly its original label set.
+  const probabilities = embedding ? applyEmbeddingCalibration(normalized, embedding, labelIds, foodCatalog.map((food) => food.clipLabel), streamingModel) : applyFoodCalibration(
     normalized,
     labelIds,
     useTestFoodModel ? testCalibration : deployedCalibration,
@@ -102,6 +114,15 @@ export async function analyzeFoodPhotoDetailed(
     })
     .sort((first, second) => second.score - first.score)
     .slice(0, 5);
+  const historyCandidates = history.map((food, index) => ({ ...food,
+    score: allScores[foodCatalog.length + index], modelScore: allScores[foodCatalog.length + index] }))
+    .filter((food) => Number.isFinite(food.score) && food.score > 0)
+    .sort((a, b) => b.score - a.score).slice(0, 3);
+  // Compare on the joint score scale, while retaining the evaluated base ranking.
+  const bestBase = candidates[0];
+  const bestHistory = historyCandidates[0];
+  const recommendedCandidateId = bestHistory && bestHistory.score > (bestBase?.score ?? 0) * total
+    ? bestHistory.id : bestBase?.id;
   // Store base scores so supplemental corrections are not calibrated twice.
-  return { candidates, scores: normalized };
+  return { candidates, scores: normalized, historyCandidates, recommendedCandidateId };
 }
