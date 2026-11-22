@@ -4,6 +4,7 @@ import { FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
+import { ExerciseMotionIcon } from "@/components/workouts/exercise-motion-icon";
 import { RecordActions } from "@/components/ui/record-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExercisePicker } from "@/components/workouts/exercise-picker";
@@ -151,7 +152,7 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
       {selectedEntries.length ? <div className="mt-3 border-t border-[var(--line)]">{selectedEntries.map((entry) => <article key={entry.id} className="border-b border-[var(--line)] py-5 last:border-b-0">
         <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-[var(--sage-deep)]">{entry.performedTime ? <span className="metric">{entry.performedTime}</span> : "時刻未記録"}</p><p className="mt-2 break-words text-sm font-semibold leading-6">{entry.exercises.map((exercise) => exercise.name).join("・")}</p></div><button type="button" aria-label={`${formatDate(entry.performedAt)}の筋トレ記録を削除`} onClick={() => onDelete(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button></div>
         <div className="mt-3 space-y-3">{entry.exercises.map((exercise) => <div key={exercise.id} className="text-xs leading-6 text-[var(--muted)]">
-          <p className="break-words font-medium">{exercise.name}</p>
+          <div className="flex items-center gap-3"><ExerciseMotionIcon name={exercise.name} category={exercise.category} className="h-10 w-12" /><p className="min-w-0 break-words font-medium">{exercise.name}</p></div>
           <div className="mt-1 flex flex-wrap gap-2">
             {setsFor(exercise).map((set, setIndex) => <div key={set.id} className="min-w-0 max-w-full rounded-lg bg-[var(--sand)] px-2 py-1">
               <p className="metric"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{formatWorkoutSet(exercise, set)}</p>
@@ -284,7 +285,7 @@ export function WorkoutRecorder() {
               {exercises.length > 1 && <button type="button" aria-label={`${index + 1}番目の種目を削除`} onClick={() => removeExercise(exercise.id)} className="delete-button"><Icon name="trash" className="size-4" /></button>}
             </div>
             <div className="px-3 py-5 sm:px-5">
-              <p className={`mt-2 break-words text-sm font-bold ${exercise.name ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}>{exercise.name || "種目を選んでください"}</p>
+              <div className="mt-2 flex items-center gap-3">{exercise.name && <ExerciseMotionIcon name={exercise.name} category={exercise.category} className="h-[50px] w-[60px]" />}<p className={`min-w-0 break-words text-sm font-bold ${exercise.name ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}>{exercise.name || "種目を選んでください"}</p></div>
               <ExercisePicker date={performedAt} startWithEquipmentSetup={index === 0} exerciseName={exercise.name} cardio={cardio} sets={sets} onSelect={(name, category) => selectExercise(exercise.id, name, category ?? null)} onUpdateSet={(setId, patch) => updateSet(exercise.id, setId, patch)} onAddSet={() => addSet(exercise.id)} onRemoveSet={(setId) => removeSet(exercise.id, setId)} />
               {exercise.name && <>
                 <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm leading-6 text-[var(--muted)]">{!cardio && <span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span>}<span>完了 {completedCount} / {sets.length}</span></div>

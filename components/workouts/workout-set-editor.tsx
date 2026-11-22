@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { WorkoutSetNumberField } from "@/components/workouts/workout-set-number-field";
 import { WorkoutTimer } from "@/components/workouts/workout-timer";
+import { ExerciseMotionIcon } from "@/components/workouts/exercise-motion-icon";
+import { getExerciseMotion } from "@/lib/workouts/exercise-motions";
 import type { WorkoutSet } from "@/types/workout";
 
 interface WorkoutSetEditorProps {
@@ -50,6 +52,7 @@ function revealSetControl(scroller: HTMLElement, field: HTMLElement) {
 }
 
 export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAddSet, onRemoveSet, onBack }: WorkoutSetEditorProps) {
+  const movement = getExerciseMotion(exerciseName);
   const keypadMode = useSyncExternalStore(subscribeToKeypadMode, usesNumberPad, () => false);
   const [selected, setSelected] = useState<ActiveField | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -126,7 +129,13 @@ export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAd
     <div ref={scrollerRef} className="exercise-dialog-scroll workout-set-scroll min-h-0 flex-1" onKeyDown={handleFieldKey}>
       <section data-workout-set-editor aria-label={`${exerciseName}のセット入力`} className="px-4 py-5 sm:px-5">
         <button type="button" onClick={onBack} className="mb-2 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目選択へ戻る</button>
-        <h2 className="text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
+        <div className="flex items-center gap-3">
+          <ExerciseMotionIcon name={exerciseName} className="h-[60px] w-[72px]" />
+          <div className="min-w-0">
+            <h2 className="break-words text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
+            {movement.kind !== "custom" && <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{movement.action}</p>}
+          </div>
+        </div>
         <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
           {keypadMode ? "入力欄を選び、✓で次の欄へ。" : "Enterで次の欄へ。"} 入力後は記録画面で保存してください。
         </p>

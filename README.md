@@ -2,6 +2,8 @@
 
 「理想の身体を、見える目標に。」をコンセプトにした、スマートフォンファーストの体づくり支援Webアプリです。筋トレ・食事・体重・身体写真を一つの流れで記録し、数字だけではない身体の変化を追えるMVPを実装しています。
 
+筋トレの103種目には、動きと器具を表す軽いSVGアイコンを表示します。図案の根拠と対応範囲は [種目の動作アイコン](EXERCISE-ICON-SOURCES.md) を参照してください。
+
 Firebase（Spark）版は `healthapp-14a3f` に接続し、Googleログイン・個人別Firestoreルール・静的サイトを公開しました。接続状態と残る検証は [FIREBASE-MIGRATION.md](./FIREBASE-MIGRATION.md) を参照してください。身体写真は端末内保存です。旧AWS環境は2026年10月11日に削除しました。旧記録のFirebaseへの自動移行は行っていません。
 
 ## チーム共通の始め方（現行）
@@ -63,6 +65,7 @@ npm run test:photo-submission
 npm run test:food-ai:model-cache
 npm run test:food-ai:stream
 npm run test:workout-split
+npm run test:exercise-motions
 npm run test:mobile-viewport
 npm run build:test
 npm run test:environment-build
