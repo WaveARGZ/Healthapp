@@ -28,6 +28,36 @@ function range(min: number, max: number) {
   return min === max ? min.toLocaleString("ja-JP") : `${min.toLocaleString("ja-JP")}～${max.toLocaleString("ja-JP")}`;
 }
 
+function targetRatio(recorded: number | null, max: number | undefined) {
+  return recorded !== null && max !== undefined && max > 0 ? Math.round(recorded / max * 100) : null;
+}
+
+function IntakeTargetMeter({ label, recorded, min, max, unit, color, targetColor }: {
+  label: string;
+  recorded: number | null;
+  min: number;
+  max: number;
+  unit: "kcal" | "g";
+  color: string;
+  targetColor: string;
+}) {
+  const scale = Math.max(max * 1.25, recorded ?? 0, 1);
+  const targetWidth = max / scale * 100;
+  const recordedWidth = (recorded ?? 0) / scale * 100;
+  const targetText = `目安${range(min, max)} ${unit}`;
+  const valueText = recorded === null
+    ? `未入力。${targetText}`
+    : `記録${recorded} ${unit}、${targetText}、上限比${targetRatio(recorded, max)}%`;
+
+  return <span className="relative col-span-full mt-3 block h-3 w-full rounded-full bg-[var(--sage-soft)]" role="meter"
+    aria-label={label} aria-valuemin={0} aria-valuemax={scale} aria-valuenow={recorded ?? undefined} aria-valuetext={valueText}>
+    <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${targetWidth}%`, backgroundColor: targetColor }} aria-hidden="true" />
+    <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${recordedWidth}%`, backgroundColor: color }} aria-hidden="true" />
+    <span className="absolute top-4 h-2 w-0.5 -translate-x-1/2 rounded-full bg-[var(--ink-soft)]" style={{ left: `${targetWidth}%` }} aria-hidden="true" />
+    {recorded !== null && <span className="absolute -top-[3px] z-10 size-[18px] -translate-x-1/2 rounded-full border-[3px] border-white" style={{ left: `${recordedWidth}%`, backgroundColor: color }} aria-hidden="true" />}
+  </span>;
+}
+
 function recordedGrams(macros: DailyMacros, key: "proteinG" | "fatG" | "carbsG", loading: boolean) {
   return loading || macros.mealCount === 0 || macros.knownCounts[key] === 0
     ? null : Math.round(macros[key]);
@@ -59,6 +89,7 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
   const guide = profile && !profileUnavailable ? estimateDailyCalorieGuide({ age: profile.age, gender: profile.gender, heightCm: profile.heightCm, weightKg: weight ?? undefined, goal: profile.goal }) : { status: "missing-profile" as const };
   const macroGuide = guide.status === "ready" && profile ? estimateDailyMacroGuide(guide, profile.goal) : null;
   const intakeTarget = guide.status === "ready" ? range(guide.minKcal, guide.maxKcal) : null;
+  const intakeRatio = targetRatio(consumed, guide.status === "ready" ? guide.maxKcal : undefined);
   const burnTarget = guide.status === "ready" ? range(guide.minNonRestingKcal, guide.maxNonRestingKcal) : null;
   const macroRows = ([
     { key: "proteinG", label: "P", name: "たんぱく質", target: macroGuide?.protein, color: "#4f7668", targetColor: "#dce8e2" },
@@ -66,15 +97,11 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
     { key: "carbsG", label: "C", name: "炭水化物", target: macroGuide?.carbs, color: "#9f6257", targetColor: "#f0dfda" },
   ] as const).map((row) => {
     const recordedG = recordedGrams(macros, row.key, macroUnavailable);
-    const scaleG = Math.max((row.target?.maxG ?? 0) * 1.25, recordedG ?? 0, 1);
     return {
       ...row,
       recordedG,
-      scaleG,
       amount: recordedG === null ? "—" : recordedG.toLocaleString("ja-JP"),
-      targetRatio: row.target && row.target.maxG > 0 && recordedG !== null ? Math.round(recordedG / row.target.maxG * 100) : null,
-      recordedWidth: recordedG === null ? 0 : recordedG / scaleG * 100,
-      targetWidth: row.target ? row.target.maxG / scaleG * 100 : 0,
+      targetRatio: targetRatio(recordedG, row.target?.maxG),
     };
   });
   const difference = burnMinusIntake(burned, consumed);
@@ -133,6 +160,14 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
               <strong className="metric block text-[clamp(1.5rem,5vw,2rem)] font-semibold leading-tight text-[var(--ink)]">{amount(intake)} <small className="text-sm font-medium">kcal</small></strong>
             </span>
           </span>
+          {guide.status === "ready" && <>
+            <IntakeTargetMeter label="今日の摂取カロリー" recorded={consumed} min={guide.minKcal} max={guide.maxKcal}
+              unit="kcal" color="var(--sage-deep)" targetColor="color-mix(in srgb, var(--sage-deep) 22%, white)" />
+            <span className="mt-4 block text-sm leading-5 text-[var(--ink-soft)]">
+              <span>1日の摂取目安</span>{" "}<strong className="metric inline-block font-semibold">{intakeTarget} kcal</strong>
+            </span>
+            {intakeRatio !== null && <span className="mt-1 block text-xs text-[var(--muted)]">目安上限比 {intakeRatio}%</span>}
+          </>}
         </Link>
         <Link href="/progress" className="block min-w-0 pl-4 transition-colors hover:text-[var(--sage-deep)] sm:pl-6" aria-describedby={calorieDescription} aria-label={"進捗を開く。消費 " + amount(burned) + " kcal。消費から摂取を引いた収支 " + differenceText + " kcal。" + differenceStatus + (burnTarget ? "。活動による消費の推定 " + burnTarget + " kcal" : "")}>
           <span className="flex items-center justify-between text-base font-bold text-[var(--ink)]">カロリー収支</span>
@@ -159,12 +194,8 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
             <strong className="metric text-2xl font-semibold text-[var(--ink)]">{row.amount === "—" ? "—" : `${row.amount}g`}</strong>
             {(row.recordedG !== null || row.target) && <span className="text-xs text-[var(--muted)]">目安上限比 {row.targetRatio === null ? "—" : `${row.targetRatio}%`}</span>}
           </span>
-          {row.target && <span className="relative col-span-full mt-3 block h-3 w-full rounded-full bg-[var(--sage-soft)]" role="meter" aria-label={`${row.name}の摂取量`} aria-valuemin={0} aria-valuemax={row.scaleG} aria-valuenow={row.recordedG ?? undefined} aria-valuetext={row.recordedG === null ? `未入力。目安${range(row.target.minG, row.target.maxG)}g` : `記録${row.recordedG}g、目安${range(row.target.minG, row.target.maxG)}g、上限比${row.targetRatio}%`}>
-            <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.targetWidth}%`, backgroundColor: row.targetColor }} aria-hidden="true" />
-            <span className="absolute inset-y-0 left-0 block rounded-full" style={{ width: `${row.recordedWidth}%`, backgroundColor: row.color }} aria-hidden="true" />
-            <span className="absolute top-4 h-2 w-0.5 -translate-x-1/2 rounded-full bg-[var(--ink-soft)]" style={{ left: `${row.targetWidth}%` }} aria-hidden="true" />
-            {row.recordedG !== null && <span className="absolute -top-[3px] z-10 size-[18px] -translate-x-1/2 rounded-full border-[3px] border-white" style={{ left: `${row.recordedWidth}%`, backgroundColor: row.color }} aria-hidden="true" />}
-          </span>}
+          {row.target && <IntakeTargetMeter label={`${row.name}の摂取量`} recorded={row.recordedG} min={row.target.minG} max={row.target.maxG}
+            unit="g" color={row.color} targetColor={row.targetColor} />}
           {row.target && <span className="metric col-span-full mt-4 block text-sm leading-6 text-[var(--ink-soft)]">目安：{range(row.target.minG, row.target.maxG)} g</span>}
         </div>)}</div>
       </Link>
