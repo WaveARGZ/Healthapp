@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -11,6 +12,7 @@ import type { MealFoodItem } from "@/types/meal";
 import { portionGrams, scaleNutrition, suggestedGramsPerPiece, validPortion, type FoodPortionUnit } from "@/lib/food-portions";
 import libraryJson from "@/lib/data/food-library.json";
 import type { FoodLibraryDataset } from "@/types/food-database";
+import { isSharedTestEnvironment } from "@/lib/cloud/config";
 
 interface PhotoMealAnalyzerProps {
   onAddFood: (food: Omit<MealFoodItem, "id">) => Promise<void>;
@@ -42,6 +44,7 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
   const [status, setStatus] = useState<AnalyzeStatus>("idle");
   const [statusText, setStatusText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [savedMeal, setSavedMeal] = useState(false);
   const [nutritionDrafts, setNutritionDrafts] = useState<Partial<Record<keyof NutritionValues, string>>>({});
   const submission = useRef<{ key: string; added: boolean } | null>(null);
   const previewUrl = useRef<string | null>(null);
@@ -62,6 +65,7 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
     }
     analysisGeneration.current += 1;
     setFile(nextFile);
+    setSavedMeal(false);
     submission.current = null;
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
     previewUrl.current = URL.createObjectURL(nextFile);
@@ -170,6 +174,7 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
       setPreview(null);
       setCandidates([]);
       setStatus("idle");
+      setSavedMeal(true);
       setStatusText(`${name}を食事に保存しました。写真は保存していません。`);
     } catch {
       setStatusText("食事を保存できませんでした。保存先への接続を確認して、もう一度お試しください。");
@@ -211,6 +216,10 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
       <Button type="button" className="mt-5 w-full" onClick={() => void addConfirmedFood()} disabled={!confirmedFoodName.trim() || isSaving || !validPortion(amountQuantity, amountUnit, gramsPerPiece)}>{isSaving ? "処理中…" : "食事に追加して保存"}</Button>
     </div> : null}
     {statusText && status !== "analyzing" ? <p role="status" className={`mt-3 break-words text-sm leading-6 ${status === "error" ? "text-[var(--coral)]" : "text-[var(--muted)]"}`}>{statusText}</p> : null}
+    {savedMeal && !isSharedTestEnvironment && <div className="mt-4 rounded-lg border border-[var(--line)] bg-white p-3">
+      <Link href="/food-photo/" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--sage-deep)]">写真認識の改善に協力する（任意）</Link>
+      <p className="mt-1 text-xs leading-6 text-[var(--muted)]">共有画面で写真を選び直し、料理名と共有への同意を確認して送信できます。確認と独立した評価を通過したデータだけを学習に使います。</p>
+    </div>}
     <p className="mt-4 text-xs leading-6 text-[var(--muted)]">写真は入力中だけメモリで扱い、記録後に破棄します。食事記録・共有Driveには保存しません。</p>
   </section>;
 }

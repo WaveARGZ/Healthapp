@@ -75,6 +75,9 @@ jobs:
       - name: Verify dashboard partial nutrition totals in memory
         run: npm run test:dashboard-nutrition
 
+      - name: Verify Japanese food search and spelling variants
+        run: npm run test:food-catalog
+
       - name: Build without production AWS settings
         env:
           NEXT_PUBLIC_BODYMAKE_AUTH_DOMAIN: https://production-should-not-be-used.invalid
