@@ -8,6 +8,7 @@ import { RecordActions } from "@/components/ui/record-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { ExercisePicker } from "@/components/workouts/exercise-picker";
 import { DailyBurnRecorder } from "@/components/workouts/daily-burn-recorder";
+import { WorkoutTimer, WorkoutTimerProvider } from "@/components/workouts/workout-timer";
 import { AnatomyFigure } from "@/components/dashboard/anatomy-figure";
 import { activityTint, inactiveOutlineColor } from "@/components/dashboard/activity-color";
 import { WorkoutPlanSetup } from "@/components/workouts/workout-plan-setup";
@@ -273,6 +274,8 @@ export function WorkoutRecorder() {
       <WorkoutPlanSetup date={performedAt} onSave={handlePlanSave} />
     </div>
     <div id="workout-record-panel" role="tabpanel" aria-labelledby="workout-record-tab" hidden={activeTab !== "record"}>
+    <WorkoutTimerProvider>
+    <WorkoutTimer />
     <WorkoutHistoryCalendar history={history} month={calendarMonth} selectedDate={selectedDate} onMonthChange={(month) => { setCalendarMonth(month); setSelectedDate(null); }} onDateSelect={(date) => { setSelectedDate(date); if (date) setPerformedAt(date); setNotice(""); }} onDelete={(id) => { void deleteEntry(id); }}>
     <form onSubmit={handleSubmit}>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
@@ -311,6 +314,7 @@ export function WorkoutRecorder() {
     </form>
     {selectedDate && <div className="mt-7"><DailyBurnRecorder day={selectedDate} /></div>}
     </WorkoutHistoryCalendar>
+    </WorkoutTimerProvider>
     </div>
   </>;
 }

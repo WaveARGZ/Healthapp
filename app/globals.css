@@ -147,7 +147,7 @@ html { scroll-padding-bottom: 180px; }
   @media (max-width: 639px), (pointer: coarse) {
     .exercise-dialog { background: white; }
     .exercise-dialog:not([data-set-editor]) .exercise-dialog-panel,
-    [data-keyboard-open="true"] .exercise-dialog[data-set-editor]:has([data-workout-set-note]:focus) .exercise-dialog-panel {
+    [data-keyboard-open="true"] .exercise-dialog[data-set-editor]:has(:is([data-workout-set-note], [data-workout-timer-input]):focus) .exercise-dialog-panel {
       align-self: flex-start;
       height: min(var(--visual-height, 100%), calc(100% - var(--visual-top, 0px)));
       margin-top: var(--visual-top, 0px);
