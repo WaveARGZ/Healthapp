@@ -69,7 +69,7 @@ const equipmentAliases: Record<string, string[]> = {
   "TRX": ["trx", "サスペンショントレーナー"],
 };
 
-function hasEquipment(available: string[], requirement: string): boolean {
+function hasEquipment(available: readonly string[], requirement: string): boolean {
   const aliases = equipmentAliases[requirement] ?? [requirement];
   return available.some((item) => {
     const normalized = item.toLocaleLowerCase().replaceAll(" ", "");
@@ -80,6 +80,12 @@ function hasEquipment(available: string[], requirement: string): boolean {
 export function usesRegisteredEquipment(name: string, available: string[]): boolean {
   const requirements = requirementsFor(name);
   return requirements.length > 0 && requirements.every((item) => hasEquipment(available, item));
+}
+
+export function fitsWorkoutLocation(name: string, isGymMember: boolean | undefined, equipment: readonly string[]): boolean {
+  if (isGymMember === undefined || (isGymMember && equipment.length === 0)) return true;
+  const required = requirementsFor(name);
+  return isGymMember ? required.every((item) => hasEquipment(equipment, item)) : required.length === 0;
 }
 
 export function recommendExercises(input: {
@@ -93,6 +99,7 @@ export function recommendExercises(input: {
   limit?: number;
   splitPlan?: WorkoutSplitPlan;
   date?: string;
+  isGymMember?: boolean;
 }): WorkoutSuggestion[] {
   const { goal = "maintain", availableEquipment, favorites, workouts, selectedCategory, query } = input;
   const search = normalizeExerciseSearch(query);
@@ -124,6 +131,7 @@ export function recommendExercises(input: {
     .filter((candidate) => !useSchedule || scheduledDay.categories.includes(candidate.category))
     .filter((candidate) => search.length < 2 || matchesQuery(candidate) || focus === candidate.category)
     .filter((candidate) => {
+      if (input.isGymMember !== undefined) return fitsWorkoutLocation(candidate.name, input.isGymMember, availableEquipment);
       const requirements = requirementsFor(candidate.name);
       return availableEquipment.length === 0 || requirements.every((item) => hasEquipment(availableEquipment, item));
     })
@@ -144,7 +152,7 @@ export function recommendExercises(input: {
       if (daysAgo !== undefined && daysAgo < 3) { score -= 3; reasons.push("直近に実施済み"); }
       else if (daysAgo !== undefined && daysAgo < 7) score -= 1;
       else if (daysAgo === undefined && workouts.length > 0) { score += 0.5; reasons.push("最近の記録にない種目"); }
-      if (availableEquipment.length > 0) { score += 1; if (reasons.length < 3) reasons.push("施設の器具で実施可能"); }
+      if (input.isGymMember !== false && availableEquipment.length > 0) { score += 1; if (reasons.length < 3) reasons.push("施設の器具で実施可能"); }
       return { ...candidate, score, reasons: reasons.slice(0, 2) };
     })
     .sort((first, second) => second.score - first.score || first.name.localeCompare(second.name, "ja"));
