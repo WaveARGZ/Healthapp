@@ -8,6 +8,7 @@ import type { WorkoutSet } from "@/types/workout";
 
 interface WorkoutSetEditorProps {
   exerciseName: string;
+  cardio: boolean;
   sets: WorkoutSet[];
   onUpdateSet: (setId: string, patch: Partial<WorkoutSet>) => void;
   onAddSet: () => void;
@@ -17,12 +18,16 @@ interface WorkoutSetEditorProps {
 
 const keypadQuery = "(max-width: 639px), (pointer: coarse)";
 const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-const setFields = [
+const strengthSetFields = [
   { key: "weightKg", label: "重量", unit: "kg", step: "0.5" },
   { key: "reps", label: "レップ数", unit: "", step: "1" },
 ] as const;
+const cardioSetFields = [
+  { key: "durationMinutes", label: "時間", unit: "分", step: "any" },
+  { key: "distanceKm", label: "距離", unit: "km", step: "any" },
+] as const;
 
-type SetField = (typeof setFields)[number]["key"];
+type SetField = (typeof strengthSetFields | typeof cardioSetFields)[number]["key"];
 type ActiveField = { setId: string; key: SetField; value: string; replaceOnType: boolean };
 
 function subscribeToKeypadMode(change: () => void) {
@@ -43,15 +48,17 @@ function revealSetControl(scroller: HTMLElement, field: HTMLElement) {
   else if (bottom > bounds.bottom - margin) scroller.scrollTop += bottom - bounds.bottom + margin;
 }
 
-export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, onRemoveSet, onBack }: WorkoutSetEditorProps) {
+export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAddSet, onRemoveSet, onBack }: WorkoutSetEditorProps) {
   const keypadMode = useSyncExternalStore(subscribeToKeypadMode, usesNumberPad, () => false);
   const [selected, setSelected] = useState<ActiveField | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const setFields = cardio ? cardioSetFields : strengthSetFields;
+  const [firstField, lastField] = setFields;
   const selectedIndex = sets.findIndex((set) => set.id === selected?.setId);
   const active = keypadMode && selectedIndex >= 0 ? selected : null;
   const activeSetId = active?.setId;
   const activeKey = active?.key;
-  const isFinalField = selectedIndex === sets.length - 1 && activeKey === "reps";
+  const isFinalField = selectedIndex === sets.length - 1 && activeKey === lastField.key;
 
   useLayoutEffect(() => {
     if (!activeSetId || !activeKey) return;
@@ -83,8 +90,8 @@ export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, on
   function applyKey(key: string) {
     if (!active) return;
     if (key === "Enter") {
-      if (active.key === "weightKg") selectField(sets[selectedIndex], "reps");
-      else if (!isFinalField) selectField(sets[selectedIndex + 1], "weightKg");
+      if (active.key === firstField.key) selectField(sets[selectedIndex], lastField.key);
+      else if (!isFinalField) selectField(sets[selectedIndex + 1], firstField.key);
       else {
         // The confirmation key will disappear. Return focus to the last field.
         scrollerRef.current?.querySelector<HTMLButtonElement>('[data-workout-set-field][aria-pressed="true"]')?.focus({ preventScroll: true });
@@ -124,7 +131,9 @@ export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, on
         </p>
         <div className="mt-4 overflow-hidden rounded-lg border border-[var(--line)] bg-white">
           <div className="workout-set-row border-b border-[var(--line)] bg-[var(--sand)] py-2 text-center text-xs font-semibold text-[var(--muted)]">
-            <span>#</span><span>重量 kg</span><span>レップ数</span><span className="sr-only">削除</span>
+            <span>#</span>
+            {setFields.map(({ key, label, unit }) => <span key={key}>{unit ? `${label}（${unit}）` : label}</span>)}
+            <span className="sr-only">削除</span>
           </div>
           <div className="divide-y divide-[var(--line)]">
             {sets.map((set, index) => <div key={set.id} className="workout-set-row py-2">
@@ -133,8 +142,8 @@ export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, on
                 const isActive = active?.setId === set.id && active.key === key;
                 return <WorkoutSetNumberField
                   key={key}
-                  autoFocusTarget={key === "weightKg"}
-                  lastField={key === "reps" && index === sets.length - 1}
+                  autoFocusTarget={key === firstField.key}
+                  lastField={key === lastField.key && index === sets.length - 1}
                   value={set[key]}
                   onCommit={(value) => {
                     if (isActive) setSelected({ ...active, value: String(value ?? ""), replaceOnType: true });
@@ -175,7 +184,7 @@ export function WorkoutSetEditor({ exerciseName, sets, onUpdateSet, onAddSet, on
               onAddSet();
               if (keypadMode) return;
               requestAnimationFrame(() => {
-                const inputs = scrollerRef.current?.querySelectorAll<HTMLInputElement>('input[data-set-weight="true"]');
+                const inputs = scrollerRef.current?.querySelectorAll<HTMLInputElement>("input[data-set-primary]");
                 inputs?.[inputs.length - 1]?.focus();
               });
             }}><Icon name="plus" className="size-4" />セットを1つ追加</Button>

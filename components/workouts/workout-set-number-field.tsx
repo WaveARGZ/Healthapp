@@ -40,6 +40,7 @@ export function WorkoutSetNumberField({ value, onCommit, previousValue, label, c
   function commit(raw: string) {
     if (step === "1" && raw !== "" && !/^\d+$/.test(raw)) return;
     const next = raw === "" ? undefined : Number(raw);
+    if (next !== undefined && (!Number.isFinite(next) || next < 0)) return;
     if (next !== value) onCommit(next);
   }
 
@@ -54,7 +55,7 @@ export function WorkoutSetNumberField({ value, onCommit, previousValue, label, c
       className={`form-input ${fieldClass} touch-manipulation truncate aria-pressed:border-[var(--sage-deep)] aria-pressed:bg-[var(--sage-soft)]`}
       onClick={touchField.onSelect}
     >{touchField.value || <span className="text-[var(--muted)]">0</span>}</button> : <TextInput
-      data-set-weight={autoFocusTarget || undefined}
+      data-set-primary={autoFocusTarget || undefined}
       data-workout-set-field="true"
       type="number"
       min="0"

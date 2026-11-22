@@ -15,26 +15,15 @@ import { bodyMakeClient } from "@/lib/api/client";
 import { formatDate, toDateInputValue, toTimeInputValue } from "@/lib/utils/date";
 import { createId } from "@/lib/utils/id";
 import { summarizeMuscleActivity } from "@/lib/workouts/muscle-activity";
+import { defaultStrengthSetCount, formatWorkoutSet, isCardioExercise, selectDraftExercise, setsFor, type WorkoutExerciseDraft } from "@/lib/workouts/workout-sets";
 import type { WorkoutEntry, WorkoutExercise, WorkoutSet } from "@/types/workout";
 
 function newSet(): WorkoutSet {
-  return { id: createId("set"), weightKg: undefined, reps: undefined, completed: false };
+  return { id: createId("set"), completed: false };
 }
 
-const defaultSetCount = 4;
-
-function newExercise(): WorkoutExercise {
-  return { id: createId("exercise"), name: "", setRecords: Array.from({ length: defaultSetCount }, () => newSet()) };
-}
-
-function setsFor(exercise: WorkoutExercise): WorkoutSet[] {
-  if (Array.isArray(exercise.setRecords)) return exercise.setRecords;
-  return Array.from({ length: exercise.sets ?? 1 }, (_, index) => ({
-    id: `${exercise.id}-legacy-${index}`,
-    weightKg: exercise.weightKg,
-    reps: exercise.reps,
-    completed: false,
-  }));
+function newExercise(): WorkoutExerciseDraft {
+  return { id: createId("exercise"), name: "", setRecords: Array.from({ length: defaultStrengthSetCount }, newSet) };
 }
 
 function volumeFor(exercise: WorkoutExercise): number {
@@ -164,7 +153,7 @@ function WorkoutHistoryCalendar({ history, month, selectedDate, onMonthChange, o
           <p className="break-words font-medium">{exercise.name}</p>
           <div className="mt-1 flex flex-wrap gap-2">
             {setsFor(exercise).map((set, setIndex) => <div key={set.id} className="min-w-0 max-w-full rounded-lg bg-[var(--sand)] px-2 py-1">
-              <p className="metric"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{set.weightKg ?? "—"}kg × {set.reps ?? "—"}回</p>
+              <p className="metric"><span className="mr-2 text-[var(--muted)]">{setIndex + 1}.</span>{formatWorkoutSet(exercise, set)}</p>
               {set.note?.trim() && <p className="whitespace-pre-wrap text-sm text-[var(--ink-soft)]">{set.note}</p>}
             </div>)}
           </div>
@@ -178,7 +167,7 @@ export function WorkoutRecorder() {
   const [performedAt, setPerformedAt] = useState(toDateInputValue());
   const [performedTime, setPerformedTime] = useState("");
   // Stable first-render IDs keep the server HTML and hydrated client inputs identical.
-  const [exercises, setExercises] = useState<WorkoutExercise[]>([{ id: "exercise-initial", name: "", setRecords: Array.from({ length: defaultSetCount }, (_, index) => ({ id: `set-initial-${index + 1}`, weightKg: undefined, reps: undefined, completed: false })) }]);
+  const [exercises, setExercises] = useState<WorkoutExerciseDraft[]>([{ id: "exercise-initial", name: "", setRecords: Array.from({ length: defaultStrengthSetCount }, (_, index) => ({ id: `set-initial-${index + 1}`, completed: false })) }]);
   const [history, setHistory] = useState<WorkoutEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState("");
@@ -218,17 +207,19 @@ export function WorkoutRecorder() {
   }, [activeTab, selectedDate]);
 
   async function loadHistory() { setHistory(await bodyMakeClient.getWorkouts()); }
-  function updateExercise(id: string, patch: Partial<WorkoutExercise>) { setExercises((current) => current.map((exercise) => exercise.id === id ? { ...exercise, ...patch } : exercise)); }
-  function updateSet(exerciseId: string, setId: string, patch: Partial<WorkoutSet>) {
-    setExercises((current) => current.map((exercise) => exercise.id !== exerciseId ? exercise : { ...exercise, setRecords: setsFor(exercise).map((set) => set.id === setId ? { ...set, ...patch } : set) }));
+  function selectExercise(id: string, name: string, category: WorkoutExercise["category"]) {
+    setExercises((current) => current.map((exercise) => exercise.id === id ? selectDraftExercise(exercise, { name, category }, newSet) : exercise));
   }
-  function addSet(exerciseId: string) { setExercises((current) => current.map((exercise) => exercise.id === exerciseId ? { ...exercise, setRecords: [...setsFor(exercise), newSet()] } : exercise)); }
-  function removeSet(exerciseId: string, setId: string) { setExercises((current) => current.map((exercise) => { const sets = setsFor(exercise); return exercise.id === exerciseId && sets.length > 1 ? { ...exercise, setRecords: sets.filter((set) => set.id !== setId) } : exercise; })); }
+  function updateSet(exerciseId: string, setId: string, patch: Partial<WorkoutSet>) {
+    setExercises((current) => current.map((exercise) => exercise.id !== exerciseId ? exercise : { ...exercise, setRecords: exercise.setRecords.map((set) => set.id === setId ? { ...set, ...patch } : set) }));
+  }
+  function addSet(exerciseId: string) { setExercises((current) => current.map((exercise) => exercise.id === exerciseId ? { ...exercise, setRecords: [...exercise.setRecords, newSet()] } : exercise)); }
+  function removeSet(exerciseId: string, setId: string) { setExercises((current) => current.map((exercise) => exercise.id === exerciseId && exercise.setRecords.length > 1 ? { ...exercise, setRecords: exercise.setRecords.filter((set) => set.id !== setId) } : exercise)); }
   function removeExercise(id: string) { setExercises((current) => current.length > 1 ? current.filter((exercise) => exercise.id !== id) : current); }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const validExercises = exercises.filter((exercise) => exercise.name.trim());
+    const validExercises = exercises.filter((exercise) => exercise.name.trim()).map(({ id, name, category, setRecords }) => ({ id, name, category, setRecords }));
     if (!validExercises.length) return;
     setIsSaving(true);
     setNotice("");
@@ -281,7 +272,8 @@ export function WorkoutRecorder() {
       </div>
       <div className="space-y-4">
         {exercises.map((exercise, index) => {
-          const sets = setsFor(exercise);
+          const sets = exercise.setRecords;
+          const cardio = isCardioExercise(exercise);
           const completedCount = sets.filter((set) => set.completed).length;
           return <section key={exercise.id} className="overflow-hidden rounded-lg border border-[var(--line)] bg-white">
             <div className="flex min-h-14 items-center justify-between border-b border-[var(--line)] bg-[var(--sand)] pl-4 pr-2">
@@ -290,13 +282,13 @@ export function WorkoutRecorder() {
             </div>
             <div className="px-3 py-5 sm:px-5">
               <p className={`mt-2 break-words text-sm font-bold ${exercise.name ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}>{exercise.name || "種目を選んでください"}</p>
-              <ExercisePicker date={performedAt} startWithEquipmentSetup={index === 0} exerciseName={exercise.name} sets={sets} onSelect={(name, category) => updateExercise(exercise.id, { name, category: category ?? null })} onUpdateSet={(setId, patch) => updateSet(exercise.id, setId, patch)} onAddSet={() => addSet(exercise.id)} onRemoveSet={(setId) => removeSet(exercise.id, setId)} />
+              <ExercisePicker date={performedAt} startWithEquipmentSetup={index === 0} exerciseName={exercise.name} cardio={cardio} sets={sets} onSelect={(name, category) => selectExercise(exercise.id, name, category ?? null)} onUpdateSet={(setId, patch) => updateSet(exercise.id, setId, patch)} onAddSet={() => addSet(exercise.id)} onRemoveSet={(setId) => removeSet(exercise.id, setId)} />
               {exercise.name && <>
-                <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm leading-6 text-[var(--muted)]"><span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span><span>完了 {completedCount} / {sets.length}</span></div>
+                <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm leading-6 text-[var(--muted)]">{!cardio && <span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span>}<span>完了 {completedCount} / {sets.length}</span></div>
                 <div aria-label={`${exercise.name}のセット内容`} className="divide-y divide-[var(--line)] overflow-hidden rounded-lg border border-[var(--line)]">{sets.map((set, setIndex) => <div key={set.id} className="px-3">
                   <div className="flex min-h-14 items-center gap-3">
                     <span className="metric w-7 shrink-0 text-sm font-semibold text-[var(--muted)]">{setIndex + 1}</span>
-                    <span className="metric min-w-0 flex-1 text-sm font-semibold text-[var(--ink)]">{set.weightKg ?? "—"} kg × {set.reps ?? "—"} 回</span>
+                    <span className="metric min-w-0 flex-1 text-sm font-semibold text-[var(--ink)]">{formatWorkoutSet(exercise, set)}</span>
                     <button type="button" onClick={() => updateSet(exercise.id, set.id, { completed: !set.completed })} aria-pressed={set.completed} aria-label={`${setIndex + 1}セット目の完了`} className={`grid size-11 shrink-0 place-items-center rounded border ${set.completed ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[var(--line)] text-[var(--muted)]"}`}><Icon name="check" className="size-5" /></button>
                   </div>
                   {set.note?.trim() && <p className="pb-3 pl-10 text-sm whitespace-pre-wrap text-[var(--ink-soft)]">{set.note}</p>}
