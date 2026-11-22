@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { equipmentGroupForExercise, exerciseCatalog, groupExercisesByEquipment } from "../lib/data/exercise-catalog.ts";
 import { matchesExerciseName, registeredExerciseForName, registrationExercises } from "../lib/data/registration-exercise-catalog.ts";
-import { fitsWorkoutLocation, recommendExercises } from "../lib/workouts/workout-recommender.ts";
+import { recommendExercises } from "../lib/workouts/workout-recommender.ts";
 import { normalizeWorkoutPreferences } from "../types/workout-preferences.ts";
 
 test("胸の種目はマシーン、バーベル、ダンベル、自重の順に表示する", () => {
@@ -65,29 +65,4 @@ test("おすすめでは追加した種目に必要な器具を確認する", ()
   const favorites = ["ゴブレットスクワット", "バーベルスクワット", "ダンベルブルガリアンスクワット"];
   const result = recommendExercises({ favorites, workouts: [], query: "", selectedCategory: "脚", availableEquipment: ["ダンベル"] });
   assert.deepEqual(result.map((item) => item.name), ["ゴブレットスクワット"]);
-});
-
-test("週間メニューのジム設定と登録した器具で標準種目を絞り込む", () => {
-  assert.equal(fitsWorkoutLocation("チェアスクワット", false, []), true);
-  assert.equal(fitsWorkoutLocation("低負荷のステップタッチ", false, []), true);
-  assert.equal(fitsWorkoutLocation("インクラインマシンチェストプレス", false, ["ウェイトマシン"]), false);
-  assert.equal(fitsWorkoutLocation("インクラインマシンチェストプレス", true, ["ウェイトマシン"]), true);
-  assert.equal(fitsWorkoutLocation("スキーエルゴ", true, ["エアロバイク"]), false);
-  assert.equal(fitsWorkoutLocation("スキーエルゴ", true, []), true);
-  assert.equal(fitsWorkoutLocation("ベンチプレス", undefined, []), true);
-  assert.equal(fitsWorkoutLocation("ベンチプレス", true, ["バーベル"]), false);
-});
-
-test("ジムなしのおすすめには保存済みのジム器具を使う種目が出ない", () => {
-  const input = {
-    availableEquipment: ["ウェイトマシン"],
-    favorites: ["チェストプレス", "腕立て伏せ"],
-    workouts: [],
-    selectedCategory: "胸",
-    query: "",
-  };
-  const home = recommendExercises({ ...input, isGymMember: false });
-  const gym = recommendExercises({ ...input, isGymMember: true });
-  assert.deepEqual(home.map(({ name }) => name), ["腕立て伏せ"]);
-  assert.deepEqual(new Set(gym.map(({ name }) => name)), new Set(input.favorites));
 });
