@@ -3,6 +3,7 @@ import test from "node:test";
 import { equipmentGroupForExercise, exerciseCatalog, groupExercisesByEquipment } from "../lib/data/exercise-catalog.ts";
 import { matchesExerciseName, registeredExerciseForName, registrationExercises } from "../lib/data/registration-exercise-catalog.ts";
 import { recommendExercises } from "../lib/workouts/workout-recommender.ts";
+import { defaultStrengthSetCount, formatWorkoutSet, isCardioExercise, selectDraftExercise, setsFor } from "../lib/workouts/workout-sets.ts";
 import { normalizeWorkoutPreferences } from "../types/workout-preferences.ts";
 
 test("胸の種目はマシーン、バーベル、ダンベル、自重の順に表示する", () => {
@@ -65,4 +66,31 @@ test("おすすめでは追加した種目に必要な器具を確認する", ()
   const favorites = ["ゴブレットスクワット", "バーベルスクワット", "ダンベルブルガリアンスクワット"];
   const result = recommendExercises({ favorites, workouts: [], query: "", selectedCategory: "脚", availableEquipment: ["ダンベル"] });
   assert.deepEqual(result.map((item) => item.name), ["ゴブレットスクワット"]);
+});
+
+test("有酸素は1行で始まり、種目を切り替えても各入力の下書きを保持する", () => {
+  let nextId = 0;
+  const createSet = () => ({ id: `set-${++nextId}`, completed: false });
+  const strengthSets = Array.from({ length: defaultStrengthSetCount }, createSet);
+  strengthSets[0].weightKg = 30;
+  const strength = { id: "exercise", name: "ベンチプレス", category: "胸", setRecords: strengthSets };
+  const cardioSelection = { name: "トレッドミル", category: "有酸素" };
+  const cardio = selectDraftExercise(strength, cardioSelection, createSet);
+  assert.equal(cardio.setRecords.length, 1);
+  assert.equal(cardio.setRecords[0].weightKg, undefined);
+  cardio.setRecords[0].durationMinutes = 12.5;
+  cardio.setRecords.push({ ...createSet(), distanceKm: 2.75 });
+  const backToStrength = selectDraftExercise(cardio, { name: strength.name, category: strength.category }, createSet);
+  assert.deepEqual(backToStrength.setRecords, strengthSets);
+  const backToCardio = selectDraftExercise(backToStrength, cardioSelection, createSet);
+  assert.deepEqual(backToCardio.setRecords, cardio.setRecords);
+});
+
+test("有酸素の履歴は分とkmを表示し、以前の重量とレップ数は旧単位で表示する", () => {
+  const stored = { id: "exercise", name: "ランニング", setRecords: [{ id: "recorded", durationMinutes: 12.5, distanceKm: 2.75, completed: true }] };
+  assert.equal(isCardioExercise(stored), true);
+  assert.equal(isCardioExercise({ name: "自分の運動", category: "有酸素" }), true);
+  assert.equal(formatWorkoutSet(stored, setsFor(JSON.parse(JSON.stringify(stored)))[0]), "12.5 分・2.75 km");
+  const legacy = { id: "legacy", name: "ランニング", weightKg: 30, reps: 8 };
+  assert.equal(formatWorkoutSet(legacy, setsFor(legacy)[0]), "30 kg × 8 回");
 });
