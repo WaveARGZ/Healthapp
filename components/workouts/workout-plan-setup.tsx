@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/ui/form-fields";
+import { ExerciseMotionIcon } from "@/components/workouts/exercise-motion-icon";
 import { bodyMakeClient } from "@/lib/api/client";
 import { loadWorkoutPreferences, storeWorkoutPreferences } from "@/lib/api/workout-preferences-client";
 import { facilityEquipmentOptions } from "@/lib/data/facility-equipment-options";
@@ -181,7 +182,7 @@ export function WorkoutPlanSetup({ date, onSave }: { date: string; onSave: () =>
     </div>}
     {week.length > 0 && <div className="mt-5"><p className="mb-2 text-xs font-bold text-[var(--ink)]">今週の予定</p><div className="flex gap-1.5 overflow-x-auto pb-1">{week.map((day) => <div key={day.date} className={`min-h-16 min-w-16 flex-1 rounded-lg px-1 py-2 text-center ${day.date === date ? "bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "bg-[var(--sand)] text-[var(--muted)]"}`}><span className="block text-[10px] font-bold">{weekdayLabels[day.weekday]}</span><span className="mt-1 block break-words text-[10px] leading-4">{day.label}</span></div>)}</div></div>}
     {profile && <div className="mt-5 rounded-lg bg-[var(--sand)] p-4"><p className="text-xs font-bold text-[var(--ink)]">記録日のおすすめ <span className="font-normal text-[var(--muted)]">{selectedDay?.label}</span></p>
-      {suggestions.length ? <ul className="mt-2 space-y-1 text-sm font-semibold leading-6 text-[var(--ink)]">{suggestions.map((item) => <li key={item.name}>・{item.name}</li>)}</ul>
+      {suggestions.length ? <ul className="mt-2 space-y-2 text-sm font-semibold leading-6 text-[var(--ink)]">{suggestions.map((item) => <li key={item.name} className="flex items-center gap-3"><ExerciseMotionIcon name={item.name} category={item.category} className="h-10 w-12" /><span className="min-w-0 break-words">{item.name}</span></li>)}</ul>
         : <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{selectedDay?.isRest ? "休みの日です。" : preferences.favoriteExercises.length ? "この部位とジム設定に合うお気に入り種目がありません。" : "お気に入り種目を登録すると、ここに候補が出ます。"}</p>}
       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">候補は登録済みのお気に入りから選びます。セット数や負荷は記録時に調整できます。</p>
     </div>}

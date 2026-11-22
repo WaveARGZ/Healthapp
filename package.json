@@ -31,6 +31,7 @@
     "test:weekly-workout-advice": "node --experimental-strip-types --test scripts/test-weekly-workout-advice.mjs",
     "test:exercise-shorts": "node --experimental-strip-types --test scripts/test-exercise-short-videos.mjs",
     "test:exercise-selection": "node --experimental-strip-types --test scripts/test-exercise-selection.mjs scripts/test-gym-exercise-selection.mjs",
+    "test:exercise-motions": "node --experimental-strip-types --test scripts/test-exercise-motions.mjs",
     "test:environment-build": "node scripts/test-environment-build.mjs",
     "test:team-runtime": "node --test scripts/test-team-runtime.mjs",
     "test:photo-submission": "node --test scripts/food-ai/submission-client.test.mjs scripts/food-ai/public-photo-flow.test.mjs scripts/food-ai/photo-meal-flow.test.mjs scripts/food-ai/photo-history.test.mjs scripts/food-ai/jpeg-metadata.test.mjs scripts/food-ai/streaming-upload.test.mjs",
