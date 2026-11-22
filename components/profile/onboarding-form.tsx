@@ -38,18 +38,23 @@ export function OnboardingForm() {
     if (isCloudConfigured && !isFirebaseSelected && !hasCloudSession()) { router.replace("/login"); return; }
     void bodyMakeClient.getProfile().then((profile) => {
       if (!profile) return;
-      setName(profile.name);
+      setName(typeof profile.name === "string" ? profile.name : "");
       setAge(profile.age?.toString() ?? "");
       setGender(profile.gender ?? "prefer-not-to-say");
       setHeightCm(profile.heightCm?.toString() ?? "");
       setWeightKg(profile.startingWeightKg?.toString() ?? "");
-      setGoal(profile.goal);
+      if (Object.hasOwn(fitnessGoalLabels, profile.goal)) setGoal(profile.goal);
     }).catch(() => setNotice("プロフィールを読み込めませんでした。通信状態とログインを確認してください。"))
       .finally(() => setIsLoading(false));
   }, [router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setNotice("名前を入力してください。");
+      return;
+    }
     setIsSaving(true);
     setNotice("");
     try {
@@ -58,7 +63,7 @@ export function OnboardingForm() {
       const current = isFirebaseSelected ? null : await bodyMakeClient.getProfile();
       const profile: UserProfile = {
         id: current?.id ?? createId("user"),
-        name: name.trim(),
+        name: trimmedName,
         age: age ? Number(age) : undefined,
         gender,
         heightCm: heightCm ? Number(heightCm) : undefined,

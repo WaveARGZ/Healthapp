@@ -8,6 +8,7 @@ import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { AuthFrame, GoogleMark, StorageNote } from "@/components/auth/auth-frame";
 import { hasDemoSession, setDemoSession } from "@/lib/auth/demo-session";
 import { beginCloudSignIn, hasCloudSession } from "@/lib/auth/cognito-session";
+import { getProfileDestination, profileSetupPath } from "@/lib/auth/profile-destination";
 import { cloudConfig, isCloudConfigured } from "@/lib/cloud/config";
 import { isFirebaseSelected } from "@/lib/firebase/config";
 import { FirebaseAuthPage } from "@/components/auth/firebase-auth-page";
@@ -23,13 +24,21 @@ export function AuthPage({ mode }: AuthPageProps) {
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
-    if (!isFirebaseSelected && isLogin && (isCloudConfigured ? hasCloudSession() : hasDemoSession())) router.replace("/dashboard");
+    if (isFirebaseSelected || !isLogin) return;
+    if (isCloudConfigured) {
+      if (hasCloudSession()) router.replace("/dashboard");
+      return;
+    }
+    if (!hasDemoSession()) return;
+    let active = true;
+    void getProfileDestination().then((destination) => { if (active) router.replace(destination); });
+    return () => { active = false; };
   }, [isLogin, router]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setDemoSession(isLogin ? rememberLogin : true);
-    router.push(isLogin ? "/dashboard" : "/onboarding?from=signup");
+    router.push(isLogin ? await getProfileDestination() : profileSetupPath);
   }
 
   if (isFirebaseSelected) return <FirebaseAuthPage />;

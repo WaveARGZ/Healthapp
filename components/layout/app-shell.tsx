@@ -10,13 +10,14 @@ import { hasCloudSession } from "@/lib/auth/cognito-session";
 import { isCloudConfigured } from "@/lib/cloud/config";
 import { isFirebaseConfigured, isFirebaseSelected } from "@/lib/firebase/config";
 import { watchFirebaseUser } from "@/lib/auth/firebase-session";
-import { assertSharedTestAccess } from "@/lib/auth/shared-test-access";
+import { firebaseLoginDestination } from "@/lib/auth/firebase-login-destination";
+import { profileSetupPath, type ProfileDestination } from "@/lib/auth/profile-destination";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname().replace(/\/$/, "");
   const recording = ["/workouts", "/meals", "/weight"].includes(pathname);
-  const [firebaseStatus, setFirebaseStatus] = useState<"checking" | "allowed" | "denied">(isFirebaseConfigured ? "checking" : "denied");
+  const [firebaseStatus, setFirebaseStatus] = useState<"checking" | "denied" | ProfileDestination>(isFirebaseConfigured ? "checking" : "denied");
   const ready = useSyncExternalStore(() => () => {}, () => isFirebaseSelected || !isCloudConfigured || hasCloudSession(), () => !isCloudConfigured);
 
   useEffect(() => {
@@ -30,8 +31,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         return;
       }
       setFirebaseStatus("checking");
-      void assertSharedTestAccess(user).then(() => {
-        if (active && generation === current) setFirebaseStatus("allowed");
+      void firebaseLoginDestination(user).then((destination) => {
+        if (active && generation === current) setFirebaseStatus(destination);
       }).catch(() => {
         if (active && generation === current) setFirebaseStatus("denied");
       });
@@ -40,10 +41,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isFirebaseSelected ? firebaseStatus === "denied" : !ready) router.replace("/login");
+    if (isFirebaseSelected && firebaseStatus === profileSetupPath) router.replace(profileSetupPath);
+    else if (isFirebaseSelected ? firebaseStatus === "denied" : !ready) router.replace("/login");
   }, [firebaseStatus, ready, router]);
 
-  if (!ready || (isFirebaseSelected && firebaseStatus !== "allowed")) return <main className="setup-page"><div className="setup-content"><Logo /><h1 className="setup-title mt-8">ログイン確認</h1><p className="mt-4 text-sm text-[var(--muted)]">ログイン状態を確認しています…</p></div></main>;
+  if (!ready || (isFirebaseSelected && firebaseStatus !== "/dashboard")) return <main className="setup-page"><div className="setup-content"><Logo /><h1 className="setup-title mt-8">ログイン確認</h1><p className="mt-4 text-sm text-[var(--muted)]">ログイン状態を確認しています…</p></div></main>;
   return (
     <MobileViewport>
       <a href="#main-content" className="sr-only z-50 bg-white p-3 focus:not-sr-only focus:fixed">本文へ移動</a>

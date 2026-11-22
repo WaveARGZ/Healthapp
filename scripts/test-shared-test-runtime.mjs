@@ -13,7 +13,7 @@ const sharedEnvironment = {
 
 function load(relativePath, environment = {}, modules = {}, globals = {}) {
   const source = ts.transpileModule(readFileSync(new URL(relativePath, root), "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const exports = {};
   vm.runInNewContext(source, {
@@ -237,23 +237,93 @@ test("redirect flags tolerate restricted browser storage without storing credent
   assert.doesNotThrow(() => restricted.markGoogleRedirectPending(true));
 });
 
+function profileDestination(getProfile) {
+  return load("lib/auth/profile-destination.ts", {}, {
+    "@/lib/api/client": { bodyMakeClient: { getProfile } },
+    "@/types/user": load("types/user.ts"),
+  });
+}
+
+test("profile setup is required until a usable name and goal are saved", async () => {
+  let savedProfile = null;
+  const { getProfileDestination, profileSetupPath } = profileDestination(async () => savedProfile);
+  for (const profile of [null, {}, { name: "　 ", goal: "maintain" }, { name: "テスト", goal: "constructor" }]) {
+    savedProfile = profile;
+    assert.equal(await getProfileDestination(), profileSetupPath);
+  }
+  // A returning user may have skipped all optional body information.
+  savedProfile = { name: "テスト", goal: "maintain" };
+  assert.equal(await getProfileDestination(), "/dashboard");
+
+  const unavailable = profileDestination(async () => { throw new Error("unavailable"); });
+  await assert.rejects(unavailable.getProfileDestination(), /unavailable/);
+});
+
 test("login checks access and profile concurrently but never opens records on denied access", async () => {
   let allow;
   let profileReads = 0;
   const access = new Promise((resolve) => { allow = resolve; });
   const destination = load("lib/auth/firebase-login-destination.ts", {}, {
     "@/lib/auth/shared-test-access": { assertSharedTestAccess: () => access },
-    "@/lib/api/client": { bodyMakeClient: { getProfile: async () => { profileReads++; return { id: "synthetic" }; } } },
+    "@/lib/auth/profile-destination": profileDestination(async () => {
+      profileReads++;
+      return { name: "テスト", goal: "maintain" };
+    }),
   });
   const result = destination.firebaseLoginDestination({});
   assert.equal(profileReads, 1, "profile request starts before the access request finishes");
   allow();
   assert.equal(await result, "/dashboard");
-  for (const profile of [null, { id: "synthetic" }]) {
+  for (const profile of [null, { name: "テスト", goal: "maintain" }]) {
     const denied = load("lib/auth/firebase-login-destination.ts", {}, {
       "@/lib/auth/shared-test-access": { assertSharedTestAccess: async () => { throw new Error("denied"); } },
-      "@/lib/api/client": { bodyMakeClient: { getProfile: async () => profile } },
+      "@/lib/auth/profile-destination": profileDestination(async () => profile),
     });
     await assert.rejects(denied.firebaseLoginDestination({}), /denied/);
+  }
+});
+
+test("a Firebase session restored on a records URL goes to setup before rendering records", async () => {
+  const setupPath = "/onboarding?from=signup";
+  for (const destination of [setupPath, "/dashboard"]) {
+    const rendered = (type, props) => ({ type, props });
+    const router = { replace: (path) => redirects.push(path) };
+    const redirects = [];
+    const effects = [];
+    let authChanged;
+    let status;
+    let resolveDestination;
+    const checking = new Promise((resolve) => { resolveDestination = resolve; });
+    const { AppShell } = load("components/layout/app-shell.tsx", {}, {
+      "react/jsx-runtime": { jsx: rendered, jsxs: rendered },
+      "next/navigation": { useRouter: () => router, usePathname: () => "/dashboard/" },
+      react: {
+        useState: (initial) => [status ?? initial, (value) => { status = value; }],
+        useEffect: (effect) => effects.push(effect),
+        useSyncExternalStore: () => true,
+      },
+      "@/components/layout/bottom-nav": { BottomNav: "BottomNav" },
+      "@/components/ui/page-header": { AppTopBar: "AppTopBar" },
+      "@/components/layout/mobile-viewport": { MobileViewport: "MobileViewport" },
+      "@/components/ui/logo": { Logo: "Logo" },
+      "@/lib/auth/cognito-session": {},
+      "@/lib/cloud/config": { isCloudConfigured: false },
+      "@/lib/firebase/config": { isFirebaseConfigured: true, isFirebaseSelected: true },
+      "@/lib/auth/firebase-session": { watchFirebaseUser: (callback) => { authChanged = callback; return () => {}; } },
+      "@/lib/auth/firebase-login-destination": { firebaseLoginDestination: () => checking },
+      "@/lib/auth/profile-destination": { profileSetupPath: setupPath },
+    });
+    assert.equal(AppShell({ children: "records" }).type, "main");
+    const unsubscribe = effects[0]();
+    authChanged({ uid: "synthetic" });
+    assert.equal(AppShell({ children: "records" }).type, "main");
+    resolveDestination(destination);
+    await new Promise(setImmediate);
+    effects.length = 0;
+    const view = AppShell({ children: "records" });
+    effects[1]();
+    assert.equal(view.type, destination === setupPath ? "main" : "MobileViewport");
+    assert.deepEqual(redirects, destination === setupPath ? [setupPath] : []);
+    unsubscribe();
   }
 });

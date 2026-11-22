@@ -7,6 +7,7 @@ import { Logo } from "@/components/ui/logo";
 import { hasCloudSession } from "@/lib/auth/cognito-session";
 import { hasDemoSession } from "@/lib/auth/demo-session";
 import { watchFirebaseUser } from "@/lib/auth/firebase-session";
+import { getProfileDestination } from "@/lib/auth/profile-destination";
 import { isCloudConfigured, isSharedTestEnvironment } from "@/lib/cloud/config";
 import { isFirebaseConfigured, isFirebaseSelected } from "@/lib/firebase/config";
 import styles from "./landing-page.module.css";
@@ -24,7 +25,14 @@ export function LandingPage() {
       if (isFirebaseConfigured) return watchFirebaseUser((user) => { if (user) router.replace("/dashboard"); });
       return;
     }
-    if (isCloudConfigured ? hasCloudSession() : hasDemoSession()) router.replace("/dashboard");
+    if (isCloudConfigured) {
+      if (hasCloudSession()) router.replace("/dashboard");
+      return;
+    }
+    if (!hasDemoSession()) return;
+    let active = true;
+    void getProfileDestination().then((destination) => { if (active) router.replace(destination); });
+    return () => { active = false; };
   }, [router]);
 
   return (
