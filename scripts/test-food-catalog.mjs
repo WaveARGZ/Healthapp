@@ -37,6 +37,14 @@ assert.ok(searchFoodGroups(foods, "たまごやき", "すべて").groups.some((g
 assert.ok(searchFoodGroups(foods, "豚カツ", "すべて").groups.every((group) => group.name.includes("とんかつ")));
 assert.ok(searchFoodGroups(foods, "鶏もも肉", "すべて").groups.some((group) => group.name.includes("にわとり") && group.name.includes("もも")));
 assert.equal(searchFoodGroups(foods, "焼鮭", "すべて").groups[0]?.name, "焼き鮭");
+for (const spelling of ["やきしゃけ", "やきざけ", "焼きしゃけ"]) {
+  assert.equal(searchFoodGroups(foods, spelling, "すべて").groups[0]?.name, "焼き鮭");
+}
+for (const spelling of ["豚汁", "とんじる", "ぶたじる"]) {
+  const result = searchFoodGroups(foods, spelling, "すべて");
+  assert.ok(result.groups.some((group) => group.name.includes("とん汁")));
+  assert.ok(result.groups.every((group) => !group.name.includes("ブラジル")), "料理名を無関係な食材の誤字候補へ置き換えない");
+}
 assert.equal(searchFoodGroups([curated.find((food) => food.id === "salad-chicken")], "サラダチキン", "すべて").groups.length, 0);
 
 const chickenAndEgg = searchFoodGroups(foods, "鶏肉と卵の炒め物", "すべて");

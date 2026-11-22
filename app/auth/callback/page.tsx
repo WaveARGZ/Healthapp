@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { completeCloudSignIn } from "@/lib/auth/cognito-session";
-import { bodyMakeClient } from "@/lib/api/client";
+import { getProfileDestination } from "@/lib/auth/profile-destination";
 import { Logo } from "@/components/ui/logo";
 
 export default function AuthCallbackPage() {
@@ -13,7 +13,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error")) { queueMicrotask(() => setError("認証がキャンセルされたか、完了しませんでした。もう一度お試しください。")); return; }
-    void completeCloudSignIn(params).then(() => bodyMakeClient.getProfile()).then((profile) => router.replace(profile ? "/dashboard" : "/onboarding?from=signup")).catch((reason) => setError(reason instanceof Error ? reason.message : "認証に失敗しました。"));
+    void completeCloudSignIn(params).then(getProfileDestination).then((destination) => router.replace(destination)).catch((reason) => setError(reason instanceof Error ? reason.message : "認証に失敗しました。"));
   }, [router]);
   return <main className="setup-page"><div className="setup-content">
     <Logo />

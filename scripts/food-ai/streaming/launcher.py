@@ -7,12 +7,11 @@ import signal
 import subprocess
 import sys
 import threading
-from datetime import datetime, timezone
-import base64
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
-from drive_store import DriveStore, encoded, sha
+from drive_store import DriveStore, encoded
+from feedback_review import open_next_review, commit_review
 from hybrid import model_revoked
 
 HERE = Path(__file__).resolve().parent
@@ -58,78 +57,24 @@ def watch(process):
             MODEL = None
 
 
-def app_training_consent(record):
-    """Use the same explicit consent contract before displaying a private photo."""
-    consent = record.get("consent", {})
-    if not isinstance(consent, dict) or consent.get("granted") is not True or consent.get("version") != "food-photo-training-v2" or consent.get("purpose") != "food-recognition":
-        return False
-    at = consent.get("at")
-    if not isinstance(at, str) or not at:
-        return False
-    try:
-        datetime.fromisoformat(at.replace("Z", "+00:00"))
-    except ValueError:
-        return False
-    return True
-
-
 def next_review():
     global REVIEW
-    drive = DriveStore()
-    folders = drive.layout()
-    revocations = drive.json(folders["logs"], "revocations.json", {"ids": [], "imageSha256": []})
-    for kind in ("app_inbox", "auto_inbox"):
-        for file in drive.children(folders[kind]):
-            if not file["name"].endswith(".json"):
-                continue
-            record = json.loads(drive.read(file["id"], 2_500_000))
-            if record.get("review", {}).get("decision") in {"accepted", "rejected"} or record.get("revoked"):
-                continue
-            if record.get("id") in revocations.get("ids", []) or record.get("imageSha256") in revocations.get("imageSha256", []):
-                continue
-            if kind == "app_inbox" and (record.get("source") not in {"app_user_confirmed", "app_user_corrected"} or not app_training_consent(record)):
-                continue
-            raw = drive.read(record["imageFileId"], 5_000_000)
-            if sha(raw) != record["imageSha256"]:
-                raise ValueError("Review image hash mismatch")
-            REVIEW = (folders[kind], file, record)
-            catalog = json.loads((HERE.parents[2] / "lib/food-ai/test-photo-labels.json").read_text())
-            names = {food["id"]: food["name"] for food in json.loads((HERE.parents[2] / "lib/data/food-library.json").read_text())["foods"]}
-            return {"id": record["id"], "hash": record["imageSha256"], "image": base64.b64encode(raw).decode(),
-                "labels": [[key, names.get(key, key)] for key, _ in catalog]}
-    REVIEW = None
-    return {"empty": True}
+    with LOCK:
+        if PROCESS and PROCESS.poll() is None:
+            raise ValueError("Review unavailable while training")
+        REVIEW = None
+        result, REVIEW = open_next_review()
+        return result
 
 
 def save_review(options):
-    if REVIEW is None or (PROCESS and PROCESS.poll() is None):
-        raise ValueError("Review unavailable while training")
-    folder, file, original = REVIEW
-    if options.get("id") != original["id"] or options.get("hash") != original["imageSha256"]:
-        raise ValueError("Stale review")
-    drive = DriveStore()
-    record = json.loads(drive.read(file["id"], 2_500_000))
-    if record != original or sha(drive.read(record["imageFileId"], 5_000_000)) != record["imageSha256"]:
-        raise ValueError("Image/record changed during review")
-    if record.get("source", "").startswith("app_") and not app_training_consent(record):
-        raise ValueError("Explicit photo training consent is missing")
-    labels = dict(json.loads((HERE.parents[2] / "lib/food-ai/test-photo-labels.json").read_text()))
-    label, decision = options.get("foodId"), options.get("decision")
-    if decision not in {"accepted", "rejected"} or (decision == "accepted" and label not in labels):
-        raise ValueError("Invalid review choice")
-    if decision == "accepted":
-        record.setdefault("submittedFoodId", record["confirmedFoodId"])
-        if "confirmedFoodName" in record:
-            record.setdefault("submittedFoodName", record["confirmedFoodName"])
-        names = {food["id"]: food["name"] for food in json.loads((HERE.parents[2] / "lib/data/food-library.json").read_text())["foods"]}
-        record["confirmedFoodId"] = label
-        record["confirmedFoodName"] = names.get(label, label)
-        if record["source"].startswith("app_"):
-            record["source"] = "app_user_confirmed" if (record.get("predictedFoodIds") or [None])[0] == label else "app_user_corrected"
-    record["review"] = {"decision": decision, "method": "human", "reviewer": "Local owner visual review",
-        "reviewedAt": datetime.now(timezone.utc).isoformat(), "imageSha256": record["imageSha256"], "foodId": label,
-        "confidence": 1.0, "notes": "Owner explicitly inspected the image in the local review UI."}
-    drive.put_json(folder, file["name"], record, replace=True)
+    global REVIEW
+    with LOCK:
+        if REVIEW is None or PROCESS and PROCESS.poll() is None:
+            raise ValueError("Review unavailable while training")
+        result = commit_review(REVIEW, options, actor="human")
+        REVIEW = None
+        return result
 
 
 def launch(options):
