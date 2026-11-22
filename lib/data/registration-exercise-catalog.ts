@@ -25,6 +25,7 @@ const menu: Record<WorkoutExerciseCategory, Partial<Record<ExerciseEquipmentGrou
   "胸": {
     "マシーン種目": [
       exercise("チェストプレス", ["ウェイトマシン"]),
+      exercise("インクラインマシンチェストプレス", ["ウェイトマシン"]),
       exercise("ペックフライ", ["ウェイトマシン"], { previousName: "ペックデックフライ", aliases: ["バタフライ", "ペックデック"] }),
       exercise("ケーブルフライ", ["ケーブルマシン"], { aliases: ["ケーブルクロスオーバー"] }),
       exercise("スミスマシンベンチプレス", ["スミスマシン", "ベンチ"]),
@@ -156,6 +157,7 @@ const menu: Record<WorkoutExerciseCategory, Partial<Record<ExerciseEquipmentGrou
     ],
     "その他・自重": [
       exercise("自重スクワット"),
+      exercise("チェアスクワット", [], { aliases: ["椅子スクワット"] }),
       exercise("ランジ"),
       exercise("リバースランジ"),
       exercise("ステップアップ"),
@@ -170,6 +172,7 @@ const menu: Record<WorkoutExerciseCategory, Partial<Record<ExerciseEquipmentGrou
       exercise("エアロバイク", ["エアロバイク"], { aliases: ["フィットネスバイク"] }),
       exercise("クロストレーナー", ["クロストレーナー"], { aliases: ["エリプティカル"] }),
       exercise("ローイングマシン", ["ローイングマシン"]),
+      exercise("スキーエルゴ", ["スキーエルゴ"]),
     ],
     "その他・自重": [
       exercise("ウォーキング"),
@@ -178,6 +181,7 @@ const menu: Record<WorkoutExerciseCategory, Partial<Record<ExerciseEquipmentGrou
       exercise("ランニング"),
       exercise("その場足踏み"),
       exercise("階段昇降"),
+      exercise("低負荷のステップタッチ", [], { aliases: ["サイドステップ"] }),
       exercise("縄跳び", ["縄跳び"], { aliases: ["なわとび"] }),
     ],
   },

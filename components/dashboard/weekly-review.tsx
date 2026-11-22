@@ -16,6 +16,7 @@ interface WeeklyReviewProps {
   workouts: WorkoutEntry[];
   meals: MealEntry[];
   burns: DailyBurnEntry[];
+  restingOn: (date: string) => number | null;
   today: string;
   goal: FitnessGoal | null;
   loading: boolean;
@@ -38,7 +39,7 @@ function balanceColor(value: number | null): string {
   return value === null || value === 0 ? "var(--ink)" : value > 0 ? "#9c5149" : "#4d6875";
 }
 
-export function WeeklyReview({ workouts, meals, burns, today, goal, loading, workoutUnavailable, mealUnavailable, burnUnavailable, profileUnavailable }: WeeklyReviewProps) {
+export function WeeklyReview({ workouts, meals, burns, restingOn, today, goal, loading, workoutUnavailable, mealUnavailable, burnUnavailable, profileUnavailable }: WeeklyReviewProps) {
   const [weeksAgo, setWeeksAgo] = useState(0);
   const [selectedGroup, setSelectedGroup] = useState<MuscleGroup>("胸");
   const currentWeekStart = weekStartForDate(today);
@@ -55,7 +56,7 @@ export function WeeklyReview({ workouts, meals, burns, today, goal, loading, wor
   const visibleBurns = burns.filter((entry) => entry.performedAt <= today);
   const advice = summarizeWeeklyWorkoutAdvice(visibleWorkouts, endDate, goal);
   const muscle = summarizeWeeklyMuscles(visibleWorkouts, startDate, endDate);
-  const food = summarizeWeeklyMealReview(visibleMeals, endDate, visibleBurns);
+  const food = summarizeWeeklyMealReview(visibleMeals, endDate, visibleBurns, restingOn);
   const groupDetails = muscle.groups[selectedGroup];
 
   return <section aria-labelledby="weekly-review-title" aria-busy={loading} className="mt-4 min-w-0 overflow-hidden rounded-lg border border-[var(--line)] bg-white">

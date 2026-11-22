@@ -9,7 +9,7 @@ import { matchesExerciseName, normalizeExerciseSearch, registeredExerciseForName
 import { getExerciseShortEmbedUrl } from "@/lib/data/exercise-short-videos";
 import { exerciseEquipmentOrder } from "@/lib/data/exercise-catalog";
 import { facilityEquipmentOptions } from "@/lib/data/facility-equipment-options";
-import { detectMuscleFocus, recommendExercises, usesRegisteredEquipment } from "@/lib/workouts/workout-recommender";
+import { detectMuscleFocus, fitsWorkoutLocation, recommendExercises, usesRegisteredEquipment } from "@/lib/workouts/workout-recommender";
 import { getWorkoutDayPlan, getWorkoutWeek, weekdayLabels } from "@/lib/workouts/workout-split";
 import { getWorkoutPreferences } from "@/lib/storage/workout-preferences";
 import { loadWorkoutPreferences, storeWorkoutPreferences } from "@/lib/api/workout-preferences-client";
@@ -40,6 +40,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
   const [isOpen, setIsOpen] = useState(false);
   const [isEditingSets, setIsEditingSets] = useState(false);
   const [query, setQuery] = useState("");
+  const [showAllExercises, setShowAllExercises] = useState(false);
   const [customExerciseInput, setCustomExerciseInput] = useState("");
   const [customExerciseNotice, setCustomExerciseNotice] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -160,6 +161,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
 
   const visibleFavoriteCount = useMemo(() => new Set([...registrationExercises.map((exercise) => exercise.name), ...preferences.customExercises.map((exercise) => exercise.name)]
     .filter((exercise) => preferences.favoriteExercises.includes(exercise))).size, [preferences.customExercises, preferences.favoriteExercises]);
+  const availableEquipment = useMemo(() => [...preferences.facilityEquipment, ...preferences.customEquipment], [preferences.customEquipment, preferences.facilityEquipment]);
   const results = useMemo(() => {
     if (!activeCategory) return [];
     const matchesSearch = (name: string, category: string) => matchesExerciseName(name, query) || category === queryFocus;
@@ -169,18 +171,19 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
       .map((exercise) => exercise.name);
     const matchingExercises = registrationExercises.filter((exercise) =>
       (activeCategory === "お気に入り" ? preferences.favoriteExercises.includes(exercise.name) : exercise.category === activeCategory)
+      && (showAllExercises || activeCategory === "お気に入り" || fitsWorkoutLocation(exercise.name, preferences.isGymMember, availableEquipment))
       && matchesSearch(exercise.name, exercise.category) && !customMatches.includes(exercise.name));
     const groups = exerciseEquipmentOrder.map((label) => ({
       label,
       exercises: matchingExercises.filter((exercise) => exercise.group === label).map((exercise) => exercise.name),
     })).filter((group) => group.exercises.length > 0);
     return [...groups, ...(customMatches.length ? [{ label: "自分で追加した種目", exercises: customMatches }] : [])];
-  }, [activeCategory, query, preferences.customExercises, preferences.favoriteExercises, queryFocus]);
-  const availableEquipment = useMemo(() => [...preferences.facilityEquipment, ...preferences.customEquipment], [preferences.customEquipment, preferences.facilityEquipment]);
+  }, [activeCategory, availableEquipment, preferences.customExercises, preferences.favoriteExercises, preferences.isGymMember, query, queryFocus, showAllExercises]);
   const scheduledDay = preferences.splitPlan && date ? getWorkoutDayPlan(preferences.splitPlan, date) : undefined;
   const week = preferences.splitPlan && date ? getWorkoutWeek(preferences.splitPlan, date) : [];
   const suggestions = useMemo(() => recommendExercises({
     goal,
+    isGymMember: preferences.isGymMember,
     availableEquipment,
     favorites: preferences.favoriteExercises,
     customExercises: preferences.customExercises,
@@ -282,7 +285,7 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
   }
 
   return <>
-    <Button type="button" variant="secondary" size="small" className="mt-3 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setShowEquipmentEditor(false); setActiveCategory(null); setIsEditingSets(Boolean(exerciseName)); setVideoExercise(null); setQuery(""); setCustomExerciseInput(""); setCustomExerciseNotice(""); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />{exerciseName ? "登録内容を編集" : "登録"}</Button>
+    <Button type="button" variant="secondary" size="small" className="mt-3 w-full text-[var(--sage-deep)]" data-equipment-setup-trigger={startWithEquipmentSetup || undefined} onClick={(event) => { openerRef.current = event.currentTarget; setPreferencesReady(false); setTutorialStage(null); setShowEquipmentEditor(false); setShowAllExercises(false); setActiveCategory(null); setIsEditingSets(Boolean(exerciseName)); setVideoExercise(null); setQuery(""); setCustomExerciseInput(""); setCustomExerciseNotice(""); setIsOpen(true); }}><Icon name="dumbbell" className="size-4" />{exerciseName ? "登録内容を編集" : "登録"}</Button>
     {isOpen ? <div ref={dialogRef} className="exercise-dialog" data-set-editor={isEditingSets || undefined} role="dialog" aria-modal="true" aria-label={videoExercise ? `${videoExercise}の動作動画` : "筋トレ種目を選択"} onClick={(event) => { if (event.target === event.currentTarget && !isEditingSets) { if (videoExercise) setVideoExercise(null); else closePicker(); } }}>
       {videoExercise ? <section className="exercise-dialog-panel">
         <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5">
@@ -319,6 +322,12 @@ export function ExercisePicker({ onSelect, exerciseName, sets, onUpdateSet, onAd
           <button id="exercise-category-back" type="button" onClick={() => { setActiveCategory(null); setQuery(""); requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLButtonElement>('[data-muscle-category="true"]')?.focus({ preventScroll: true })); }} className="mb-3 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 部位を選び直す</button>
           <h2 className="mb-3 text-base font-bold text-[var(--ink)]">{categoryDisplayName(activeCategory)}の種目</h2>
           <TextInput type="search" aria-label="種目名を検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="種目名を検索 例：ベンチプレス" />
+          {activeCategory !== "お気に入り" && preferences.isGymMember !== undefined && <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 text-sm text-[var(--muted)]">
+            <span>{showAllExercises ? "すべての種目" : preferences.isGymMember ? "ジム向け" : "自宅向け"}</span>
+            {(!preferences.isGymMember || availableEquipment.length > 0) && <label className="flex min-h-11 items-center gap-2">
+              <input type="checkbox" className="size-4 accent-[var(--sage-deep)]" checked={showAllExercises} onChange={(event) => setShowAllExercises(event.target.checked)} />全種目を表示
+            </label>}
+          </div>}
         </div>
         <div className="px-4 sm:px-5">
           {activeCategory !== "お気に入り" && <section className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--canvas)] p-4" aria-label={`${categoryDisplayName(activeCategory)}の種目を追加`}>

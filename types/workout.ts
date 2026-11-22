@@ -34,5 +34,7 @@ export interface WorkoutEntry {
 export interface DailyBurnEntry extends WorkoutEntry {
   recordType: "daily-burn";
   caloriesBurned: number;
+  /** Existing records without a scope are daily totals, including resting expenditure. */
+  burnScope?: "total" | "activity";
   exercises: [];
 }

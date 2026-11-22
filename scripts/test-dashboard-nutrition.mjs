@@ -7,8 +7,8 @@ import * as jsxRuntime from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import { summarizeDailyCalories } from "../lib/utils/meal-calories.ts";
 import { summarizeDailyMacros } from "../lib/utils/meal-macros.ts";
-import { burnMinusIntake } from "../lib/utils/daily-burn.ts";
-import { estimateDailyCalorieGuide, estimateDailyMacroGuide } from "../lib/utils/daily-calorie-guide.ts";
+import { burnMinusIntake, totalDailyBurn } from "../lib/utils/daily-burn.ts";
+import { estimateDailyCalorieGuide, estimateDailyMacroGuide, estimateRestingCalories } from "../lib/utils/daily-calorie-guide.ts";
 
 // Actual aggregation, parent prop wiring, and rendered shared component, using
 // synthetic records in RAM. No account, browser storage, network, or file writes.
@@ -40,7 +40,7 @@ const { MobileDashboard } = load("components/dashboard/mobile-dashboard.tsx", {
   "@/components/dashboard/anatomy-figure": { AnatomyFigure: () => null },
   "@/components/dashboard/personal-nutrition-guide": { PersonalNutritionGuide: () => null },
   "@/lib/workouts/muscle-activity": { summarizeMuscleActivity: () => ({}) },
-  "@/lib/utils/daily-burn": { burnMinusIntake },
+  "@/lib/utils/daily-burn": { burnMinusIntake, totalDailyBurn },
   "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide, estimateDailyMacroGuide },
 });
 const { PersonalNutritionGuide } = load("components/dashboard/personal-nutrition-guide.tsx", {
@@ -49,8 +49,8 @@ const { PersonalNutritionGuide } = load("components/dashboard/personal-nutrition
   "@/types/user": { fitnessGoalLabels: { "build-muscle": "筋肉を増やす", "lose-fat": "体脂肪を減らす", maintain: "現在の体型を維持する" } },
 });
 
-function renderDashboard(meals, { loading = false, mealUnavailable = false, burnUnavailable = false, profile = null } = {}) {
-  const data = { profile, workouts: [], meals, weights: [], burns: [{ performedAt: day, caloriesBurned: 2000 }] };
+function renderDashboard(meals, { loading = false, mealUnavailable = false, burnUnavailable = false, profile = null, burns = [{ performedAt: day, caloriesBurned: 2000 }] } = {}) {
+  const data = { profile, workouts: [], meals, weights: [], burns };
   const states = [data, loading, "", false, mealUnavailable, false, burnUnavailable, day];
   let stateIndex = 0;
   const { DashboardContent } = load("components/dashboard/dashboard-content.tsx", {
@@ -67,7 +67,7 @@ function renderDashboard(meals, { loading = false, mealUnavailable = false, burn
     "@/lib/utils/meal-calories": { summarizeDailyCalories },
     "@/lib/utils/meal-macros": { summarizeDailyMacros },
     "@/lib/utils/daily-feedback": { summarizeDailyFeedback: () => ({ meal: { href: "/meals", title: "" }, workout: { href: "/workouts", title: "" } }) },
-    "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide: () => null },
+    "@/lib/utils/daily-calorie-guide": { estimateRestingCalories },
     "@/types/user": { fitnessGoalLabels: {} },
   });
   function findShared(node) {
@@ -94,6 +94,20 @@ test("fully entered meals display complete totals without partial-total warnings
 test("calorie balance shows the sign, amount, and which side is larger", () => {
   assert.match(renderDashboard([{ ...known, calories: 2500 }]), /消費から摂取を引いた収支 -500 kcal。摂取が多い/);
   assert.match(renderDashboard([{ ...known, calories: 2000 }]), /消費から摂取を引いた収支 0 kcal。消費と摂取が同じ/);
+});
+
+test("today's balance adds resting calories only to activity expenditure", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "maintain" };
+  const activity = { performedAt: day, caloriesBurned: 400, burnScope: "activity" };
+  const html = renderDashboard([known], { profile, burns: [activity] });
+  assert.match(html, /推定基礎代謝 1,618 kcal/);
+  assert.match(html, /活動消費 400 kcal/);
+  assert.match(html, /推定総消費 2,018 kcal/);
+  assert.match(html, /消費から摂取を引いた収支 \+1,518 kcal/);
+  assert.match(renderDashboard([known], { profile }), /消費から摂取を引いた収支 \+1,500 kcal/);
+  assert.match(renderDashboard([known], { profile, burns: [] }), /収支 \+1,118 kcal。活動消費は未記録/);
+  assert.match(renderDashboard([known], { burns: [activity] }), /収支 — kcal。収支は未計算/);
+  assert.match(renderDashboard([known], { profile, burnUnavailable: true }), /収支 — kcal。収支は未計算/);
 });
 
 test("missing meal calories are explained beside the subtotal and balance, including for screen readers", () => {
@@ -161,7 +175,7 @@ test("actual intake and PFC appear beside daily targets; burn estimate is distin
   assert.match(html, /2,400～2,700/);
   assert.match(html, /目安：120～135 g/);
   assert.match(html, /20g.*目安上限比 15%/);
-  assert.match(html, /記録した消費/);
+  assert.match(html, /記録した総消費/);
   assert.match(html, /活動による消費の推定/);
   assert.match(html, /650～1,000/);
   assert.match(html, /活動による消費の推定/);

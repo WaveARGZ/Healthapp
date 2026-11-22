@@ -58,3 +58,12 @@ test("a meal with no calories remains unknown rather than zero", () => {
   assert.equal(review.days[6].calories, null);
   assert.equal(review.incompleteDays, 1);
 });
+
+test("weekly review uses resting calories for the selected activity record date", () => {
+  const date = "2026-11-17";
+  const burns = [{ performedAt: date, caloriesBurned: 400, burnScope: "activity" }];
+  const meals = [meal("known", date, 1900)];
+  const withEstimate = summarizeWeeklyMealReview(meals, date, burns, (day) => day === date ? 1600 : null);
+  assert.equal(withEstimate.days[6].balance, 100);
+  assert.equal(summarizeWeeklyMealReview(meals, date, burns).days[6].balance, null);
+});

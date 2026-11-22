@@ -8,6 +8,7 @@ import { toDateInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
 import { summarizeDailyMacros } from "@/lib/utils/meal-macros";
 import { summarizeDailyFeedback } from "@/lib/utils/daily-feedback";
+import { estimateRestingCalories } from "@/lib/utils/daily-calorie-guide";
 import { fitnessGoalLabels, type UserProfile } from "@/types/user";
 import type { MealEntry } from "@/types/meal";
 import type { WeightEntry } from "@/types/progress";
@@ -23,6 +24,11 @@ interface DashboardData {
   burns: DailyBurnEntry[];
 }
 const initialData: DashboardData = { profile: null, workouts: [], meals: [], weights: [], burns: [] };
+
+function weightOn(date: string, data: DashboardData): number | undefined {
+  return data.weights.filter((entry) => entry.measuredOn <= date)
+    .sort((a, b) => b.measuredOn.localeCompare(a.measuredOn) || b.createdAt.localeCompare(a.createdAt))[0]?.weightKg ?? data.profile?.startingWeightKg;
+}
 
 export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | "weekly-review" } = {}) {
   const [data, setData] = useState<DashboardData>(initialData);
@@ -100,7 +106,7 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
     const workouts = data.workouts.filter((entry) => entry.performedAt === today);
     const meals = data.meals.filter((entry) => entry.recordedAt === today);
     return {
-      currentWeight: data.weights.filter((entry) => entry.measuredOn <= today).sort((a, b) => b.measuredOn.localeCompare(a.measuredOn) || b.createdAt.localeCompare(a.createdAt))[0]?.weightKg ?? data.profile?.startingWeightKg,
+      currentWeight: weightOn(today, data),
       workouts, meals,
       weightDone: data.weights.some((entry) => entry.measuredOn === today),
     };
@@ -110,8 +116,11 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
   const dailyFeedback = useMemo(() => summarizeDailyFeedback(dailyCalories, data.workouts, today), [dailyCalories, data.workouts, today]);
   const recordedCalories = loading || mealLoadFailed || (dailyCalories.mealCount > 0 && dailyCalories.countedMeals === 0)
     ? null : Math.round(dailyCalories.calories);
-  const burnedCalories = loading || burnLoadFailed ? null : data.burns.find((entry) => entry.performedAt === today)?.caloriesBurned ?? null;
+  const burnEntry = loading || burnLoadFailed ? undefined : data.burns.find((entry) => entry.performedAt === today);
   const consumedForDifference = dailyCalories.countedMeals > 0 ? recordedCalories : null;
+  function restingOn(date: string) {
+    return data.profile ? estimateRestingCalories({ ...data.profile, weightKg: weightOn(date, data) }) : null;
+  }
   return <div className="dashboard-unified">
     {view === "dashboard" ? <MobileDashboard
       today={today}
@@ -126,7 +135,9 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
       macros={dailyMacros}
       intake={recordedCalories}
       consumed={consumedForDifference}
-      burned={burnedCalories}
+      burned={burnEntry?.caloriesBurned ?? null}
+      burnScope={burnEntry?.burnScope}
+      resting={restingOn(today)}
       incompleteCalories={dailyCalories.missingMeals > 0 || dailyCalories.partiallyCountedMeals > 0}
       workouts={data.workouts}
       feedback={dailyFeedback}
@@ -136,6 +147,6 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
       burnUnavailable={burnLoadFailed}
       workoutUnavailable={workoutLoadFailed}
       error={error}
-    /> : <WeeklyReview workouts={data.workouts} meals={data.meals} burns={data.burns} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} mealUnavailable={mealLoadFailed} burnUnavailable={burnLoadFailed} profileUnavailable={profileLoadFailed} />}
+    /> : <WeeklyReview workouts={data.workouts} meals={data.meals} burns={data.burns} restingOn={restingOn} today={today} goal={data.profile?.goal ?? null} loading={loading} workoutUnavailable={workoutLoadFailed} mealUnavailable={mealLoadFailed} burnUnavailable={burnLoadFailed} profileUnavailable={profileLoadFailed} />}
   </div>;
 }

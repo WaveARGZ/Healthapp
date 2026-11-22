@@ -106,11 +106,12 @@ export function WorkoutPlanSetup({ date, onSave }: { date: string; onSave: () =>
   }
 
   const customIncomplete = draft.kind === "custom" && draft.trainingDays.some((day) => !(draft.customByWeekday?.[String(day)]?.length));
-  const canSave = !loading && !saving && Boolean(profile) && isGymMember !== null && draft.trainingDays.length === frequency && !customIncomplete && Boolean(date) && !equipmentInput.trim();
+  const canSave = !loading && !saving && Boolean(profile) && isGymMember !== null && draft.trainingDays.length === frequency && !customIncomplete && Boolean(date) && (isGymMember === false || !equipmentInput.trim());
   const week = date && draft.trainingDays.length ? getWorkoutWeek(draft, date) : [];
   const selectedDay = week.find((day) => day.date === date);
   const suggestions = profile && date ? recommendExercises({
     goal: profile.goal,
+    isGymMember: isGymMember ?? undefined,
     availableEquipment: [...preferences.facilityEquipment, ...preferences.customEquipment],
     favorites: preferences.favoriteExercises,
     customExercises: preferences.customExercises,
@@ -142,7 +143,7 @@ export function WorkoutPlanSetup({ date, onSave }: { date: string; onSave: () =>
   }
 
   return <section className="mb-7 rounded-lg border border-[var(--line)] bg-white p-4 sm:p-6" aria-labelledby="workout-plan-title">
-    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 id="workout-plan-title" className="text-base font-bold text-[var(--ink)]">週間メニューを設定</h2><p className="mt-1 text-xs text-[var(--muted)]">目標・ジム・曜日・使える器具を決めます</p></div><span className="rounded-full bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-bold text-[var(--sage-deep)]">6ステップ</span></div>
+    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 id="workout-plan-title" className="text-base font-bold text-[var(--ink)]">週間メニューを設定</h2><p className="mt-1 text-xs text-[var(--muted)]">目標・ジム・曜日・使える器具を決めます</p></div><span className="rounded-full bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-bold text-[var(--sage-deep)]">{isGymMember === false ? 5 : 6}ステップ</span></div>
     <div className="mt-5 border-t border-[var(--line)] pt-4">
       <p className="text-sm font-bold text-[var(--ink)]"><span className="mr-2 inline-grid size-6 place-items-center rounded-full bg-[#18181b] text-xs text-white">1</span>体づくりの目標</p>
       {profile ? <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold text-[var(--ink)]">{fitnessGoalLabels[profile.goal]}</p><Link href="/onboarding" className="min-h-11 content-center text-xs font-bold text-[var(--sage-deep)] underline underline-offset-2">プロフィールで変更</Link></div>
@@ -170,21 +171,21 @@ export function WorkoutPlanSetup({ date, onSave }: { date: string; onSave: () =>
       {draft.kind === "custom" && <div className="mt-4 space-y-3">{weekdayOrder.filter((day) => draft.trainingDays.includes(day)).map((day) => <fieldset key={day} className="rounded-lg border border-[var(--line)] p-3"><legend className="px-1 text-xs font-bold text-[var(--ink)]">{weekdayLabels[day]}曜日の部位</legend><div className="flex flex-wrap gap-2">{muscleCategories.map((category) => <label key={category} className={`inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg border px-2 text-xs ${draft.customByWeekday?.[String(day)]?.includes(category) ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)]"}`}><input type="checkbox" checked={Boolean(draft.customByWeekday?.[String(day)]?.includes(category))} onChange={() => toggleCategory(day, category)} className="accent-[var(--sage-deep)]" />{category}</label>)}</div></fieldset>)}</div>}
       {customIncomplete && <p className="mt-2 text-xs text-[var(--coral)]">通う曜日ごとに、部位を1つ以上選んでください。</p>}
     </div>
-    <div className="mt-4 border-t border-[var(--line)] pt-4">
+    {isGymMember !== false && <div className="mt-4 border-t border-[var(--line)] pt-4">
       <p className="text-sm font-bold text-[var(--ink)]"><span className="mr-2 inline-grid size-6 place-items-center rounded-full bg-[#18181b] text-xs text-white">6</span>ジムで使える器具</p>
-      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">使える器具を選ぶと、種目のおすすめに反映されます。該当する器具がなければ選ばずに進めます。</p>
+      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">選んだ器具が、登録時の種目一覧とおすすめに反映されます。</p>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="ジムで使える器具">{facilityEquipmentOptions.map((equipment) => <label key={equipment} className="flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border border-[var(--line)] px-3 py-2 text-xs font-semibold leading-5"><input type="checkbox" checked={preferences.facilityEquipment.includes(equipment)} disabled={loading || saving} onChange={() => toggleEquipment(equipment)} className="size-4 shrink-0 accent-[var(--sage-deep)]" /><span>{equipment}</span></label>)}</div>
       <div className="mt-3 flex gap-2"><TextInput aria-label="その他のジム器具" value={equipmentInput} disabled={loading || saving} onChange={(event) => { setEquipmentInput(event.target.value); setNotice(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addCustomEquipment(); } }} placeholder="その他の器具を入力" /><button type="button" onClick={addCustomEquipment} disabled={!equipmentInput.trim() || loading || saving} className="min-h-12 shrink-0 rounded-lg bg-[var(--sage-deep)] px-4 text-xs font-bold text-white disabled:opacity-50">追加</button></div>
       {equipmentInput.trim() && <p className="mt-1 text-xs text-[var(--muted)]">入力した器具は「追加」を押してから保存してください。</p>}
       {preferences.customEquipment.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{preferences.customEquipment.map((equipment) => <span key={equipment} className="inline-flex max-w-full items-center rounded-lg bg-[var(--sage-soft)] pl-3 text-xs"><span className="min-w-0 break-words py-2">{equipment}</span><button type="button" onClick={() => { setPreferences((current) => ({ ...current, customEquipment: current.customEquipment.filter((item) => item !== equipment) })); setNotice(""); }} disabled={loading || saving} aria-label={`${equipment}を削除`} className="grid size-11 shrink-0 place-items-center text-lg text-[var(--muted)]">×</button></span>)}</div>}
-    </div>
+    </div>}
     {week.length > 0 && <div className="mt-5"><p className="mb-2 text-xs font-bold text-[var(--ink)]">今週の予定</p><div className="flex gap-1.5 overflow-x-auto pb-1">{week.map((day) => <div key={day.date} className={`min-h-16 min-w-16 flex-1 rounded-lg px-1 py-2 text-center ${day.date === date ? "bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "bg-[var(--sand)] text-[var(--muted)]"}`}><span className="block text-[10px] font-bold">{weekdayLabels[day.weekday]}</span><span className="mt-1 block break-words text-[10px] leading-4">{day.label}</span></div>)}</div></div>}
     {profile && <div className="mt-5 rounded-lg bg-[var(--sand)] p-4"><p className="text-xs font-bold text-[var(--ink)]">記録日のおすすめ <span className="font-normal text-[var(--muted)]">{selectedDay?.label}</span></p>
       {suggestions.length ? <ul className="mt-2 space-y-1 text-sm font-semibold leading-6 text-[var(--ink)]">{suggestions.map((item) => <li key={item.name}>・{item.name}</li>)}</ul>
         : <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{selectedDay?.isRest ? "休みの日です。" : preferences.favoriteExercises.length ? "この部位に合うお気に入り種目がありません。" : "器具とお気に入り種目を登録すると、ここに候補が出ます。"}</p>}
       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">候補は登録済みのお気に入りから選びます。セット数や負荷は記録時に調整できます。</p>
     </div>}
-    <Button type="button" className="mt-5 w-full" disabled={!canSave} onClick={() => void savePlan()}>{saving ? "保存中…" : "週間メニューと器具を保存"}</Button>
+    <Button type="button" className="mt-5 w-full" disabled={!canSave} onClick={() => void savePlan()}>{saving ? "保存中…" : isGymMember === false ? "週間メニューを保存" : "週間メニューと器具を保存"}</Button>
     {notice && <p role="status" className="mt-2 text-xs leading-5 text-[var(--muted)]">{notice}</p>}
   </section>;
 }
