@@ -8,14 +8,17 @@ import { Icon } from "@/components/ui/icon";
 import { analyzeFoodPhotoDetailed, type FoodPhotoCandidate } from "@/lib/food-ai/food-photo-analyzer";
 import { applyPhotoNutritionUplift, PHOTO_NUTRITION_UPLIFT } from "@/lib/food-ai/photo-nutrition-estimate";
 import { isSupportedFoodPhoto, sanitizeTrainingPhoto } from "@/lib/drive/google-drive-client";
-import type { MealFoodItem } from "@/types/meal";
+import type { MealEntry, MealFoodItem } from "@/types/meal";
 import { portionGrams, scaleNutrition, suggestedGramsPerPiece, validPortion, type FoodPortionUnit } from "@/lib/food-portions";
 import libraryJson from "@/lib/data/food-library.json";
 import type { FoodLibraryDataset } from "@/types/food-database";
 import { isSharedTestEnvironment } from "@/lib/cloud/config";
+import { photoDishName } from "@/lib/food-ai/photo-history";
 
 interface PhotoMealAnalyzerProps {
   onAddFood: (food: Omit<MealFoodItem, "id">) => Promise<void>;
+  previousMeals?: readonly MealEntry[];
+  historyLoading?: boolean;
 }
 
 type AnalyzeStatus = "idle" | "analyzing" | "complete" | "error";
@@ -23,15 +26,18 @@ type NutritionValues = { calories: number; proteinG: number; fatG: number; carbs
 const emptyNutrition: Partial<NutritionValues> = {};
 const library = libraryJson as FoodLibraryDataset;
 
-function plainFoodName(value: string): string {
-  return value.replace(/（\d+(?:\.\d+)?g）$/, "");
+function candidateFood(candidate: FoodPhotoCandidate, factor = 1): Omit<MealFoodItem, "id"> {
+  const food = factor === 1 ? candidate.food : scaleNutrition(candidate.food, factor);
+  return candidate.origin === "history" ? food : applyPhotoNutritionUplift(food);
 }
 
-function toNutritionValues(food: Partial<NutritionValues>): NutritionValues {
-  return { calories: food.calories ?? 0, proteinG: food.proteinG ?? 0, fatG: food.fatG ?? 0, carbsG: food.carbsG ?? 0 };
+function toNutritionValues(food: Partial<NutritionValues>): Partial<NutritionValues> {
+  const values: Partial<NutritionValues> = {};
+  for (const key of ["calories", "proteinG", "fatG", "carbsG"] as const) if (food[key] !== undefined) values[key] = food[key];
+  return values;
 }
 
-export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
+export function PhotoMealAnalyzer({ onAddFood, previousMeals = [], historyLoading = false }: PhotoMealAnalyzerProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<FoodPhotoCandidate[]>([]);
@@ -83,18 +89,21 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
   }
 
   async function analyze() {
-    if (!file || status === "analyzing" || isSaving) return;
+    if (!file || status === "analyzing" || isSaving || historyLoading) return;
     const generation = ++analysisGeneration.current;
     setStatus("analyzing");
     setStatusText("AIの準備をしています");
     try {
       const preparedPhoto = await sanitizeTrainingPhoto(file);
-      const { candidates: nextCandidates } = await analyzeFoodPhotoDetailed(preparedPhoto, (progress) => { if (analysisGeneration.current === generation) setStatusText(progress.percent ? `${progress.label} ${progress.percent}%` : progress.label); });
+      const result = await analyzeFoodPhotoDetailed(preparedPhoto, (progress) => { if (analysisGeneration.current === generation) setStatusText(progress.percent ? `${progress.label} ${progress.percent}%` : progress.label); }, { previousMeals });
       if (analysisGeneration.current !== generation) return;
+      const nextCandidates = [...result.candidates, ...(result.historyCandidates ?? [])];
+      const recommended = nextCandidates.find((candidate) => candidate.id === result.recommendedCandidateId) ?? nextCandidates[0];
+      if (recommended?.origin === "history") nextCandidates.sort((a, b) => Number(b.id === recommended.id) - Number(a.id === recommended.id));
       setCandidates(nextCandidates);
-      setSelectedFoodId(nextCandidates[0]?.id ?? "");
-      setConfirmedFoodName(nextCandidates[0] ? plainFoodName(nextCandidates[0].food.name) : "");
-      if (nextCandidates[0]) selectCandidate(nextCandidates[0]);
+      setSelectedFoodId(recommended?.id ?? "");
+      setConfirmedFoodName(recommended ? photoDishName(recommended.food.name) : "");
+      if (recommended) selectCandidate(recommended);
       else { setNutrition(emptyNutrition); setNutritionDrafts({}); }
       setStatus("complete");
       setStatusText(nextCandidates.length ? "候補を確認し、正しい料理名と数値に直してください。" : "候補を見つけられませんでした。料理名を入力してください。");
@@ -118,15 +127,15 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
 
   function selectCandidate(candidate: FoodPhotoCandidate) {
     setSelectedFoodId(candidate.id);
-    setConfirmedFoodName(plainFoodName(candidate.food.name));
-    setNutrition(toNutritionValues(applyPhotoNutritionUplift(candidate.food)));
+    setConfirmedFoodName(photoDishName(candidate.food.name));
+    setNutrition(toNutritionValues(candidateFood(candidate)));
     setNutritionDrafts({});
     const source = library.foods.find((food) => food.id === candidate.id);
     const baseGrams = candidate.food.portionGrams ?? 100;
-    const pieceGrams = suggestedGramsPerPiece(candidate.id, candidate.food.name, source?.suggestedGrams ?? baseGrams);
+    const pieceGrams = candidate.origin === "history" ? null : suggestedGramsPerPiece(candidate.id, candidate.food.name, source?.suggestedGrams ?? baseGrams);
     setAmountUnit(pieceGrams ? "個" : "g");
-    setAmountQuantity(pieceGrams ? 1 : baseGrams);
-    setGramsPerPiece(pieceGrams ?? baseGrams);
+    setAmountQuantity(candidate.origin === "history" && candidate.food.portionGrams === undefined ? 0 : pieceGrams ? 1 : baseGrams);
+    setGramsPerPiece(pieceGrams ?? (candidate.origin === "history" ? 0 : baseGrams));
   }
 
   function changePortion(unit: FoodPortionUnit, quantity: number, pieceGrams: number) {
@@ -135,8 +144,9 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
     setGramsPerPiece(pieceGrams);
     const candidate = candidates.find((item) => item.id === selectedFoodId);
     if (!candidate || !validPortion(quantity, unit, pieceGrams)) return;
+    if (candidate.origin === "history" && candidate.food.portionGrams === undefined) return;
     const factor = portionGrams(quantity, unit, pieceGrams) / (candidate.food.portionGrams ?? 100);
-    setNutrition(toNutritionValues(applyPhotoNutritionUplift(scaleNutrition(candidate.food, factor))));
+    setNutrition(toNutritionValues(candidateFood(candidate, factor)));
     setNutritionDrafts({});
   }
 
@@ -191,7 +201,7 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
   ];
 
   return <section className="mt-5 rounded-lg border border-[var(--line)] bg-[var(--sand)] p-4 sm:p-5">
-    <div><h3 className="text-sm font-bold text-[var(--ink)]">写真から追加</h3><p className="mt-2 text-sm leading-6 text-[var(--muted)]">写真は端末内で解析します。料理名・栄養値は修正できます。</p><p className="mt-2 text-sm leading-6 text-[var(--muted)]">カロリーは推定値に{Math.round(PHOTO_NUTRITION_UPLIFT * 100)}%加算しています。PFCは補正せず、実際の量に合わせて修正できます。</p></div>
+    <div><h3 className="text-sm font-bold text-[var(--ink)]">写真から追加</h3><p className="mt-2 text-sm leading-6 text-[var(--muted)]">写真は端末内で解析します。料理名・栄養値は修正できます。</p><p className="mt-2 text-sm leading-6 text-[var(--muted)]">最近登録した料理も、最大20種類まで写真と比較します。</p><p className="mt-2 text-sm leading-6 text-[var(--muted)]">カロリーは推定値に{Math.round(PHOTO_NUTRITION_UPLIFT * 100)}%加算しています。PFCは補正せず、実際の量に合わせて修正できます。</p></div>
     <div className="mt-4 flex items-stretch gap-3">
       {preview ? <div className="relative size-24 shrink-0 overflow-hidden rounded-md bg-[var(--sand)]"><Image src={preview} alt="食事写真のプレビュー" fill unoptimized className="object-cover" /></div> : null}
       <div className="grid min-w-0 flex-1 gap-2">
@@ -205,11 +215,13 @@ export function PhotoMealAnalyzer({ onAddFood }: PhotoMealAnalyzerProps) {
         </label>
       </div>
     </div>
-    {file && status !== "complete" ? <Button type="button" className="mt-3 w-full px-3 py-3 leading-6" onClick={() => void analyze()} disabled={status === "analyzing"}>{status === "analyzing" ? statusText : "写真をAIで解析"}</Button> : null}
+    {historyLoading && <p className="mt-3 text-xs text-[var(--muted)]">以前登録した料理を読み込んでいます…</p>}
+    {file && status !== "complete" ? <Button type="button" className="mt-3 w-full px-3 py-3 leading-6" onClick={() => void analyze()} disabled={status === "analyzing" || historyLoading}>{status === "analyzing" ? statusText : "写真をAIで解析"}</Button> : null}
     {file && (status === "idle" || status === "error" || status === "analyzing") && <Button type="button" variant="secondary" className="mt-3 w-full" onClick={enterManually}>{status === "analyzing" ? "解析を待たずに料理名を入力" : "料理名を入力して続ける"}</Button>}
     {status === "complete" ? <div className="mt-4">
       <p className="text-xs font-bold text-[var(--sage-deep)]">料理の候補</p>
-      {candidates.length ? <div className="mt-2 space-y-2">{candidates.map((candidate) => { const estimate = applyPhotoNutritionUplift(candidate.food); return <button key={candidate.id} type="button" onClick={() => selectCandidate(candidate)} aria-pressed={selectedFoodId === candidate.id} className={`flex min-h-14 w-full items-start gap-3 rounded-lg border p-3 text-left transition ${selectedFoodId === candidate.id ? "border-[var(--sage-deep)] bg-[var(--sage-soft)]" : "border-[var(--line)] bg-white"}`}><span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border ${selectedFoodId === candidate.id ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[#cdd3cf]"}`}>{selectedFoodId === candidate.id ? <Icon name="check" className="size-3.5" /> : null}</span><span className="min-w-0 flex-1"><span className="block break-words text-sm font-bold leading-6 text-[var(--ink)]">{candidate.food.name}</span><span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span className="font-semibold text-[var(--ink)]">{estimate.calories} kcal</span><span>推定 {(candidate.modelScore * 100).toFixed(0)}%</span></span><span className="metric mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span>P {estimate.proteinG}g</span><span>F {estimate.fatG}g</span><span>C {estimate.carbsG}g</span></span></span></button>; })}</div> : <p className="mt-2 text-xs text-[var(--muted)]">候補なし。料理名を入力して登録できます。</p>}
+      {candidates.length ? <div className="mt-2 space-y-2">{candidates.map((candidate) => { const estimate = candidateFood(candidate); return <button key={candidate.id} type="button" onClick={() => selectCandidate(candidate)} aria-pressed={selectedFoodId === candidate.id} className={`flex min-h-14 w-full items-start gap-3 rounded-lg border p-3 text-left transition ${selectedFoodId === candidate.id ? "border-[var(--sage-deep)] bg-[var(--sage-soft)]" : "border-[var(--line)] bg-white"}`}><span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border ${selectedFoodId === candidate.id ? "border-[var(--sage-deep)] bg-[var(--sage-deep)] text-white" : "border-[#cdd3cf]"}`}>{selectedFoodId === candidate.id ? <Icon name="check" className="size-3.5" /> : null}</span><span className="min-w-0 flex-1"><span className="block break-words text-sm font-bold leading-6 text-[var(--ink)]">{candidate.food.name}</span>{candidate.origin === "history" && <span className="mt-1 block text-xs text-[var(--sage-deep)]">前に登録した料理</span>}<span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span className="font-semibold text-[var(--ink)]">{estimate.calories ?? "—"} kcal</span>{candidate.origin !== "history" && <span>推定 {(candidate.modelScore * 100).toFixed(0)}%</span>}</span><span className="metric mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5 text-[var(--muted)]"><span>P {estimate.proteinG ?? "—"}g</span><span>F {estimate.fatG ?? "—"}g</span><span>C {estimate.carbsG ?? "—"}g</span></span></span></button>; })}</div> : <p className="mt-2 text-xs text-[var(--muted)]">候補なし。料理名を入力して登録できます。</p>}
+      {candidates.some((candidate) => candidate.origin === "history") && <p className="mt-3 text-xs leading-6 text-[var(--muted)]">以前の料理名も写真と比較しています。前に登録した料理の栄養値は前回の入力値です。今回の量と数値を確認してください。</p>}
       <label className="mt-4 block text-xs font-bold text-[var(--ink)]">正しい料理名<input value={confirmedFoodName} onChange={(event) => setConfirmedFoodName(event.target.value)} placeholder="例：鶏むね肉の照り焼き" className="mt-2 h-12 w-full rounded border border-[var(--line)] bg-white px-3 text-base font-medium outline-none focus:border-[var(--sage-deep)]" /></label>
       <div className="mt-4"><p className="text-xs font-bold text-[var(--ink)]">食べた量</p><div className="mt-2 flex gap-2" role="group" aria-label="写真から登録する量の単位">{(["g", "個"] as const).map((value) => <button key={value} type="button" aria-pressed={amountUnit === value} onClick={() => changePortion(value, value === "g" ? portionGrams(amountQuantity, amountUnit, gramsPerPiece) : 1, gramsPerPiece)} className={`min-h-11 min-w-16 rounded border px-3 text-sm font-bold ${amountUnit === value ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] bg-white text-[var(--muted)]"}`}>{value}</button>)}</div><div className="mt-2 flex items-center gap-2"><input aria-label="写真から登録する食べた量" type="number" min="1" max={amountUnit === "g" ? "3000" : "100"} step="1" inputMode="numeric" value={amountQuantity || ""} onChange={(event) => changePortion(amountUnit, event.target.value === "" ? 0 : Number(event.target.value), gramsPerPiece)} className="form-input max-w-40" /><span className="text-sm text-[var(--muted)]">{amountUnit}</span></div>{amountUnit === "個" && <label className="mt-3 block text-xs font-medium text-[var(--ink)]">1個あたりの可食部（目安・変更可）<span className="mt-2 flex items-center gap-2"><input aria-label="写真の食品1個あたりの重さ" type="number" min="1" max="3000" step="1" inputMode="numeric" value={gramsPerPiece || ""} onChange={(event) => changePortion(amountUnit, amountQuantity, event.target.value === "" ? 0 : Number(event.target.value))} className="form-input max-w-40" /><span>g</span></span></label>}<p className="mt-2 text-xs text-[var(--muted)]">{amountUnit === "個" ? `${amountQuantity}個 ≒ ${portionGrams(amountQuantity, amountUnit, gramsPerPiece)}g。個体差があるため目安です。` : "量を変更すると初期推定値を再計算します。最後に栄養値を確認してください。"}</p>{!validPortion(amountQuantity, amountUnit, gramsPerPiece) && <p className="mt-2 text-xs text-[var(--coral)]">量と1個あたりの重さを確認してください（合計3,000gまで）。</p>}</div>
       <fieldset className="mt-4"><legend className="text-xs font-bold leading-6 text-[var(--ink)]">食事に記録する栄養値（修正できます）</legend><div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="min-w-0 text-xs font-medium text-[var(--muted)]">{label}（{unit}）<input type="number" min="0" step="1" inputMode="decimal" placeholder="未入力" value={nutritionDrafts[key] ?? nutrition[key] ?? ""} onChange={(event) => { const draft = event.target.value; setNutritionDrafts((current) => ({ ...current, [key]: draft })); setNutrition((current) => ({ ...current, [key]: draft === "" ? undefined : Number(draft) })); setStatusText(""); }} className="mt-2 h-12 w-full min-w-0 rounded border border-[var(--line)] bg-white px-3 text-base font-medium text-[var(--ink)] outline-none focus:border-[var(--sage-deep)]" /></label>)}</div><button type="button" onClick={clearNutrition} disabled={isSaving} className="mt-3 min-h-11 rounded-lg border border-[var(--line)] bg-white px-4 text-xs font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)] disabled:opacity-50">カロリー・PFCを一括クリア</button><p className="mt-1 text-xs leading-5 text-[var(--muted)]">空欄は未入力として保存し、合計には含めません。</p></fieldset>
