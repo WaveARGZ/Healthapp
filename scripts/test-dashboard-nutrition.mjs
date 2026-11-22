@@ -91,23 +91,33 @@ test("fully entered meals display complete totals without partial-total warnings
   assert.ok(!html.includes(macroNotice));
 });
 
-test("calorie balance shows the sign, amount, and which side is larger", () => {
-  assert.match(renderDashboard([{ ...known, calories: 2500 }]), /消費から摂取を引いた収支 -500 kcal。摂取が多い/);
-  assert.match(renderDashboard([{ ...known, calories: 2000 }]), /消費から摂取を引いた収支 0 kcal。消費と摂取が同じ/);
+test("calorie balance shows higher expenditure in blue, higher intake in red, and equality in charcoal", () => {
+  const higherExpenditure = renderDashboard([known]);
+  const higherIntake = renderDashboard([{ ...known, calories: 2500 }]);
+  const equal = renderDashboard([{ ...known, calories: 2000 }]);
+  assert.match(higherExpenditure, /消費から摂取を引いた収支 \+1,500 kcal。消費が多い/);
+  assert.match(higherExpenditure, /style="color:#1e40af"[^>]*><strong[^>]*>\+1,500/);
+  assert.match(higherIntake, /消費から摂取を引いた収支 -500 kcal。摂取が多い/);
+  assert.match(higherIntake, /style="color:#b91c1c"[^>]*><strong[^>]*>-500/);
+  assert.match(equal, /消費から摂取を引いた収支 0 kcal。消費と摂取が同じ/);
+  assert.match(equal, /style="color:var\(--ink\)"[^>]*><strong[^>]*>0/);
 });
 
 test("today's balance adds resting calories only to activity expenditure", () => {
   const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "maintain" };
   const activity = { performedAt: day, caloriesBurned: 400, burnScope: "activity" };
   const html = renderDashboard([known], { profile, burns: [activity] });
-  assert.match(html, /推定基礎代謝 1,618 kcal/);
-  assert.match(html, /活動消費 400 kcal/);
-  assert.match(html, /推定総消費 2,018 kcal/);
+  assert.match(html, /※基礎代謝の値を考慮した数値です/);
+  assert.doesNotMatch(html, /推定基礎代謝 1,618 kcal|活動消費 400 kcal|2,018 kcal/);
   assert.match(html, /消費から摂取を引いた収支 \+1,518 kcal/);
   assert.match(renderDashboard([known], { profile }), /消費から摂取を引いた収支 \+1,500 kcal/);
-  assert.match(renderDashboard([known], { profile, burns: [] }), /収支 \+1,118 kcal。活動消費は未記録/);
-  assert.match(renderDashboard([known], { burns: [activity] }), /収支 — kcal。収支は未計算/);
-  assert.match(renderDashboard([known], { profile, burnUnavailable: true }), /収支 — kcal。収支は未計算/);
+  const restingOnly = renderDashboard([known], { profile, burns: [] });
+  assert.match(restingOnly, /収支 \+1,118 kcal/);
+  assert.match(restingOnly, /活動消費は未記録です。/);
+  const withoutEstimate = renderDashboard([known], { burns: [activity] });
+  assert.match(withoutEstimate, /カロリー収支は未計算/);
+  assert.doesNotMatch(withoutEstimate, /※基礎代謝の値を考慮した数値です/);
+  assert.match(renderDashboard([known], { profile, burnUnavailable: true }), /カロリー収支は未計算/);
 });
 
 test("missing meal calories are explained beside the subtotal and balance, including for screen readers", () => {
@@ -117,7 +127,8 @@ test("missing meal calories are explained beside the subtotal and balance, inclu
   assert.match(html, /消費から摂取を引いた収支 \+1,500 kcal。消費が多い/);
   assert.ok(html.includes(partialNotice));
   assert.ok(!html.includes(macroNotice));
-  assert.equal((html.match(/aria-describedby="mobile-calorie-status"/g) ?? []).length, 2);
+  assert.match(html, /aria-describedby="mobile-calorie-status"/);
+  assert.match(html, /aria-describedby="mobile-calorie-status mobile-balance-note"/);
 });
 
 test("partially entered dishes within a meal retain the calorie warning", () => {
@@ -129,7 +140,7 @@ test("partially entered dishes within a meal retain the calorie warning", () => 
 test("all unknown calories and PFC remain unknown, not zero or a complete balance", () => {
   const html = renderDashboard([empty]);
   assert.match(html, /摂取 — kcal/);
-  assert.match(html, /消費から摂取を引いた収支 — kcal。収支は未計算/);
+  assert.match(html, /カロリー収支は未計算/);
   assert.match(html, /カロリーは未入力です。収支は計算できません。/);
   assert.match(html, /PFCは未入力です。/);
   assert.ok(!html.includes(partialNotice));
@@ -145,7 +156,7 @@ test("explicit zero is a known value and is not described as missing", () => {
 test("no meals differs from recorded meals with unknown calories", () => {
   const html = renderDashboard([]);
   assert.match(html, /まだ食事の記録はありません。/);
-  assert.match(html, /消費から摂取を引いた収支 — kcal。収支は未計算/);
+  assert.match(html, /カロリー収支は未計算/);
   assert.ok(!html.includes("カロリーは未入力"));
 });
 
@@ -166,7 +177,7 @@ test("loading and failed meal requests do not misreport missing user input", () 
   }
 });
 
-test("actual intake and PFC appear beside daily targets; burn estimate is distinguished from the record", () => {
+test("actual intake and PFC appear beside daily targets without crowding the balance with burn estimates", () => {
   const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
   const html = renderDashboard([known], { profile });
   assert.match(html, /摂取/);
@@ -175,10 +186,8 @@ test("actual intake and PFC appear beside daily targets; burn estimate is distin
   assert.match(html, /2,400～2,700/);
   assert.match(html, /目安：120～135 g/);
   assert.match(html, /20g.*目安上限比 15%/);
-  assert.match(html, /記録した総消費/);
-  assert.match(html, /活動による消費の推定/);
-  assert.match(html, /650～1,000/);
-  assert.match(html, /活動による消費の推定/);
+  assert.doesNotMatch(html, /記録した総消費|活動による消費の推定/);
+  assert.match(html, /※基礎代謝の値を考慮した数値です/);
   assert.match(html, /濃色：今日の記録/);
   assert.match(html, /淡色：1日の目安/);
   assert.match(html, /role="meter"/);
@@ -248,5 +257,5 @@ test("personal guide requests missing profile details instead of inventing calor
 test("unavailable burn records do not hide the partial-intake warning or invent a balance", () => {
   const html = renderDashboard([known, empty], { burnUnavailable: true });
   assert.ok(html.includes(partialNotice));
-  assert.match(html, /消費から摂取を引いた収支 — kcal。収支は未計算/);
+  assert.match(html, /カロリー収支は未計算/);
 });

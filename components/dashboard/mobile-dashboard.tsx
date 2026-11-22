@@ -17,8 +17,8 @@ const recordDestinations = [
   { key: "weight", title: "体重", href: "/weight" },
 ] as const;
 const displayDate = new Intl.DateTimeFormat("ja-JP", { month: "long", day: "numeric", weekday: "long" });
-const positiveBalanceColor = "#9c5149";
-const negativeBalanceColor = "#4d6875";
+const expenditureHigherColor = "#1e40af";
+const intakeHigherColor = "#b91c1c";
 
 function amount(value: number | null) {
   return value === null ? "—" : Math.round(value).toLocaleString("ja-JP");
@@ -92,7 +92,6 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
   const macroGuide = guide.status === "ready" && profile ? estimateDailyMacroGuide(guide, profile.goal) : null;
   const intakeTarget = guide.status === "ready" ? range(guide.minKcal, guide.maxKcal) : null;
   const intakeRatio = targetRatio(consumed, guide.status === "ready" ? guide.maxKcal : undefined);
-  const burnTarget = guide.status === "ready" ? range(guide.minNonRestingKcal, guide.maxNonRestingKcal) : null;
   const macroRows = ([
     { key: "proteinG", label: "P", name: "たんぱく質", target: macroGuide?.protein, color: "#4f7668", targetColor: "#dce8e2" },
     { key: "fatG", label: "F", name: "脂質", target: macroGuide?.fat, color: "#947449", targetColor: "#eee3d1" },
@@ -112,8 +111,9 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
   const activity = summarizeMuscleActivity(workouts, today);
   const differenceText = difference === null ? "—" : `${difference > 0 ? "+" : ""}${difference.toLocaleString("ja-JP")}`;
   const differenceStatus = difference === null ? "収支は未計算" : difference > 0 ? "消費が多い" : difference < 0 ? "摂取が多い" : "消費と摂取が同じ";
-  const balanceNote = restingOnly ? "活動消費は未記録" : differenceStatus;
-  const differenceColor = difference === null || difference === 0 ? "var(--ink)" : difference > 0 ? positiveBalanceColor : negativeBalanceColor;
+  const differenceColor = difference === null || difference === 0 ? "var(--ink)" : difference > 0 ? expenditureHigherColor : intakeHigherColor;
+  const balanceDescription = difference === null ? undefined : "mobile-balance-note";
+  const balanceLabel = difference === null ? "進捗を開く。カロリー収支は未計算" : `進捗を開く。消費から摂取を引いた収支 ${differenceText} kcal。${differenceStatus}`;
   const calorieStatus = loading || mealUnavailable ? null
     : macros.mealCount === 0 ? "まだ食事の記録はありません。"
     : intake === null ? "食事は記録済みですが、カロリーは未入力です。収支は計算できません。"
@@ -174,18 +174,15 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
             {intakeRatio !== null && <span className="mt-1 block text-xs text-[var(--muted)]">目安上限比 {intakeRatio}%</span>}
           </>}
         </Link>
-        <Link href="/progress" className="block min-w-0 pl-4 transition-colors hover:text-[var(--sage-deep)] sm:pl-6" aria-describedby={calorieDescription} aria-label={"進捗を開く。消費 " + amount(totalBurned) + " kcal。消費から摂取を引いた収支 " + differenceText + " kcal。" + balanceNote + (burnTarget ? "。活動による消費の推定 " + burnTarget + " kcal" : "")}>
+        <Link href="/progress" className="block min-w-0 pl-4 transition-colors hover:text-[var(--sage-deep)] sm:pl-6" aria-describedby={[calorieDescription, balanceDescription].filter(Boolean).join(" ") || undefined} aria-label={balanceLabel}>
           <span className="flex items-center justify-between text-base font-bold text-[var(--ink)]">カロリー収支</span>
-          <span className="mt-3 block">
-            <span className="block min-w-0">
-              <strong className="metric block text-[clamp(1.5rem,5vw,2rem)] font-semibold leading-tight" style={{ color: differenceColor }}>{differenceText} <small className="text-sm font-medium">kcal</small></strong>
-              <span className="mt-1 block text-sm font-semibold" style={{ color: differenceColor }}>{balanceNote}</span>
-              {restingOnly || burnScope === "activity" ? <span className="mt-2 block text-sm text-[var(--ink-soft)]">
-                推定基礎代謝 {amount(resting)} kcal
-                {burnScope === "activity" && <><span className="mt-1 block">活動消費 {amount(burned)} kcal</span><span className="mt-1 block font-semibold">推定総消費 {amount(totalBurned)} kcal</span></>}
-              </span> : <span className="mt-2 block text-sm text-[var(--ink-soft)]">記録した総消費 {amount(burned)} kcal</span>}
-            </span>
+          <span className="mt-3 block" style={{ color: differenceColor }}>
+            <strong className="metric block text-[clamp(1.5rem,5vw,2rem)] font-semibold leading-tight">{differenceText}{difference !== null && <> <small className="text-sm font-medium">kcal</small></>}</strong>
+            <span className="mt-1 block text-sm font-semibold">{differenceStatus}</span>
           </span>
+          {balanceDescription && <span id={balanceDescription} className="mt-2 block text-xs leading-relaxed text-[var(--muted)]">
+            ※基礎代謝の値を考慮した数値です{restingOnly && <span className="block">活動消費は未記録です。</span>}
+          </span>}
         </Link>
       </div>
       {burnScope === "activity" && resting === null && <p className="mt-3 text-sm text-[var(--muted)]">基礎代謝を推定できないため、収支は未計算です。 <Link href="/onboarding" className="text-link">プロフィールを確認</Link></p>}
