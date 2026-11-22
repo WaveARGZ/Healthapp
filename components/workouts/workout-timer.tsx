@@ -55,6 +55,12 @@ export function WorkoutTimer() {
   }, [running]);
 
   useEffect(() => {
+    if (!finished || document.visibilityState !== "visible") return;
+    if (!navigator.vibrate?.([250, 150, 250])) return;
+    return () => { navigator.vibrate(0); };
+  }, [finished]);
+
+  useEffect(() => {
     const context = audioContext.current;
     if (!finished || !context) return;
     const alarm = context.createBufferSource();
