@@ -146,6 +146,11 @@ test("preflight rejects wrong accounts, bad metadata, redirects and stalled bodi
   ];
   for(const response of cases){let calls=0;await assert.rejects(verifyAdviceConnection("synthetic-openai-key",account,async()=>{calls++;return response();},10));assert.equal(calls,1);}
 });
+test("preflight diagnostics never return upstream messages or arbitrary error codes",async()=>{
+  for(const [code,expected] of [["invalid_api_key","provider_invalid_api_key"],["synthetic-private-value","provider_http_401"]]) {
+    await assert.rejects(verifyAdviceConnection("synthetic-openai-key",account,async()=>Response.json({error:{code,message:"Do not echo synthetic-private-value"}},{status:401})),e=>e.code===expected&&!String(e).includes("synthetic-private-value"));
+  }
+});
 test("admin connection check requires explicit disabled state and cannot touch budget or inference",async t=>{
   const s=new MemoryStorage(t);let checks=0;
   const deps={now:()=>NOW,verifyAuthorization:async()=>{throw Error("user auth must not be used for metadata");},provider:async()=>{throw Error("no inference");},verifyConnection:async(key,scope)=>{
