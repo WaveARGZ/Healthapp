@@ -39,6 +39,8 @@ const { MobileDashboard } = load("components/dashboard/mobile-dashboard.tsx", {
   ...sharedModules,
   "@/components/dashboard/anatomy-figure": { AnatomyFigure: () => null },
   "@/components/dashboard/personal-nutrition-guide": { PersonalNutritionGuide: () => null },
+  // Nutrition rendering is isolated from the separately tested, opt-in API panel.
+  "@/components/dashboard/home-advice-card": { HomeAdviceCard: () => null },
   "@/lib/workouts/muscle-activity": { summarizeMuscleActivity: () => ({}) },
   "@/lib/utils/daily-burn": { burnMinusIntake },
   "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide, estimateDailyMacroGuide },
