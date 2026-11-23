@@ -64,11 +64,10 @@ function recordedGrams(macros: DailyMacros, key: "proteinG" | "fatG" | "carbsG",
     ? null : Math.round(macros[key]);
 }
 
-export function MobileDashboard({ today, recordedToday, weight, goal, profile, macros, intake, consumed, burned, incompleteCalories, workouts, feedback, loading, profileUnavailable, mealUnavailable, burnUnavailable, workoutUnavailable, error }: {
+export function MobileDashboard({ today, recordedToday, currentWeightKg, profile, macros, intake, consumed, burned, incompleteCalories, workouts, feedback, loading, profileUnavailable, weightsUnavailable, mealUnavailable, burnUnavailable, workoutUnavailable, error }: {
   today: string;
   recordedToday: RecordedToday;
-  weight: number | null;
-  goal: string;
+  currentWeightKg?: number;
   profile: UserProfile | null;
   macros: DailyMacros;
   intake: number | null;
@@ -79,6 +78,7 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
   feedback: { meal: DailyFeedbackItem; workout: DailyFeedbackItem };
   loading: boolean;
   profileUnavailable: boolean;
+  weightsUnavailable: boolean;
   mealUnavailable: boolean;
   burnUnavailable: boolean;
   workoutUnavailable: boolean;
@@ -87,7 +87,14 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
   const recordsKnown = !loading && Object.values(recordedToday).every((value) => value !== null);
   const doneCount = Object.values(recordedToday).filter(Boolean).length;
   const macroUnavailable = loading || mealUnavailable;
-  const guide = profile && !profileUnavailable ? estimateDailyCalorieGuide({ age: profile.age, gender: profile.gender, heightCm: profile.heightCm, weightKg: weight ?? undefined, goal: profile.goal }) : { status: "missing-profile" as const };
+  const guideUnavailable = profileUnavailable ? "profile" : weightsUnavailable ? "weight" : null;
+  const guide = profile && !guideUnavailable ? estimateDailyCalorieGuide({
+    age: profile.age,
+    gender: profile.gender,
+    heightCm: profile.heightCm,
+    weightKg: currentWeightKg,
+    goal: profile.goal,
+  }) : { status: "missing-profile" as const };
   const macroGuide = guide.status === "ready" && profile ? estimateDailyMacroGuide(guide, profile.goal) : null;
   const intakeTarget = guide.status === "ready" ? range(guide.minKcal, guide.maxKcal) : null;
   const intakeRatio = targetRatio(consumed, guide.status === "ready" ? guide.maxKcal : undefined);
@@ -145,10 +152,6 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
           </Link>;
         })}
       </div>
-      {!loading && <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-[var(--muted)]">
-        <span>体重 <strong className="metric ml-1 font-medium text-[var(--ink)]">{recordedToday.weight === null ? "確認できません" : weight === null ? "未登録" : `${weight.toLocaleString("ja-JP")} kg`}</strong></span>
-        <span>目標 <strong className="ml-1 font-medium text-[var(--ink)]">{profileUnavailable ? "確認できません" : goal}</strong></span>
-      </div>}
     </section>
 
     <section aria-labelledby="mobile-calories-title" className="min-w-0 border-t border-[var(--line)] pt-5">
@@ -201,7 +204,7 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
         </div>)}</div>
       </Link>
       {macroStatus && <p id="mobile-macro-status" className="mt-3 text-sm leading-6 text-[var(--muted)]">{macroStatus}</p>}
-      <PersonalNutritionGuide profile={profile} weightKg={weight} loading={loading} unavailable={profileUnavailable} />
+      <PersonalNutritionGuide guide={guide} loading={loading} unavailable={guideUnavailable} />
     </section>
 
     <HomeAdviceCard key={today} today={today} />

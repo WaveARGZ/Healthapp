@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { MobileDashboard } from "@/components/dashboard/mobile-dashboard";
 import { WeeklyReview } from "@/components/dashboard/weekly-review";
 import { bodyMakeClient } from "@/lib/api/client";
+import { latestWeightEntry } from "@/lib/utils/current-weight";
 import { toDateInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
 import { summarizeDailyMacros } from "@/lib/utils/meal-macros";
 import { summarizeDailyFeedback } from "@/lib/utils/daily-feedback";
-import { fitnessGoalLabels, type UserProfile } from "@/types/user";
+import type { UserProfile } from "@/types/user";
 import type { MealEntry } from "@/types/meal";
 import type { WeightEntry } from "@/types/progress";
 import type { WorkoutEntry } from "@/types/workout";
@@ -27,7 +28,6 @@ const initialData: DashboardData = { profile: null, workouts: [], meals: [], wei
 export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | "weekly-review" } = {}) {
   const [data, setData] = useState<DashboardData>(initialData);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [profileLoadFailed, setProfileLoadFailed] = useState(false);
   const [mealLoadFailed, setMealLoadFailed] = useState(false);
   const [workoutLoadFailed, setWorkoutLoadFailed] = useState(false);
@@ -50,17 +50,20 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
   }, []);
   useEffect(() => {
     let active = true;
-    let refreshingWorkouts = false;
-    function refreshWorkouts() {
-      if (!active || document.visibilityState !== "visible" || refreshingWorkouts) return;
-      refreshingWorkouts = true;
-      void bodyMakeClient.getWorkouts().then((workouts) => {
+    let refreshingRecords = false;
+    function refreshRecords() {
+      if (!active || document.visibilityState !== "visible" || refreshingRecords) return;
+      refreshingRecords = true;
+      void Promise.allSettled([bodyMakeClient.getWorkouts(), bodyMakeClient.getWeightEntries()]).then(([workouts, weights]) => {
         if (!active) return;
-        setData((current) => ({ ...current, workouts }));
-        setWorkoutLoadFailed(false);
-      }).catch(() => {
-        if (active) setWorkoutLoadFailed(true);
-      }).finally(() => { refreshingWorkouts = false; });
+        setData((current) => ({
+          ...current,
+          workouts: workouts.status === "fulfilled" ? workouts.value : current.workouts,
+          weights: weights.status === "fulfilled" ? weights.value : current.weights,
+          weightsUnavailable: weights.status === "fulfilled" ? false : current.weightsUnavailable,
+        }));
+        setWorkoutLoadFailed(workouts.status === "rejected");
+      }).finally(() => { refreshingRecords = false; });
     }
     void Promise.allSettled([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getMeals(), bodyMakeClient.getWeightEntries(), bodyMakeClient.getDailyBurnEntries()])
       .then(([profile, workouts, meals, weights, burns]) => {
@@ -77,22 +80,19 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
         setMealLoadFailed(meals.status === "rejected");
         setWorkoutLoadFailed(workouts.status === "rejected");
         setBurnLoadFailed(burns.status === "rejected");
-        if ([profile, workouts, meals, weights, burns].some((result) => result.status === "rejected")) {
-          setError("一部の記録を読み込めませんでした。保存済みの記録は表示しています。ページを再読み込みしてください。");
-        }
       })
       .finally(() => {
         if (!active) return;
         setLoading(false);
-        window.addEventListener("focus", refreshWorkouts);
-        window.addEventListener("pageshow", refreshWorkouts);
-        document.addEventListener("visibilitychange", refreshWorkouts);
+        window.addEventListener("focus", refreshRecords);
+        window.addEventListener("pageshow", refreshRecords);
+        document.addEventListener("visibilitychange", refreshRecords);
       });
     return () => {
       active = false;
-      window.removeEventListener("focus", refreshWorkouts);
-      window.removeEventListener("pageshow", refreshWorkouts);
-      document.removeEventListener("visibilitychange", refreshWorkouts);
+      window.removeEventListener("focus", refreshRecords);
+      window.removeEventListener("pageshow", refreshRecords);
+      document.removeEventListener("visibilitychange", refreshRecords);
     };
   }, []);
 
@@ -100,7 +100,7 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
     const workouts = data.workouts.filter((entry) => entry.performedAt === today);
     const meals = data.meals.filter((entry) => entry.recordedAt === today);
     return {
-      currentWeight: data.weights.filter((entry) => entry.measuredOn <= today).sort((a, b) => b.measuredOn.localeCompare(a.measuredOn) || b.createdAt.localeCompare(a.createdAt))[0]?.weightKg ?? data.profile?.startingWeightKg,
+      currentWeightKg: latestWeightEntry(data.weights, today)?.weightKg ?? data.profile?.startingWeightKg,
       workouts, meals,
       weightDone: data.weights.some((entry) => entry.measuredOn === today),
     };
@@ -112,6 +112,8 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
     ? null : Math.round(dailyCalories.calories);
   const burnedCalories = loading || burnLoadFailed ? null : data.burns.find((entry) => entry.performedAt === today)?.caloriesBurned ?? null;
   const consumedForDifference = dailyCalories.countedMeals > 0 ? recordedCalories : null;
+  const error = profileLoadFailed || mealLoadFailed || workoutLoadFailed || burnLoadFailed || data.weightsUnavailable
+    ? "一部の記録を読み込めませんでした。保存済みの記録は表示しています。ページを再読み込みしてください。" : "";
   return <div className="dashboard-unified">
     {view === "dashboard" ? <MobileDashboard
       today={today}
@@ -120,8 +122,7 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
         meal: mealLoadFailed ? null : summary.meals.length > 0,
         weight: data.weightsUnavailable ? null : summary.weightDone,
       }}
-      weight={summary.currentWeight ?? null}
-      goal={data.profile ? fitnessGoalLabels[data.profile.goal] : "未設定"}
+      currentWeightKg={summary.currentWeightKg}
       profile={data.profile}
       macros={dailyMacros}
       intake={recordedCalories}
@@ -132,6 +133,7 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
       feedback={dailyFeedback}
       loading={loading}
       profileUnavailable={profileLoadFailed}
+      weightsUnavailable={Boolean(data.weightsUnavailable)}
       mealUnavailable={mealLoadFailed}
       burnUnavailable={burnLoadFailed}
       workoutUnavailable={workoutLoadFailed}
