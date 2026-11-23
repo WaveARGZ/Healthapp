@@ -183,6 +183,7 @@ export function WorkoutSetEditor({ exerciseName, cardio, sets, previousSets, onU
               </button>
               <textarea
                 data-workout-set-note
+                data-workout-set-history-hint={Boolean(previousSets[index]?.note?.trim()) || undefined}
                 aria-label={`セット${index + 1}のメモ`}
                 placeholder={previousSets[index]?.note?.trim() || "セットメモ（任意）"}
                 rows={1}

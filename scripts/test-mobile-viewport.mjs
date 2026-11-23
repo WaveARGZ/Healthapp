@@ -150,6 +150,7 @@ const emptySetField = {
 const [desktopField] = WorkoutSetNumberField(emptySetField).props.children;
 assert.equal(desktopField.props.value, "");
 assert.equal(desktopField.props.placeholder, "62.5");
+assert.equal(desktopField.props["data-workout-set-history-hint"], true);
 desktopField.props.onBlur({ currentTarget: { value: "" } });
 
 const touchField = { active: false, value: "", onSelect() {} };
@@ -157,6 +158,9 @@ const [phoneField] = WorkoutSetNumberField({ ...emptySetField, touchField }).pro
 assert.match(phoneField.props["aria-label"], /未入力/);
 assert.equal(phoneField.props["aria-description"], "前回の記録 62.5");
 assert.equal(phoneField.props.children.props.children, "62.5");
+assert.equal(phoneField.props.children.props["data-workout-set-history-hint"], true);
+const [noHistoryPhone] = WorkoutSetNumberField({ ...emptySetField, historicalValue: undefined, touchField }).props.children;
+assert.equal(noHistoryPhone.props.children.props["data-workout-set-history-hint"], undefined);
 const [filledPhone] = WorkoutSetNumberField({ ...emptySetField, value: 0, touchField: { ...touchField, value: "0" } }).props.children;
 assert.equal(filledPhone.props.children, "0");
 assert.equal(filledPhone.props["aria-description"], undefined);

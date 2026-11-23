@@ -59,9 +59,14 @@ export function WorkoutSetNumberField({ value, onCommit, previousValue, historic
       aria-pressed={touchField.active}
       className={`form-input ${fieldClass} touch-manipulation truncate aria-pressed:border-[var(--sage-deep)] aria-pressed:bg-[var(--sage-soft)]`}
       onClick={touchField.onSelect}
-    >{touchField.value || <span className="text-[var(--muted)]">{hint ?? "0"}</span>}</button> : <TextInput
+    >
+      {touchField.value || <span data-workout-set-history-hint={hint !== undefined || undefined} className={hint === undefined ? "text-[var(--muted)]" : undefined}>
+        {hint ?? "0"}
+      </span>}
+    </button> : <TextInput
       data-set-primary={autoFocusTarget || undefined}
       data-workout-set-field="true"
+      data-workout-set-history-hint={hint !== undefined || undefined}
       type="number"
       min="0"
       step={step}
