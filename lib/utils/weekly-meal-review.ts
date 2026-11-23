@@ -1,5 +1,5 @@
 import { summarizeDailyCalories } from "./meal-calories.ts";
-import { burnMinusIntake } from "./daily-burn.ts";
+import { burnMinusIntake, totalDailyBurn } from "./daily-burn.ts";
 import type { MealEntry } from "../../types/meal";
 import type { DailyBurnEntry } from "../../types/workout";
 
@@ -29,14 +29,14 @@ export function reviewEndDate(today: string, weeksAgo: number): string {
 }
 
 /** A local seven-day summary. Missing nutrition remains unknown, never a zero-calorie day. */
-export function summarizeWeeklyMealReview(entries: readonly MealEntry[], endDate: string, burns: readonly DailyBurnEntry[] = []) {
+export function summarizeWeeklyMealReview(entries: readonly MealEntry[], endDate: string, burns: readonly DailyBurnEntry[] = [], restingOn?: (date: string) => number | null) {
   const endDay = dayNumber(endDate) ?? dayNumber("2000-01-01")!;
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = dateAt(endDay - 6 + index);
     const total = summarizeDailyCalories(entries, date);
     const calories = total.countedMeals > 0 ? Math.round(total.calories) : null;
-    const recordedBurn = burns.find((entry) => entry.performedAt === date)?.caloriesBurned;
-    const burned = typeof recordedBurn === "number" && Number.isFinite(recordedBurn) && recordedBurn >= 0 ? recordedBurn : null;
+    const recordedBurn = burns.find((entry) => entry.performedAt === date);
+    const burned = totalDailyBurn(recordedBurn, recordedBurn?.burnScope === "activity" ? restingOn?.(date) ?? null : null);
     return {
       date,
       mealCount: total.mealCount,
