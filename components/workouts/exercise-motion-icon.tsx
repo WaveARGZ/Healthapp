@@ -1,4 +1,7 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
+import { registeredExerciseForName } from "@/lib/data/registration-exercise-catalog";
+import { exerciseIllustrations } from "@/lib/workouts/exercise-illustrations";
 import { getExerciseMotion, type ExerciseMotion, type ExerciseIconEquipment } from "@/lib/workouts/exercise-motions";
 import type { WorkoutExerciseCategory } from "@/types/workout-preferences";
 
@@ -465,9 +468,15 @@ function Movement({ motion: m }: { motion: ExerciseMotion }) {
   }
 }
 
-/** Compact, original vector artwork: no image downloads, animation or canvas buffers. */
+/** Local, pre-sized illustrations; unknown custom exercises retain neutral artwork. */
 export function ExerciseMotionIcon({ name, category, className = "" }: { name: string; category?: WorkoutExerciseCategory | null; className?: string }) {
   const motion = getExerciseMotion(name, category);
+  const key = registeredExerciseForName(name)?.name ?? name.trim();
+  const illustration = Object.hasOwn(exerciseIllustrations, key) ? exerciseIllustrations[key] : undefined;
+  if (illustration) return <Image src={illustration} alt="" aria-hidden="true" draggable={false}
+    width={384} height={384} loading="lazy" decoding="async" unoptimized
+    data-exercise-motion={motion.kind} data-exercise-illustration={key}
+    className={"shrink-0 rounded-lg bg-white object-contain " + className} />;
   return <svg aria-hidden="true" focusable="false" viewBox="0 0 96 80" data-exercise-motion={motion.kind}
     className={"shrink-0 text-[var(--ink-soft)] " + className} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
     <title>{motion.action}</title>

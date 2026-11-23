@@ -1,0 +1,1038 @@
+{
+  "source": "ai_generated_illustration",
+  "method": "Codex built-in image_gen",
+  "date": "2026-11-23",
+  "purpose": "workout_ui_artwork_not_training_data",
+  "images": [
+    {
+      "name": "チェストプレス",
+      "index": 0,
+      "slug": "chest-press-machine",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-45a6c334-c83a-4b0d-80ff-b96f09eaf9ef.png",
+      "bytes": 13512,
+      "sha256": "d9cadb56444070513ff59f38dd7cd2dd1fabfabdf7e158aaab54b67bbff955b6"
+    },
+    {
+      "name": "インクラインマシンチェストプレス",
+      "index": 1,
+      "slug": "incline-chest-press-machine",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-090fd666-97f6-46ed-8ad8-75dcbf6ddba6.png",
+      "bytes": 14356,
+      "sha256": "d64b71d0dfbbbfd204076b65a6ca5bb6b557e5809d176c64fe5f1d74efcf3882"
+    },
+    {
+      "name": "ペックフライ",
+      "index": 2,
+      "slug": "pec-deck-fly",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-2aa3560c-b4f0-438c-aad8-d764a6038512.png",
+      "bytes": 11180,
+      "sha256": "51e3553260793421adf8d406c6564d56240edebb0201f9c5a8cde4bd396e1f63"
+    },
+    {
+      "name": "ケーブルフライ",
+      "index": 3,
+      "slug": "cable-fly",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-0144e32b-d489-4a23-b996-df32ea7e476a.png",
+      "bytes": 12872,
+      "sha256": "b5adfe9fbb7c8ac6f4e17685721ea1333976735544fb2a63d24602541ed6d489"
+    },
+    {
+      "name": "スミスマシンベンチプレス",
+      "index": 4,
+      "slug": "smith-bench-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-3324b09e-b8f7-4ef0-a615-cfab2874d1ad.png",
+      "bytes": 14144,
+      "sha256": "046165769ed2ee9f0b31898fec647c2e36c36a7fd6a068d57223636819f8c897"
+    },
+    {
+      "name": "ベンチプレス",
+      "index": 5,
+      "slug": "bench-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-3a24dbd8-9fdc-42a7-a98e-d517464aadd9.png",
+      "bytes": 16692,
+      "sha256": "363ec49ac21117ef519afacba329f64ea38eae16e976c760450e24fd88cb5b6b"
+    },
+    {
+      "name": "インクラインバーベルベンチプレス",
+      "index": 6,
+      "slug": "incline-barbell-bench-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-8baed044-3f8e-40f9-a0b6-9d3e5e7d83b6.png",
+      "bytes": 12934,
+      "sha256": "f80aa9f1a2084148b9d4a0e32d796845baab52aecabfd42ccd85d5383b6a1fdd"
+    },
+    {
+      "name": "ダンベルベンチプレス",
+      "index": 7,
+      "slug": "dumbbell-bench-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-60664881-1994-4d4f-aa48-5245c236b54e.png",
+      "bytes": 11420,
+      "sha256": "32401d1c1fb71eace4daf0e1ff3d7e217d2ccc654f2c21b2c308c49262c93f34"
+    },
+    {
+      "name": "インクラインダンベルプレス",
+      "index": 8,
+      "slug": "incline-dumbbell-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-a8347984-985a-4f2b-95b4-24bc5173e9a0.png",
+      "bytes": 12090,
+      "sha256": "1ae38b265829383cbe0d3fe2604f5a9a89d427a6d67f1e3403d2ab2e807bf260"
+    },
+    {
+      "name": "ダンベルフライ",
+      "index": 9,
+      "slug": "dumbbell-fly",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-11c58687-b37a-4003-a900-c252b76e13df.png",
+      "bytes": 11030,
+      "sha256": "7262b9529f89c35adb43e8957b017f18e740de8a5d69bbf472ee782fba5ee429"
+    },
+    {
+      "name": "腕立て伏せ",
+      "index": 10,
+      "slug": "push-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-b54d4be2-c2ef-4400-a71b-856b1093f473.png",
+      "bytes": 6652,
+      "sha256": "c57bb1f164023776ca25de5848809f32370959c51e253a0d48f64f6ed863ae1f"
+    },
+    {
+      "name": "膝つき腕立て伏せ",
+      "index": 11,
+      "slug": "knee-push-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-86511cfa-1344-4516-9d29-3ad6ce7ed70b.png",
+      "bytes": 6614,
+      "sha256": "01fd8b75a27fa429c5d13109a8178054c60b64c860dc8dd1f3e902489ebd098d"
+    },
+    {
+      "name": "インクラインプッシュアップ",
+      "index": 12,
+      "slug": "incline-push-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-320ce974-e619-4352-8b3e-ef8880ba016f.png",
+      "bytes": 9650,
+      "sha256": "052a5128745d2dce2efe2ee4890186f0774d649fc737e1da3b1790ba2d1acd71"
+    },
+    {
+      "name": "壁腕立て伏せ",
+      "index": 13,
+      "slug": "wall-push-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-515e77fc-37c9-4ccd-894a-e9f97e1152fe.png",
+      "bytes": 6528,
+      "sha256": "215c37aea5541cf30a8db9e4188ef99966781484eab9e4ca0504ca46c89768bd"
+    },
+    {
+      "name": "チェストディップス",
+      "index": 14,
+      "slug": "chest-dip",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-472aea86-c4e9-4fc0-9995-afef66f2996a.png",
+      "bytes": 8904,
+      "sha256": "ea0c2c92c006df41b9a54e049074608b9b3156dd9e9ede30cbb44ded0cb0a01b"
+    },
+    {
+      "name": "ラットプルダウン",
+      "index": 15,
+      "slug": "lat-pulldown",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-feb8b9bf-c976-47a8-a821-10ad0033899e.png",
+      "bytes": 11052,
+      "sha256": "c9528dce0228544e67f8aa056ed5f051338dded7d3c6bc85e15a36dc1a6d1258"
+    },
+    {
+      "name": "シーテッドロー",
+      "index": 16,
+      "slug": "seated-row-machine",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-090fc940-7c90-4808-8837-622eb43c3a44.png",
+      "bytes": 13328,
+      "sha256": "b4bb031679b6be82eaee72f289be1ec904778d63abe9091469cfbfb540277870"
+    },
+    {
+      "name": "シーテッドケーブルロー",
+      "index": 17,
+      "slug": "seated-cable-row",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-091d7380-096b-45ba-b15c-b909171a713b.png",
+      "bytes": 10808,
+      "sha256": "5d1a43d9fb98b6079a0f38752b78d3d9f92fbb1ff899ca4ed639973beee21c63"
+    },
+    {
+      "name": "アシスト懸垂",
+      "index": 18,
+      "slug": "assisted-pull-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-d758119e-e444-40cb-b4af-5e826c08bec7.png",
+      "bytes": 11650,
+      "sha256": "e75057c32e941b73cb580660ce6896539da7c5a32379932926e33572ebbe93f0"
+    },
+    {
+      "name": "ストレートアームプルダウン",
+      "index": 19,
+      "slug": "straight-arm-pulldown",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-9cf1343c-58b5-4e23-a61e-a70ef8db6f57.png",
+      "bytes": 10228,
+      "sha256": "1728e11f145715469011395758846f58fa5cb8beb855ccf50e773577aba86e7e"
+    },
+    {
+      "name": "バックエクステンション",
+      "index": 20,
+      "slug": "back-extension",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-0d79ea1a-d0dd-4dbf-b647-881333e9a329.png",
+      "bytes": 8232,
+      "sha256": "783065be724d2b2cc8aed4387eb00a818d6be72d7fa285a6d38dc499a17303fd"
+    },
+    {
+      "name": "ベントオーバーロー",
+      "index": 21,
+      "slug": "barbell-bent-row",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-c298af07-b912-465b-a96e-d9797008df32.png",
+      "bytes": 10316,
+      "sha256": "61256756b7e2a4b205a8afbfbf4f8d6c535dd85cc7e85837972afc57a8480ac4"
+    },
+    {
+      "name": "デッドリフト",
+      "index": 22,
+      "slug": "barbell-deadlift",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-1ce40d10-6d83-49b9-ba7b-b9cbd65a7db7.png",
+      "bytes": 11012,
+      "sha256": "3ad4810bf1859473be41e4b78817f8e62289f74edd231d0057ca80177b28e177"
+    },
+    {
+      "name": "ダンベルローイング",
+      "index": 23,
+      "slug": "one-arm-dumbbell-row",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-18c9ced0-535d-4078-b085-ce3861a3271c.png",
+      "bytes": 11242,
+      "sha256": "1a7edc582cab922eed505521f6029a7c0140f4cf1d42ebe3eb29bf13cca627e3"
+    },
+    {
+      "name": "チェストサポートダンベルロー",
+      "index": 24,
+      "slug": "chest-supported-row",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-6eb416ab-8ac6-4765-a6b3-48076249704f.png",
+      "bytes": 10968,
+      "sha256": "2fffb5ab070198e05c6cab229e51739f11e8922bbc5e661e3333d804b9cf2c1e"
+    },
+    {
+      "name": "懸垂",
+      "index": 25,
+      "slug": "pull-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-0228fd54-7eb3-4978-9c23-73b75836c0f9.png",
+      "bytes": 8278,
+      "sha256": "fc3492f06baa40fddbb8c3b1fe8940a26b9fb90cc0215adf247ab081d06cfbcf"
+    },
+    {
+      "name": "チンアップ",
+      "index": 26,
+      "slug": "chin-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-4f625df1-17cc-459a-a5fc-e467db75e51b.png",
+      "bytes": 9086,
+      "sha256": "0dfbafc33f8189f6bb7fc7fa56bc7e65f67fe9f672b1904977bd2e79b4e6ba50"
+    },
+    {
+      "name": "バードドッグ",
+      "index": 27,
+      "slug": "bird-dog",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-2daaed65-13d1-49e6-86e7-e87131931d78.png",
+      "bytes": 6364,
+      "sha256": "a8b6524e8510ceac90d2b5cbf6db68804a292a96ee83105ac380868b2abebe98"
+    },
+    {
+      "name": "スーパーマン",
+      "index": 28,
+      "slug": "superman",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-6c38289c-c410-4937-8a82-6320879b203b.png",
+      "bytes": 5090,
+      "sha256": "0dd88cedbc0d4baa95352806838337991a0a9215c8b60f5b00b4b724cf1a8baa"
+    },
+    {
+      "name": "ケーブルカール",
+      "index": 29,
+      "slug": "cable-curl",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-2f7a0a64-30d9-4e28-a3e2-d8e52b330ed4.png",
+      "bytes": 9356,
+      "sha256": "bf052ceddcebad888372f5276253f5811a061b28e2740f87157f575b5bc53216"
+    },
+    {
+      "name": "トライセプスプッシュダウン",
+      "index": 30,
+      "slug": "triceps-pushdown",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-e542a5d6-a548-48e6-9019-838f75acd881.png",
+      "bytes": 8398,
+      "sha256": "0f424e3b124a42b4af80a1803a2f8128b87178a555e8e3a9d7743ad2c8b7e4c8"
+    },
+    {
+      "name": "ケーブルオーバーヘッドトライセプスエクステンション",
+      "index": 31,
+      "slug": "cable-overhead-extension",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-30b7a951-1921-4fb0-851a-139175f43eb8.png",
+      "bytes": 9508,
+      "sha256": "d9945ac7d24766b36bbebade0eaa9a006cdf731ebb2f83d780f4f7f2a0c2659b"
+    },
+    {
+      "name": "マシンプリーチャーカール",
+      "index": 32,
+      "slug": "preacher-curl-machine",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-2fc99a8e-8fda-4cf3-a62b-f063e6ef2e15.png",
+      "bytes": 14724,
+      "sha256": "e90e68cc36a9c2c9e8379dbabf4111fbce33b991935dcc220cb73a47ab45017f"
+    },
+    {
+      "name": "バーベルカール",
+      "index": 33,
+      "slug": "barbell-curl",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-0df58c68-ff86-4158-afbc-ad33967ceabd.png",
+      "bytes": 7576,
+      "sha256": "c6d2546d514ea135f95ab2bdc3f1ea0261585dc173423984dc8c9cd6e5368de6"
+    },
+    {
+      "name": "EZバーカール",
+      "index": 34,
+      "slug": "ez-bar-curl",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-f487d48a-1a86-4806-b3ee-6e48d9eaa9fd.png",
+      "bytes": 7180,
+      "sha256": "3022808d12bbf99e4f63a03339a26174a139041b67463f95752b046d5cf56e69"
+    },
+    {
+      "name": "ナローベンチプレス",
+      "index": 35,
+      "slug": "close-grip-bench-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-fbe88b07-95e4-4b24-bbef-4f5e14e4235a.png",
+      "bytes": 13502,
+      "sha256": "2b5f9912f5d24bc97329c5701690870607ac0334a19c841e314e13476ebcb359"
+    },
+    {
+      "name": "ダンベルカール",
+      "index": 36,
+      "slug": "dumbbell-curl",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-e2e39c5b-7494-4a9d-b835-a0e3c95898b9.png",
+      "bytes": 6450,
+      "sha256": "24dcb02567826c93d26c13c70a26d80664bbc132e3d014b0b007219fa1e06157"
+    },
+    {
+      "name": "ハンマーカール",
+      "index": 37,
+      "slug": "hammer-curl",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-191da4f9-f484-4346-bc7c-158788194d3c.png",
+      "bytes": 6666,
+      "sha256": "7fbb96d8ab193e87ce1d64eb08dd2dcb7539385d919e593093781182d0d4467c"
+    },
+    {
+      "name": "インクラインダンベルカール",
+      "index": 38,
+      "slug": "incline-dumbbell-curl",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-5fb05e81-d339-4753-a84d-23281cdf33b1.png",
+      "bytes": 11324,
+      "sha256": "b672bc5ecb9e0debb753f73c02bfb72224129e6624787864c7170f68db2e69b8"
+    },
+    {
+      "name": "ダンベルトライセプスキックバック",
+      "index": 39,
+      "slug": "triceps-kickback",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-722707be-bcd7-41ea-aa01-e48ba7a2b6ee.png",
+      "bytes": 10204,
+      "sha256": "29f3236b1cea52041544ccd272820b2f75c02718c4bd6199d12a728bd7a0975d"
+    },
+    {
+      "name": "ダンベルオーバーヘッドトライセプスエクステンション",
+      "index": 40,
+      "slug": "dumbbell-overhead-extension",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-a6168838-6739-4c5e-8bb1-372042d55c77.png",
+      "bytes": 7854,
+      "sha256": "d7965d76863b5ed8af5840905dd4d121c999ea6a5783d126df6f7a1b5fc76c39"
+    },
+    {
+      "name": "ナロープッシュアップ",
+      "index": 41,
+      "slug": "narrow-push-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-77bfd8cd-185e-4cc2-a387-22c197b45630.png",
+      "bytes": 6468,
+      "sha256": "649e31a951d4dabe57b51a72aa6fcb7a4280310b32d48c60d84b569830cc4a05"
+    },
+    {
+      "name": "ディップス",
+      "index": 42,
+      "slug": "triceps-dip",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-2a49b804-0a86-41d9-b1f1-657124f961f1.png",
+      "bytes": 7908,
+      "sha256": "3a46510885c2d578f1021373762f55e89e3edc8a8af6b042b4d2289e70582a03"
+    },
+    {
+      "name": "タオルカール",
+      "index": 43,
+      "slug": "towel-curl",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-9741d94a-ce1b-4e2a-8b20-8a36e7e0b280.png",
+      "bytes": 10536,
+      "sha256": "463eb2a9e9f9058d4d3396ba0ce0972e612424b576d8c5940fe3905e2320a72e"
+    },
+    {
+      "name": "マシンショルダープレス",
+      "index": 44,
+      "slug": "shoulder-press-machine",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-7dc1fd43-f8c6-4515-8f76-c01ff60183fc.png",
+      "bytes": 12536,
+      "sha256": "771907f2d3d48f13ac3387071b36fdd1b2d91f079562defd634c209486c050d0"
+    },
+    {
+      "name": "マシンサイドレイズ",
+      "index": 45,
+      "slug": "lateral-raise-machine",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-005d6ba2-9dbc-4d2e-852a-1c058006a026.png",
+      "bytes": 13806,
+      "sha256": "e66b0ba070fe5a5e7b7ef0d09b2c0b4a12b6b918504d56015b34977c9ea1f708"
+    },
+    {
+      "name": "リバースペックデック",
+      "index": 46,
+      "slug": "reverse-pec-deck",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-841b7aa3-71c9-469d-868d-5c65dd2f9dc5.png",
+      "bytes": 12652,
+      "sha256": "358d213c7e9ae5ca333914889c7208e314290791bf79b44a947439f5f118ccf3"
+    },
+    {
+      "name": "ケーブルサイドレイズ",
+      "index": 47,
+      "slug": "cable-lateral-raise",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-58f809fc-322e-4379-bb2e-1f6cd9dffb4b.png",
+      "bytes": 9706,
+      "sha256": "c335d18f11c79c4755bd49970848279e47106e33a994025470202cce736c46b7"
+    },
+    {
+      "name": "フェイスプル",
+      "index": 48,
+      "slug": "face-pull",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-7756a77e-21eb-4509-9088-4906e7e51808.png",
+      "bytes": 9912,
+      "sha256": "8e1029bb478a724e754395171864d493cc945e11e028a0dfc12034f32e9cbf3e"
+    },
+    {
+      "name": "バーベルショルダープレス",
+      "index": 49,
+      "slug": "barbell-shoulder-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-6de2bdb2-0342-450c-8c8b-aa1866299067.png",
+      "bytes": 7706,
+      "sha256": "733c3b2da72f9b8cef5228b35e2f04b6976c32233fb086d0500a8bd700a0e294"
+    },
+    {
+      "name": "ダンベルショルダープレス",
+      "index": 50,
+      "slug": "dumbbell-shoulder-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-a39d35da-f29e-4b37-9b92-cfd83ed3dd4a.png",
+      "bytes": 11360,
+      "sha256": "b9933c433e89ae66afb997a02886cef6740e93feb4a7c2856df0dbf8759b7b0f"
+    },
+    {
+      "name": "ダンベルサイドレイズ",
+      "index": 51,
+      "slug": "dumbbell-lateral-raise",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-bf4a0a8e-09e0-4efd-b8b0-c002dac92851.png",
+      "bytes": 6958,
+      "sha256": "118521010ff5f35e358b7dd8fbfcf54cb891bf55546dde767c7a69f093d592d7"
+    },
+    {
+      "name": "ダンベルリアレイズ",
+      "index": 52,
+      "slug": "dumbbell-rear-fly",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-96d61b01-64ff-401d-bfb6-a20712badbe1.png",
+      "bytes": 9554,
+      "sha256": "2f94a1532b4f9cd21beb5805605171ee436fb899961d3c51b845ba35c7ba5354"
+    },
+    {
+      "name": "アーノルドプレス",
+      "index": 53,
+      "slug": "arnold-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-577f68d3-82d2-4d71-893e-afab9b1784d3.png",
+      "bytes": 9146,
+      "sha256": "5c233eddca0c6acbd62ff1269510d3e67a6e5e1b17aa373a3fbcf4edb92e891b"
+    },
+    {
+      "name": "パイクプッシュアップ",
+      "index": 54,
+      "slug": "pike-push-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-e4ed9fee-0205-48dd-803d-25634db06230.png",
+      "bytes": 8098,
+      "sha256": "786a1356751549d70c926dff8be537c8b5fbc8243e90b0505a538766d7d30801"
+    },
+    {
+      "name": "アブドミナルクランチ",
+      "index": 55,
+      "slug": "ab-crunch-machine",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-d2cca0c6-4fee-43fa-9070-1ecca1119431.png",
+      "bytes": 14214,
+      "sha256": "178b7e5aa54f331ea87d71950429f6007fc5042fe34cd352478f2e2fc04344b2"
+    },
+    {
+      "name": "ケーブルクランチ",
+      "index": 56,
+      "slug": "cable-crunch",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-650c4bac-8e4a-4fa0-a6ce-a0b295b078c5.png",
+      "bytes": 10068,
+      "sha256": "5dfbf4a7e04a2fbb53a49b6603bfee54d8bbfc97a200ee92ba15045bbc52e95d"
+    },
+    {
+      "name": "パロフプレス",
+      "index": 57,
+      "slug": "pallof-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-cb0862f4-c6f8-41c9-9f0b-b9321658223d.png",
+      "bytes": 9834,
+      "sha256": "f98a7fdaf32883349641f026ae0ba02e6ff022ba19abbad8da50cfe39947f249"
+    },
+    {
+      "name": "クランチ",
+      "index": 58,
+      "slug": "crunch",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-1feb6040-1b3d-4fe4-b492-9034d426f021.png",
+      "bytes": 7978,
+      "sha256": "80abcbc558337f16b0a991ae806348829545b84ece26b269603642214fc3d225"
+    },
+    {
+      "name": "プランク",
+      "index": 59,
+      "slug": "plank",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-3711e473-84c4-45c0-8e44-a32b518c842d.png",
+      "bytes": 4802,
+      "sha256": "f4ec077f9d6cb646184f2e5d4b03a5ca2d8e05cf9af6d324d6178e9e5f2a506b"
+    },
+    {
+      "name": "サイドプランク",
+      "index": 60,
+      "slug": "side-plank",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-7128510d-ea93-4e55-8140-271e6c3b13de.png",
+      "bytes": 7194,
+      "sha256": "5734c824682b2d3597421a33363bdf3018b2617b4d8d574d9253a077964d840f"
+    },
+    {
+      "name": "デッドバグ",
+      "index": 61,
+      "slug": "dead-bug",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-d3bb0144-4b39-4e5e-8941-1e0a42c19bc9.png",
+      "bytes": 6854,
+      "sha256": "bf6f7b0c6da944f01d07339df1e66140b1e2b20303bb7bcd81d8fef90b8f8be7"
+    },
+    {
+      "name": "サイドクランチ",
+      "index": 62,
+      "slug": "side-crunch",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-b1efb31b-6ea2-4715-8120-641b70fc3538.png",
+      "bytes": 7610,
+      "sha256": "3744cc96f8b45a79fd046a117b13e5eec1f1e7f219e065f45995f41cb900306f"
+    },
+    {
+      "name": "リバースクランチ",
+      "index": 63,
+      "slug": "reverse-crunch",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-872fe77c-44fa-4965-b837-1a8ec6009458.png",
+      "bytes": 7376,
+      "sha256": "75f2c664c829c16dc30a23102962791ab7195352b7d7313f221797c0843cd5a2"
+    },
+    {
+      "name": "レッグレイズ",
+      "index": 64,
+      "slug": "leg-raise",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-101fc34e-b6a2-4261-8deb-0555918552d7.png",
+      "bytes": 6198,
+      "sha256": "6bc480fef96b096cd14fabd73c7cbb780aa43c97ca49677155a1c363a5552c3a"
+    },
+    {
+      "name": "ハンギングニーレイズ",
+      "index": 65,
+      "slug": "hanging-knee-raise",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-e7fc3331-1e41-467d-b5a7-e786d788847a.png",
+      "bytes": 9002,
+      "sha256": "39a754de71df4ac46e941666b22eca133e700d7b6febcdc2b315a1f5595daa1d"
+    },
+    {
+      "name": "腹筋ローラー（膝コロ）",
+      "index": 66,
+      "slug": "ab-wheel-rollout",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-7f98716e-fe6c-4ead-8fc5-0126a559f712.png",
+      "bytes": 7168,
+      "sha256": "65ecf6ffe93c60c8a7c8134c39fe9c8452e5fcd8579f9ab2e32451aec7473188"
+    },
+    {
+      "name": "レッグプレス",
+      "index": 67,
+      "slug": "leg-press",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-fffa2af1-db0e-4fda-a3cf-c54ae6690122.png",
+      "bytes": 16394,
+      "sha256": "ecd031843a3c5520827d09631df08701accbe01e3e889c8bebc313aa4571e231"
+    },
+    {
+      "name": "レッグエクステンション",
+      "index": 68,
+      "slug": "leg-extension",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-a2de69e8-588c-4f6d-8edf-1006d2c6fb4e.png",
+      "bytes": 13378,
+      "sha256": "813166ca0e1b7a5c51310d129760f80f7233a92e0e485548f6aa7c6bb2d5df42"
+    },
+    {
+      "name": "シーテッドレッグカール",
+      "index": 69,
+      "slug": "seated-leg-curl",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-e2276dc3-873a-42b5-a727-7807a9b1465e.png",
+      "bytes": 12130,
+      "sha256": "6ab7f6d8d4834b36259b0608cd56d8bc29b729a2dcab82dd82b2d694d74f7f58"
+    },
+    {
+      "name": "ライイングレッグカール",
+      "index": 70,
+      "slug": "lying-leg-curl",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-79eb0902-cfa4-4c3b-a2f1-8f162939f4ee.png",
+      "bytes": 11328,
+      "sha256": "2c2f45bf36d930490cf867238b832c4d4096183e0d02bd45de9b945c8ed0c5a4"
+    },
+    {
+      "name": "ヒップアダクション",
+      "index": 71,
+      "slug": "hip-adduction",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-2206e695-dfef-4738-b782-afeb5444b047.png",
+      "bytes": 15254,
+      "sha256": "e4f10cb9d97f153550268ae54cf7c5a62852f655fbee567cff964c7dac7b2a20"
+    },
+    {
+      "name": "ヒップアブダクション",
+      "index": 72,
+      "slug": "hip-abduction",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-2caede70-4593-4d58-a9d0-c75df3a98fe2.png",
+      "bytes": 14052,
+      "sha256": "60efbb899d1510cfd8ce50516dff7358d11381762aa346b7e73a1dd3982fc3a9"
+    },
+    {
+      "name": "ハックスクワット",
+      "index": 73,
+      "slug": "hack-squat",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-e4a67312-1538-4011-bbb4-424ac7d40445.png",
+      "bytes": 16074,
+      "sha256": "ae07f863749e851ec3df0281e35ae1135232c846e2736c06e7fefc882c477c9d"
+    },
+    {
+      "name": "シーテッドカーフレイズ",
+      "index": 74,
+      "slug": "seated-calf-raise",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-325271c3-9163-4219-9e5c-af5422c52c64.png",
+      "bytes": 11016,
+      "sha256": "725fc1edf816b9c0717e627c3a7cc71eb17899eb18f0454ceeb2aeed0d1b6481"
+    },
+    {
+      "name": "バーベルスクワット",
+      "index": 75,
+      "slug": "barbell-squat",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-e7450833-0e6a-4c4d-903d-79a2c9a7323f.png",
+      "bytes": 11222,
+      "sha256": "afed92bcd106157867a2fb270bd4425f82656d9708243e8301a124e5a6e6e469"
+    },
+    {
+      "name": "ルーマニアンデッドリフト",
+      "index": 76,
+      "slug": "barbell-romanian-deadlift",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-d9b1f189-4042-48bb-b742-9874575021d9.png",
+      "bytes": 9234,
+      "sha256": "4e7d734167a6a19f71b0e2abdda668c6e41dfb62ef1e017545fd7bbad3862cbc"
+    },
+    {
+      "name": "バーベルヒップスラスト",
+      "index": 77,
+      "slug": "barbell-hip-thrust",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-350d3fe6-93d5-4890-8135-9dff8aef9695.png",
+      "bytes": 9738,
+      "sha256": "72ee5bd18a981f43bed69b99679998429d6bc2a5629e93f6c13abd52a41c636a"
+    },
+    {
+      "name": "ゴブレットスクワット",
+      "index": 78,
+      "slug": "goblet-squat",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-a426899f-54ef-4881-ac72-d565295afd2b.png",
+      "bytes": 9920,
+      "sha256": "84dd1445b26be73e815430e61a62491255b7f401a0965adcd43b96a9ad674a26"
+    },
+    {
+      "name": "ダンベルブルガリアンスクワット",
+      "index": 79,
+      "slug": "bulgarian-split-squat",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-bb73e91b-7c87-4198-9d06-dcaffde79036.png",
+      "bytes": 9204,
+      "sha256": "a9da9d128d7965dd77ca912f94980675a51f6cd84c65ecdbea6eeb89e5295191"
+    },
+    {
+      "name": "ダンベルルーマニアンデッドリフト",
+      "index": 80,
+      "slug": "dumbbell-romanian-deadlift",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-2528db9a-5e9e-4494-be6b-9ac3a85e3f39.png",
+      "bytes": 8106,
+      "sha256": "cdcf79b8a0be6adadc2fb9924c92e97e8297c79f4c3432ac68b88a33f666f16d"
+    },
+    {
+      "name": "ダンベルランジ",
+      "index": 81,
+      "slug": "dumbbell-lunge",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-46d7e173-1959-410a-a9ac-2fe2b5d18afa.png",
+      "bytes": 8484,
+      "sha256": "66e820712bd09d5914893c140d5ba6cfa69c410345afad87c7a16b21cc8a74ed"
+    },
+    {
+      "name": "自重スクワット",
+      "index": 82,
+      "slug": "bodyweight-squat",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-36c476da-1df7-4228-b45e-f30851fdb14a.png",
+      "bytes": 8712,
+      "sha256": "d8bce3c590dcdce67bcadc1aab908f4818dc7e9e2e0e906ff9568713382bb949"
+    },
+    {
+      "name": "チェアスクワット",
+      "index": 83,
+      "slug": "chair-squat",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-6410f357-f6e2-4cff-b815-ddb477059d2d.png",
+      "bytes": 10004,
+      "sha256": "c3cbdca9670b96797b875c91bad5eeead4725e4e681eb898f552f38351230077"
+    },
+    {
+      "name": "ランジ",
+      "index": 84,
+      "slug": "forward-lunge",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-fddd10c0-8186-42f4-820d-e75ef70db073.png",
+      "bytes": 8778,
+      "sha256": "df2bb6b5cbde94a52d7f1059d204e2d9c1e1d666cbc3e0f28883bb73a00f1224"
+    },
+    {
+      "name": "リバースランジ",
+      "index": 85,
+      "slug": "reverse-lunge",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-14dd07da-2d50-4b47-ae4d-ea7247ff4fee.png",
+      "bytes": 9244,
+      "sha256": "3a952209746e32f607b0ba508af8c43fe90c8b115345374d7365aede3e978633"
+    },
+    {
+      "name": "ステップアップ",
+      "index": 86,
+      "slug": "step-up",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-5b12b167-b3e3-483e-bce7-919ad7b93514.png",
+      "bytes": 8252,
+      "sha256": "64bd7b0b153437456524697484c07a47f3e03e05c5a7330d3d9a8ac150d3d6df"
+    },
+    {
+      "name": "ヒップリフト",
+      "index": 87,
+      "slug": "glute-bridge",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-c2aad223-f986-4847-b82b-b1c0a3317769.png",
+      "bytes": 6282,
+      "sha256": "80bd9d160b54d49f42e858c9ccf7661e63923c498fab98ed51775f55868a395c"
+    },
+    {
+      "name": "スタンディングカーフレイズ",
+      "index": 88,
+      "slug": "standing-calf-raise",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-748655bc-809f-498b-b8d2-55504049a4bf.png",
+      "bytes": 5214,
+      "sha256": "f87851a3c0f75ac619abb30b5f1bbcf6919a7c3a67a55b29014f3f932106a52d"
+    },
+    {
+      "name": "ウォールシット",
+      "index": 89,
+      "slug": "wall-sit",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-f7b4ffb5-91d6-4ec5-8a66-f9d6758f3ab8.png",
+      "bytes": 7564,
+      "sha256": "13d51dd65c65a10f2b378a43c7497647b45b4541c20bf40d46c0f3e13f19ceae"
+    },
+    {
+      "name": "トレッドミル",
+      "index": 90,
+      "slug": "treadmill",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-01aac4f5-e956-48f2-872f-baa14c75e2dd.png",
+      "bytes": 12046,
+      "sha256": "c491a72873a391f9c7315d5658725743fbcf566b5646eb08d58f4e8503aab08a"
+    },
+    {
+      "name": "エアロバイク",
+      "index": 91,
+      "slug": "stationary-bike",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-75af0810-aa5f-4e17-81ef-abe1fa8e9fa4.png",
+      "bytes": 12234,
+      "sha256": "2eb607406797a7094f0962f9eb8e59e5525f9c0f80806c89ddf71d3187a59d1f"
+    },
+    {
+      "name": "クロストレーナー",
+      "index": 92,
+      "slug": "elliptical",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-8d1277a0-eeb1-448c-b966-8e2ab16f456f.png",
+      "bytes": 14600,
+      "sha256": "fd72a2c9b6fae69559cbee5bcda194c2fd40aee9b373b520c1cb8592475a4b06"
+    },
+    {
+      "name": "ローイングマシン",
+      "index": 93,
+      "slug": "rowing-machine",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-64e35dce-0c21-4d53-a8a4-c204b47947a6.png",
+      "bytes": 10728,
+      "sha256": "cb5a0a427895f46e16e0bde3ec2a3356404fe734ea2ad143589b6aaca4f03b74"
+    },
+    {
+      "name": "スキーエルゴ",
+      "index": 94,
+      "slug": "skierg",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-886d45a9-823a-4917-b201-f79e02f8a021.png",
+      "bytes": 12572,
+      "sha256": "7001745d60fe9ab0ffb9fcf7cc9b20b42579d868dc25ceeb550df497911cc3a8"
+    },
+    {
+      "name": "ウォーキング",
+      "index": 95,
+      "slug": "walking",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-12998dd1-8db6-4ef9-8f74-4de51eacb97c.png",
+      "bytes": 7312,
+      "sha256": "deb88c18a71e678fd8d3fc465deabafbb0383b052995015cb6d61b1e0ce6a1fc"
+    },
+    {
+      "name": "早歩き",
+      "index": 96,
+      "slug": "brisk-walking",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-3820db93-b9cd-491c-828c-b6fd66cb01b6.png",
+      "bytes": 8538,
+      "sha256": "c7e629f46ca34e6755f2acadf52e58002730181ffa7385b38587896bbb848e10"
+    },
+    {
+      "name": "ジョギング",
+      "index": 97,
+      "slug": "jogging",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-5e3116e8-535e-4ce4-8411-2562460959c0.png",
+      "bytes": 6028,
+      "sha256": "dffc86e325d5dc86326efb6626539bb585e4cca8a30b09a6f97f0a7fc7439967"
+    },
+    {
+      "name": "ランニング",
+      "index": 98,
+      "slug": "running",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-5b0fa19c-eaff-4172-b92d-e1457b1f5d99.png",
+      "bytes": 8726,
+      "sha256": "408effefb16481c29309c11926e5985776e7997b3fdf674cb04ce53e4bdddb77"
+    },
+    {
+      "name": "その場足踏み",
+      "index": 99,
+      "slug": "march-in-place",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-b3b82a3a-4ab9-487d-9635-98bddc5a8204.png",
+      "bytes": 6824,
+      "sha256": "42589efbe043e2f70b0154f62cf6aca9a9dce86d1052d88dae52b79508ff037d"
+    },
+    {
+      "name": "階段昇降",
+      "index": 100,
+      "slug": "stair-climb",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-cf68a5bc-4596-44ed-8487-52f4522959bd.png",
+      "bytes": 9390,
+      "sha256": "3a4c24ee1d581f6580026822cf90f4a6f717401f7db34341a9e5d8c9f5beaf0e"
+    },
+    {
+      "name": "低負荷のステップタッチ",
+      "index": 101,
+      "slug": "side-step-touch",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-a1181010-d4b0-4a9d-a71e-9f6834d26b77.png",
+      "bytes": 7446,
+      "sha256": "1f9619c0f1a09957eb456485523dcaaa3aa5bce4b0ae63431e25f65356b51cb4"
+    },
+    {
+      "name": "縄跳び",
+      "index": 102,
+      "slug": "jump-rope",
+      "width": 384,
+      "height": 384,
+      "sourceFile": "exec-77c3a9e5-e20e-417d-ba88-7ce3a655641a.png",
+      "bytes": 7006,
+      "sha256": "2e24e710e5527cdf9a32975f613a9a5dff3600a623e9f756df0ab3467b0e7429"
+    }
+  ]
+}
