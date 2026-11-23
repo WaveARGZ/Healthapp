@@ -54,7 +54,17 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
         return { model: ADVICE_MODEL, accountMatched: true, inferencePerformed: false } as const;
       })(),
     ]);
-  } catch (error) { if (error instanceof AdviceApiError) throw error; return apiFail(`provider_preflight_${phase}_failed`, 502); }
+  } catch (error) {
+    if (error instanceof AdviceApiError) throw error;
+    // Diagnose runtime incompatibilities without returning messages, URLs or secrets.
+    const patterns: [RegExp, string][] = [
+      [/redirect/i, "redirect"], [/cache/i, "cache"], [/credentials/i, "credentials"],
+      [/Illegal invocation|this reference/i, "invocation"], [/header/i, "headers"],
+      [/DNS/i, "dns"], [/TLS|SSL|certificate/i, "tls"], [/network|connection|fetch failed/i, "network"],
+    ];
+    const kind = error instanceof Error ? patterns.find(([p]) => p.test(error.message))?.[1] : undefined;
+    return apiFail(`provider_preflight_${phase}_${kind ?? "unknown"}_failed`, 502);
+  }
   finally { if (timer) clearTimeout(timer); void reader?.cancel().catch(() => undefined); }
 }
 const string = { type: "string" };
