@@ -6,7 +6,7 @@ import { initializeCloudflareBudgetStore, createCloudflareBudgetStore } from "./
 import { reserveCumulativeBudget } from "./cumulative-budget.ts";
 import { initializeAdviceBudget, reserveAdvice, settleAdvice, adviceBudget, CALL_HOLD_MICROS } from "./advice-budget.ts";
 import { BodyMakeRecommendationBudget, creditConfiguration } from "./advice-worker.ts";
-import { createAdviceProvider, verifyAdviceConnection, checkedUsage, ADVICE_MODEL, advicePayload } from "./advice-provider.ts";
+import { createAdviceProvider, verifyAdviceConnection, checkedUsage, ADVICE_MODEL, advicePayload, MAX_PROVIDER_REQUEST_BYTES } from "./advice-provider.ts";
 import { summarizeAdviceRecords } from "../../lib/advice/summary.ts";
 
 const NOW = Date.parse("2026-11-23T04:00:00Z");
@@ -76,6 +76,32 @@ test("one fixed Responses request, no storage/tools/retry; schema and usage vali
   },()=>NOW);
   const result=await provider(input());assert.deepEqual(result.advice,advice());assert.equal(result.usage.costMicros,375);assert.equal(calls,1);
   assert.equal(advicePayload(input()).text.format.strict,true);
+});
+test("provider bounds the final UTF-8 payload before any network call or credential exposure",async()=>{
+  let calls=0;
+  const provider=createAdviceProvider("synthetic-private-api-key",account,async()=>{calls++;throw new Error("network must not be called");},()=>NOW);
+  // Direct provider calls intentionally exercise its own guard independently of
+  // the Worker's smaller inbound limit, including multibyte and JSON expansion.
+  for(const constraints of ["x".repeat(MAX_PROVIDER_REQUEST_BYTES),"あ".repeat(22000),'"'.repeat(33000)]) {
+    const value={...input(),constraints};
+    const body=JSON.stringify(advicePayload(value));
+    assert.ok(Buffer.byteLength(body,"utf8")>MAX_PROVIDER_REQUEST_BYTES);
+    if(constraints.startsWith("あ"))assert.ok(body.length<MAX_PROVIDER_REQUEST_BYTES);
+    await assert.rejects(provider(value),error=>error.code==="provider_request_too_large"&&error.status===413&&error.message==="provider_request_too_large");
+  }
+  assert.equal(calls,0);
+});
+test("provider accepts the exact final byte limit and rejects the next byte",async()=>{
+  let calls=0;
+  const provider=createAdviceProvider("synthetic-openai-key",account,async(url,init)=>{
+    calls++;assert.equal(Buffer.byteLength(init.body,"utf8"),MAX_PROVIDER_REQUEST_BYTES);
+    return Response.json({model:ADVICE_MODEL,service_tier:"default",status:"incomplete",usage:{input_tokens:1000,output_tokens:0,total_tokens:1000}},{headers:{"openai-organization":account.organization}});
+  },()=>NOW);
+  const value={...input(),constraints:""};
+  value.constraints="x".repeat(MAX_PROVIDER_REQUEST_BYTES-Buffer.byteLength(JSON.stringify(advicePayload(value)),"utf8"));
+  await provider(value);assert.equal(calls,1);
+  value.constraints+="x";
+  await assert.rejects(provider(value),/provider_request_too_large/);assert.equal(calls,1);
 });
 test("provider timeout includes a stalled body and never retries",async()=>{
   let calls=0;const provider=createAdviceProvider("synthetic-openai-key",account,async()=>{calls++;return new Response(new ReadableStream({start(){}}),{headers:{"Content-Type":"application/json","openai-organization":account.organization}});},()=>NOW,10);

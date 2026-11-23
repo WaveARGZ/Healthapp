@@ -2,7 +2,7 @@
 
 食事・完了した筋トレの直近7日間、目標、今日の分割メニューと使用可能な器具をもとに、次の食事・筋トレ・回復の案を表示する。写真認識の追加学習とは独立した機能。
 
-**現在は生成無効。2026-11-23に所有者の請求画面で、既存クレジットの利用可能額・有効期限・有料請求プラン未開始を確認した。CloudflareもWorkers Freeを確認した。既存Workerへ生成無効のコードを更新し、モデル情報をGETする読み取り接続検査だけを実施した。既存APIキーを使用した検査はOpenAIからHTTP 401（認証情報に関する拒否）が返り、同じ課金先へ接続できることは未確認。Responses APIによる生成・クレジット消費の確認・予算の移行・有効化・本番Hostingへの公開は未実施。** クレジット購入処理は存在しない。APIキーは既存Cloudflare secretだけで管理し、ブラウザやGitに含めない。
+**現在は生成無効。2026-11-24（日本時間）に画面操作を再開し、所有者画面で既存クレジットの利用条件と有料請求プラン未開始を再確認した。既存APIキーの有効期限切れを確認したため、所有者による認証情報の更新が必要。既存Workerのhealth応答も生成無効であることを確認した。この再確認では有料API呼び出し・サーバー設定変更・予算移行は行っていない。Responses APIによる生成・クレジット消費の照合・有効化・本番Hostingへの公開は未実施。** 2026-11-23にはWorkers Freeを確認し、既存Workerへ生成無効のコードを更新したが、モデル情報をGETする検査でHTTP 401が返っていた。同じ課金先への有効な接続は引き続き未確認。請求画面の確認内容をサーバーのクレジット設定へ反映したとは扱わない。クレジット購入処理は存在しない。APIキーは既存Cloudflare secretだけで管理し、ブラウザやGitに含めない。
 
 ## 操作と個人情報
 
@@ -20,7 +20,7 @@
 
 請求画面の残高とこの概算は別物。他のAPI利用額・税金・為替・付与クレジット残高を推測しない。入力はキャッシュ書込みの最高単価で保守的に計算するため、請求額より早めに通知する場合がある。
 
-呼び出し前に、モデル入力上限全体・長文料金・出力上限を覆う0.25ドルを同じDurable Objectへ予約する。確認できたusageだけ精算し、失敗・不明なら予約を維持して以後の有料呼び出しを停止する。重複IDを拒否。30秒に1回・24時間に20回。既存Workers Freeの枠内で動作し、有料プランに切り替えない。
+呼び出し前に、0.25ドルを同じDurable Objectへ予約する。受信本文は32KiBまで、OpenAIへ送るプロンプト・候補・スキーマを含む最終JSON本文もUTF-8で64KiBまでに制限し、超過時は通信前に拒否する。出力上限は1,800トークンで、この小さいテキスト入力と出力に対して余裕を持つ予約額である。モデルのコンテキスト上限全体を0.25ドルで覆うという意味ではない。確認できたusageだけ精算し、失敗・不明なら予約を維持して以後の有料呼び出しを停止する。重複IDを拒否。30秒に1回・24時間に20回。既存Workers Freeの枠内で動作し、有料プランに切り替えない。
 
 既存の lifetime-usd5-v1 の名前・クラス・namespaceを維持する。旧5ドル台帳と全履歴を検証して読み取り、予約済み額をv2へ繰り越す。v1テーブルは変更・削除しない。v2の3テーブルへ追記する。欠損・不整合・未確認の旧呼び出しは移行不可。再初期化、旧予算への巻戻し、消費枠の復活は行わない。
 
@@ -44,5 +44,7 @@
 Node22.23.4 / npm10で npm run test:advice、npm run lint、npm run build:test。認証・HTTP・SQLiteはRAM/モック。実写真・Firestore書込み・Drive送信・有料API呼び出しは使用しない。ローカルnpm ciは容量不足で失敗し、同一lockの既存依存をAPFS複製、追加joseのみ同じ固定版から使用。GitHub CIはクリーンなnpm ciを行う。
 
 2026-11-23のコード検証はRAM/モック167件、lint、型検査、build:test、test:environment-build、Workerの公開しないバンドル検証が合格。接続確認経路の追加後にはRAM/モック・lint・型検査・Workerバンドルを再検証した。実際のworkerdで通信設定の不一致を再現し、修正後のWorkerバンドルは架空キーに対する認証拒否まで到達することを確認した。実APIの読み取り検査は上記の認証エラーで停止。画面は合成記録を使い、同意前の生成0回・同意後1回、10ドル通知後の継続、未入力と0、アカウント切替時の消去、幅320/390/1024pxを確認した。実API・実記録での提案品質と課金照合は未検証。
+
+2026-11-24（日本時間）はmainの最新体重・カロリー収支・前回入力ヒント・タブ操作を統合し、関連RAM/モック214件、lint、型検査を含むbuild:test、test:environment-buildが合格。ビルド中だけキャッシュを無効化し1 workerで実行し、終了後にnext.config.tsを元へ戻して差分がないことを確認した。最終API本文のUTF-8サイズ制限は、超過時の通信0回と境界値をモックで検証した。本番公開・実生成・クレジット消費の試験は未実施。
 
 一次資料（2026-11-23確認）：[OpenAIモデル料金](https://developers.openai.com/api/docs/models/gpt-6-luna)、[Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)、[クレジットと自動追加購入](https://help.openai.com/en/articles/8264644-setting-up-and-managing-prepaid-api-billing)、[特典クレジットの付与先と期限](https://help.openai.com/en/articles/20001626-api-credits-benefit-for-eligible-chatgpt-subscriptions)、[Durable Object SQLite](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)。

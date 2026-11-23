@@ -4,8 +4,8 @@ import { ADVICE_ALERT_MICROS, type AdviceBudget } from "../../lib/advice/contrac
 const META = "bodymake_advice_credit_v2";
 const CALLS = "bodymake_advice_calls_v2";
 const RECEIPTS = "bodymake_advice_receipts_v2";
-// Bounds the complete model input window (including long-context/cache-write premiums)
-// and 1,800 output tokens. This temporary hold is replaced only by a validated usage receipt.
+// Conservative hold for the provider's capped 64 KiB text request and 1,800
+// output tokens, not the model's entire context window. Replace only with validated usage.
 export const CALL_HOLD_MICROS = 250_000;
 export class AdviceBudgetError extends Error { readonly code: string; constructor(code: string) { super(code); this.code = code; } }
 function fail(code: string): never { throw new AdviceBudgetError(code); }

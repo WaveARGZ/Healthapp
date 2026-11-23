@@ -2,6 +2,9 @@ import { eligibleExercises, object, validateAdvice, type Advice, type AdviceInpu
 
 export const ADVICE_MODEL = "gpt-6-luna";
 export const MAX_OUTPUT_TOKENS = 1800;
+// The Worker accepts at most 32 KiB. Bound the final prompt/schema too, so a
+// future catalog or prompt change cannot silently expand a paid request.
+export const MAX_PROVIDER_REQUEST_BYTES = 65_536;
 // Official model/pricing reference checked 2026-11-23. Never silently substitute models/tiers.
 const PRICING_EXPIRES = Date.parse("2026-12-23T00:00:00Z");
 export class AdviceApiError extends Error {
@@ -113,6 +116,8 @@ export function createAdviceProvider(apiKey: string, account: OpenAiAccount, fet
   return async input => {
     if (now() >= PRICING_EXPIRES || now() < Date.parse("2026-11-23T00:00:00Z")) apiFail("pricing_review_required");
     if (!/^[A-Za-z0-9_-]{12,512}$/.test(apiKey)) apiFail("configuration_required");
+    const requestBody = JSON.stringify(advicePayload(input));
+    if (new TextEncoder().encode(requestBody).byteLength > MAX_PROVIDER_REQUEST_BYTES) apiFail("provider_request_too_large", 413);
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
@@ -121,7 +126,7 @@ export function createAdviceProvider(apiKey: string, account: OpenAiAccount, fet
       return await Promise.race([timeout, (async () => {
         const r = await fetcher("https://api.openai.com/v1/responses", {
           method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "OpenAI-Organization": account.organization, "OpenAI-Project": account.project },
-          body: JSON.stringify(advicePayload(input)), signal: controller.signal, redirect: "manual", credentials: "omit", cache: "no-store",
+          body: requestBody, signal: controller.signal, redirect: "manual", credentials: "omit", cache: "no-store",
         });
         if (!r.ok || !r.body || !r.headers.get("content-type")?.startsWith("application/json")) { void r.body?.cancel().catch(() => undefined); apiFail("provider_failed", 502); }
         if (r.headers.get("openai-organization") !== account.organization) { void r.body.cancel().catch(() => undefined); apiFail("provider_cost_unconfirmed"); }
