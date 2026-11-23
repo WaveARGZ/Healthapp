@@ -14,7 +14,7 @@ const navItems: Array<{ href: string; label: string; icon: IconName }> = [
   { href: "/settings", label: "設定", icon: "settings" },
 ];
 
-export function BottomNav() {
+export function BottomNav({ onOpenTab }: { onOpenTab: (href: string) => void }) {
   const pathname = usePathname().replace(/\/$/, "");
   return (
     <nav aria-label="メインナビゲーション" className="mobile-nav fixed inset-x-0 bottom-0 z-30 border-t border-[var(--line)] bg-white pb-[env(safe-area-inset-bottom)] lg:sticky lg:inset-auto lg:top-8 lg:z-auto lg:mt-11 lg:self-start lg:border-r lg:bg-transparent lg:py-2 lg:pr-4">
@@ -22,7 +22,15 @@ export function BottomNav() {
         {navItems.map((item) => {
           const active = pathname === item.href || (item.href === "/dashboard" && pathname === "/weekly-review") || (item.href === "/progress" && ["/weight", "/photos"].includes(pathname));
           return (
-            <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className="app-nav-item">
+            <Link key={item.href} href={item.href} scroll={false} aria-current={active ? "page" : undefined} className="app-nav-item"
+              onNavigate={(event) => {
+                if (pathname === item.href) {
+                  event.preventDefault();
+                  const { pathname: currentPath, search, hash } = window.location;
+                  if (search || hash) window.history.replaceState(null, "", currentPath);
+                }
+                onOpenTab(item.href);
+              }}>
               <span className="app-nav-icon"><Icon name={item.icon} className="size-5" /></span>
               {item.label}
             </Link>
