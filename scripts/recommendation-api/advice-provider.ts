@@ -24,6 +24,7 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
   const controller = new AbortController();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let phase = "request";
   try {
     return await Promise.race([
       new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); void reader?.cancel().catch(() => undefined); reject(new AdviceApiError("provider_timeout", 504)); }, timeoutMs); }),
@@ -32,23 +33,26 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
           method: "GET", headers: { Authorization: `Bearer ${apiKey}`, "OpenAI-Organization": account.organization, "OpenAI-Project": account.project },
           signal: controller.signal, redirect: "error", credentials: "omit", cache: "no-store",
         });
+        phase = "headers";
         if (!response.body || !response.headers.get("content-type")?.startsWith("application/json")) { void response.body?.cancel().catch(() => undefined); apiFail(`provider_http_${response.status}`, 502); }
         if (response.ok && response.headers.get("openai-organization") !== account.organization) { void response.body.cancel().catch(() => undefined); apiFail("provider_cost_unconfirmed"); }
         reader = response.body.getReader();
+        phase = "body";
         let bytes = 0, body = ""; const decoder = new TextDecoder("utf-8", { fatal: true });
-        while (true) { const chunk = await reader.read(); if (chunk.done) break; bytes += chunk.value.byteLength; if (bytes > 8192) apiFail("provider_failed", 502); body += decoder.decode(chunk.value, { stream: true }); }
-        body += decoder.decode(); const model: unknown = JSON.parse(body);
+        while (true) { const chunk = await reader.read(); if (chunk.done) break; bytes += chunk.value.byteLength; if (bytes > 8192) apiFail("provider_metadata_too_large", 502); body += decoder.decode(chunk.value, { stream: true }); }
+        body += decoder.decode(); phase = "json"; const model: unknown = JSON.parse(body);
         if (!response.ok) {
           // Upstream messages can contain credentials. Return only a fixed diagnostic allow-list.
           const code = object(model) && object(model.error) ? model.error.code : null;
           const allowed = new Set(["invalid_api_key", "invalid_organization", "invalid_project", "model_not_found", "insufficient_quota", "permission_denied", "account_deactivated", "rate_limit_exceeded", "organization_not_found", "project_not_found"]);
           apiFail(typeof code === "string" && allowed.has(code) ? `provider_${code}` : `provider_http_${response.status}`, 502);
         }
-        if (!object(model) || model.object !== "model" || model.id !== ADVICE_MODEL) apiFail("provider_failed", 502);
+        if (!object(model) || model.object !== "model" || typeof model.id !== "string" || !/^gpt-[a-z0-9.-]{1,64}$/.test(model.id)) apiFail("provider_metadata_invalid", 502);
+        if (model.id !== ADVICE_MODEL) apiFail(`provider_model_mismatch_${model.id}`, 502);
         return { model: ADVICE_MODEL, accountMatched: true, inferencePerformed: false } as const;
       })(),
     ]);
-  } catch (error) { if (error instanceof AdviceApiError) throw error; return apiFail("provider_failed", 502); }
+  } catch (error) { if (error instanceof AdviceApiError) throw error; return apiFail(`provider_preflight_${phase}_failed`, 502); }
   finally { if (timer) clearTimeout(timer); void reader?.cancel().catch(() => undefined); }
 }
 const string = { type: "string" };
