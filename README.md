@@ -8,7 +8,7 @@ Firebase（Spark）版は `healthapp-14a3f` に接続し、Googleログイン・
 
 ## チーム共通の始め方（現行）
 
-ホームのChatGPTアドバイスは[API接続の検証待ち](scripts/recommendation-api/README.md)です。既存クレジットの画面確認は済み、同じ組織への接続と実際の利用額を照合するまでAPI送信は無効です。10ドルの累計利用通知後も、確認済みの利用枠内で継続する設計です。
+ホームのChatGPTアドバイスは[API接続の検証待ち](scripts/recommendation-api/README.md)です。既存クレジットの画面確認は済みましたが、登録済みキーを使った読み取り接続検査で認証エラーが返りました。同じ課金先への接続と実際の利用額を照合するまで生成は無効です。10ドルの累計利用通知後も、確認済みの利用枠内で継続する設計です。
 
 共有する最新版は [WaveARGZ/Healthapp の `main`](https://github.com/WaveARGZ/Healthapp) です。GitHubの招待を受け取り、各自のアカウントで承諾してから作業します。Codexでは各自が取得したこのリポジトリのフォルダを開いてください。チャット履歴はGitでは共有されないため、最初にこのREADMEと `AGENTS.md` を読みます。
 
