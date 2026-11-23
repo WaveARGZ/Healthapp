@@ -47,7 +47,8 @@
     "food-ai:review": "node scripts/food-ai/review-queue.mjs",
     "food-ai:review:apply": "node scripts/food-ai/record-review.mjs",
     "test:food-ai": "node --test scripts/food-ai/*.test.mjs",
-    "test:aws": "node --test backend/*.test.mjs"
+    "test:aws": "node --test backend/*.test.mjs",
+    "test:advice": "node --experimental-strip-types --test scripts/recommendation-api/*.test.mjs scripts/test-home-advice.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.0",
@@ -55,7 +56,8 @@
     "firebase": "^12.19.0",
     "next": "16.3.7",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "jose": "6.2.15"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

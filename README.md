@@ -8,6 +8,8 @@ Firebase（Spark）版は `healthapp-14a3f` に接続し、Googleログイン・
 
 ## チーム共通の始め方（現行）
 
+ホームのChatGPTアドバイスは[APIクレジットの確認待ち](scripts/recommendation-api/README.md)です。10ドルの累計利用通知後も継続する設計ですが、既存残高・期限・追加課金なしを確認するまでAPI送信は無効です。
+
 共有する最新版は [WaveARGZ/Healthapp の `main`](https://github.com/WaveARGZ/Healthapp) です。GitHubの招待を受け取り、各自のアカウントで承諾してから作業します。Codexでは各自が取得したこのリポジトリのフォルダを開いてください。チャット履歴はGitでは共有されないため、最初にこのREADMEと `AGENTS.md` を読みます。
 
 初回はGit、Node.js **22.23.4**（`.nvmrc`）、npm **10系**を用意します。Node.jsの最低対応版は22.13.0です。通常の画面開発に `.env.local`、本番の認証情報、Driveへのアクセス権は不要です。

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AnatomyFigure } from "@/components/dashboard/anatomy-figure";
 import { PersonalNutritionGuide } from "@/components/dashboard/personal-nutrition-guide";
+import { HomeAdviceCard } from "@/components/dashboard/home-advice-card";
 import { summarizeMuscleActivity } from "@/lib/workouts/muscle-activity";
 import { burnMinusIntake } from "@/lib/utils/daily-burn";
 import { estimateDailyCalorieGuide, estimateDailyMacroGuide } from "@/lib/utils/daily-calorie-guide";
@@ -202,6 +203,8 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
       {macroStatus && <p id="mobile-macro-status" className="mt-3 text-sm leading-6 text-[var(--muted)]">{macroStatus}</p>}
       <PersonalNutritionGuide profile={profile} weightKg={weight} loading={loading} unavailable={profileUnavailable} />
     </section>
+
+    <HomeAdviceCard key={today} today={today} />
 
     <div className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
       <details className="py-1">
