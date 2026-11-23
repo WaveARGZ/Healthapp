@@ -306,7 +306,7 @@ export function ExercisePicker({ onSelect, exerciseName, exerciseCategory, cardi
         </div>
       </section> : <>
       <section className="exercise-dialog-panel">
-        <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5"><div><p className="text-base font-bold">{isEditingSets ? (cardio ? "時間・距離を入力" : "重量・レップ数を入力") : tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-white/70">{isEditingSets ? (previousSets.length ? "薄い赤文字は前回の記録です" : "セットごとに入力できます") : `初心者から中級者向けの${registrationExercises.length}種目`}</p></div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded-lg border border-white/30 text-sm font-semibold leading-none text-white hover:bg-white/10" aria-label={isEditingSets ? "入力を完了" : "種目メニューを閉じる"}>{isEditingSets ? "完了" : "×"}</button></header>
+        <header className="flex shrink-0 items-center justify-between gap-3 bg-[#18181b] px-4 py-3 text-white sm:px-5"><div><p className="text-base font-bold">{isEditingSets ? (cardio ? "時間・距離を入力" : "重量・レップ数を入力") : tutorialStage === "equipment" ? "ジムの器具を登録" : "種目を選択"}</p><p className="mt-0.5 text-xs text-white/70">{isEditingSets ? "セットごとに入力できます" : `初心者から中級者向けの${registrationExercises.length}種目`}</p></div><button type="button" onClick={closePicker} className="grid size-11 shrink-0 place-items-center rounded-lg border border-white/30 text-sm font-semibold leading-none text-white hover:bg-white/10" aria-label={isEditingSets ? "入力を完了" : "種目メニューを閉じる"}>{isEditingSets ? "完了" : "×"}</button></header>
         {isEditingSets ? <WorkoutSetEditor
           exerciseName={exerciseName}
           cardio={cardio}

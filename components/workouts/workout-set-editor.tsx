@@ -133,7 +133,10 @@ export function WorkoutSetEditor({ exerciseName, cardio, sets, previousSets, onU
         <div className="flex items-center gap-3">
           <ExerciseMotionIcon name={exerciseName} className="size-32 sm:size-40" />
           <div className="min-w-0">
-            <h2 className="break-words text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h2 className="min-w-0 break-words text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
+              {previousSets.length > 0 && <span className="text-xs leading-5 text-[var(--muted)]">※赤文字は前回の記録です</span>}
+            </div>
             {movement.kind !== "custom" && <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{movement.action}</p>}
           </div>
         </div>
