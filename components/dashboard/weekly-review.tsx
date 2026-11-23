@@ -16,6 +16,7 @@ interface WeeklyReviewProps {
   workouts: WorkoutEntry[];
   meals: MealEntry[];
   burns: DailyBurnEntry[];
+  restingOn: (date: string) => number | null;
   today: string;
   goal: FitnessGoal | null;
   loading: boolean;
@@ -35,10 +36,10 @@ function balanceText(value: number | null): string {
 }
 
 function balanceColor(value: number | null): string {
-  return value === null || value === 0 ? "var(--ink)" : value > 0 ? "#9c5149" : "#4d6875";
+  return value === null || value === 0 ? "var(--ink)" : value > 0 ? "#4d6875" : "#9c5149";
 }
 
-export function WeeklyReview({ workouts, meals, burns, today, goal, loading, workoutUnavailable, mealUnavailable, burnUnavailable, profileUnavailable }: WeeklyReviewProps) {
+export function WeeklyReview({ workouts, meals, burns, restingOn, today, goal, loading, workoutUnavailable, mealUnavailable, burnUnavailable, profileUnavailable }: WeeklyReviewProps) {
   const [weeksAgo, setWeeksAgo] = useState(0);
   const [selectedGroup, setSelectedGroup] = useState<MuscleGroup>("胸");
   const currentWeekStart = weekStartForDate(today);
@@ -55,7 +56,7 @@ export function WeeklyReview({ workouts, meals, burns, today, goal, loading, wor
   const visibleBurns = burns.filter((entry) => entry.performedAt <= today);
   const advice = summarizeWeeklyWorkoutAdvice(visibleWorkouts, endDate, goal);
   const muscle = summarizeWeeklyMuscles(visibleWorkouts, startDate, endDate);
-  const food = summarizeWeeklyMealReview(visibleMeals, endDate, visibleBurns);
+  const food = summarizeWeeklyMealReview(visibleMeals, endDate, visibleBurns, restingOn);
   const groupDetails = muscle.groups[selectedGroup];
 
   return <section aria-labelledby="weekly-review-title" aria-busy={loading} className="mt-4 min-w-0 overflow-hidden rounded-lg border border-[var(--line)] bg-white">
@@ -111,7 +112,7 @@ export function WeeklyReview({ workouts, meals, burns, today, goal, loading, wor
 
     <div className="border-t border-[var(--line)] px-5 py-7 sm:px-8 sm:py-9">
       <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="section-title">食事と収支</h2><Link href="/meals" className="text-link text-sm">記録を見る</Link></div>
-      <p className="mt-2 text-sm text-[var(--muted)]">収支 = 消費 − 摂取</p>
+      <p className="mt-2 text-sm text-[var(--muted)]">収支 = 基礎代謝を含む消費 − 摂取</p>
       {loading || mealUnavailable ? <p className="mt-5 text-sm text-[var(--muted)]">{loading ? "食事記録を読み込み中…" : "食事記録を読み込めませんでした。"}</p> : <>
         {burnUnavailable && <p className="mt-3 text-xs text-[var(--coral)]">消費カロリーを読み込めなかったため、収支を表示できません。</p>}
         <div className="mt-5 divide-y divide-[var(--line)] border-t border-[var(--line)]">

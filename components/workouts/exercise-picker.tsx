@@ -12,6 +12,7 @@ import { exerciseEquipmentOrder } from "@/lib/data/exercise-catalog";
 import { facilityEquipmentOptions } from "@/lib/data/facility-equipment-options";
 import { detectMuscleFocus, fitsWorkoutLocation, recommendExercises, usesRegisteredEquipment } from "@/lib/workouts/workout-recommender";
 import { getWorkoutDayPlan, getWorkoutWeek, weekdayLabels } from "@/lib/workouts/workout-split";
+import { previousWorkoutSets } from "@/lib/workouts/workout-sets";
 import { getWorkoutPreferences } from "@/lib/storage/workout-preferences";
 import { loadWorkoutPreferences, storeWorkoutPreferences } from "@/lib/api/workout-preferences-client";
 import { bodyMakeClient } from "@/lib/api/client";
@@ -25,12 +26,15 @@ import { lockPageScroll } from "@/lib/utils/lock-page-scroll";
 interface ExercisePickerProps {
   onSelect: (exerciseName: string, category?: WorkoutExerciseCategory) => void;
   exerciseName: string;
+  exerciseCategory?: WorkoutExerciseCategory | null;
   cardio: boolean;
   sets: WorkoutSet[];
   onUpdateSet: (setId: string, patch: Partial<WorkoutSet>) => void;
   onAddSet: () => void;
   onRemoveSet: (setId: string) => void;
   date: string;
+  time: string;
+  workouts: WorkoutEntry[];
   startWithEquipmentSetup?: boolean;
 }
 
@@ -38,7 +42,7 @@ const primaryMuscleCategories = ["胸", "背中", "腕", "肩", "腹筋・体幹
 const categoryDisplayName = (category: string) => category === "腹筋・体幹" ? "腹筋" : category;
 type TutorialStage = "equipment" | "favorite" | "recommendation" | null;
 
-export function ExercisePicker({ onSelect, exerciseName, cardio, sets, onUpdateSet, onAddSet, onRemoveSet, date, startWithEquipmentSetup = false }: ExercisePickerProps) {
+export function ExercisePicker({ onSelect, exerciseName, exerciseCategory, cardio, sets, onUpdateSet, onAddSet, onRemoveSet, date, time, workouts, startWithEquipmentSetup = false }: ExercisePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isEditingSets, setIsEditingSets] = useState(false);
   const [query, setQuery] = useState("");
@@ -54,7 +58,6 @@ export function ExercisePicker({ onSelect, exerciseName, cardio, sets, onUpdateS
   const [preferencesError, setPreferencesError] = useState("");
   const [pendingPreferenceWrites, setPendingPreferenceWrites] = useState(0);
   const [goal, setGoal] = useState<FitnessGoal>("maintain");
-  const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
   const [videoExercise, setVideoExercise] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const videoCloseRef = useRef<HTMLButtonElement>(null);
@@ -67,6 +70,10 @@ export function ExercisePicker({ onSelect, exerciseName, cardio, sets, onUpdateS
   const openerRef = useRef<HTMLButtonElement>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const queryFocus = detectMuscleFocus(query);
+  const previousSets = useMemo(() => {
+    if (!isEditingSets) return [];
+    return previousWorkoutSets(workouts, { name: exerciseName, category: exerciseCategory }, { performedAt: date, performedTime: time });
+  }, [date, exerciseCategory, exerciseName, isEditingSets, time, workouts]);
 
   useEffect(() => {
     videoExerciseRef.current = videoExercise;
@@ -82,9 +89,8 @@ export function ExercisePicker({ onSelect, exerciseName, cardio, sets, onUpdateS
   }, [isOpen, videoExercise]);
 
   useEffect(() => {
-    void Promise.all([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts()]).then(([profile, history]) => {
+    void bodyMakeClient.getProfile().then((profile) => {
       if (profile) setGoal(profile.goal);
-      setWorkouts(history);
     }).catch(() => {});
   }, []);
 
@@ -305,6 +311,7 @@ export function ExercisePicker({ onSelect, exerciseName, cardio, sets, onUpdateS
           exerciseName={exerciseName}
           cardio={cardio}
           sets={sets}
+          previousSets={previousSets}
           onUpdateSet={onUpdateSet}
           onAddSet={onAddSet}
           onRemoveSet={onRemoveSet}

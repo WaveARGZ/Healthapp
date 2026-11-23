@@ -1,11 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, SelectInput, TextInput } from "@/components/ui/form-fields";
 import { Logo } from "@/components/ui/logo";
 import { bodyMakeClient } from "@/lib/api/client";
+import { latestWeightEntry } from "@/lib/utils/current-weight";
+import { toDateInputValue } from "@/lib/utils/date";
 import { createId } from "@/lib/utils/id";
 import { fitnessGoalLabels, type FitnessGoal, type Gender, type UserProfile } from "@/types/user";
 import { hasCloudSession } from "@/lib/auth/cognito-session";
@@ -28,7 +31,8 @@ export function OnboardingForm() {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender>("prefer-not-to-say");
   const [heightCm, setHeightCm] = useState("");
-  const [weightKg, setWeightKg] = useState("");
+  const [startingWeightKg, setStartingWeightKg] = useState("");
+  const [recordedWeightKg, setRecordedWeightKg] = useState<number>();
   const [goal, setGoal] = useState<FitnessGoal>("build-muscle");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,16 +40,27 @@ export function OnboardingForm() {
 
   useEffect(() => {
     if (isCloudConfigured && !isFirebaseSelected && !hasCloudSession()) { router.replace("/login"); return; }
-    void bodyMakeClient.getProfile().then((profile) => {
+    let active = true;
+    void Promise.allSettled([bodyMakeClient.getProfile(), bodyMakeClient.getWeightEntries()]).then(([profileResult, weights]) => {
+      if (!active) return;
+      setIsLoading(false);
+      if (weights.status === "fulfilled") {
+        setRecordedWeightKg(latestWeightEntry(weights.value, toDateInputValue())?.weightKg);
+      }
+      if (profileResult.status === "rejected") {
+        setNotice("プロフィールを読み込めませんでした。通信状態とログインを確認してください。");
+        return;
+      }
+      const profile = profileResult.value;
       if (!profile) return;
       setName(typeof profile.name === "string" ? profile.name : "");
       setAge(profile.age?.toString() ?? "");
       setGender(profile.gender ?? "prefer-not-to-say");
       setHeightCm(profile.heightCm?.toString() ?? "");
-      setWeightKg(profile.startingWeightKg?.toString() ?? "");
+      setStartingWeightKg(profile.startingWeightKg?.toString() ?? "");
       if (Object.hasOwn(fitnessGoalLabels, profile.goal)) setGoal(profile.goal);
-    }).catch(() => setNotice("プロフィールを読み込めませんでした。通信状態とログインを確認してください。"))
-      .finally(() => setIsLoading(false));
+    });
+    return () => { active = false; };
   }, [router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -67,7 +82,7 @@ export function OnboardingForm() {
         age: age ? Number(age) : undefined,
         gender,
         heightCm: heightCm ? Number(heightCm) : undefined,
-        startingWeightKg: weightKg ? Number(weightKg) : undefined,
+        startingWeightKg: startingWeightKg ? Number(startingWeightKg) : undefined,
         goal,
         updatedAt: new Date().toISOString(),
       };
@@ -115,7 +130,12 @@ export function OnboardingForm() {
               <div><FieldLabel htmlFor="age">年齢</FieldLabel><TextInput id="age" type="number" min="1" max="120" inputMode="numeric" value={age} onChange={(event) => setAge(event.target.value)} placeholder="例：28" /></div>
               <div><FieldLabel htmlFor="gender">性別</FieldLabel><SelectInput id="gender" value={gender} onChange={(event) => setGender(event.target.value as Gender)}><option value="prefer-not-to-say">回答しない</option><option value="male">男性</option><option value="female">女性</option><option value="other">その他</option></SelectInput></div>
               <div><FieldLabel htmlFor="height">身長 (cm)</FieldLabel><TextInput id="height" type="number" min="50" max="250" inputMode="decimal" value={heightCm} onChange={(event) => setHeightCm(event.target.value)} placeholder="例：170" /></div>
-              <div><FieldLabel htmlFor="weight">体重 (kg)</FieldLabel><TextInput id="weight" type="number" min="20" max="400" step="0.1" inputMode="decimal" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="例：62.5" /></div>
+              <div>
+                <FieldLabel htmlFor="weight">{recordedWeightKg === undefined ? "登録時の体重 (kg)" : "現在の体重 (kg)"}</FieldLabel>
+                <TextInput id="weight" type="number" min="20" max="400" step="0.1" inputMode="decimal" value={recordedWeightKg ?? startingWeightKg}
+                  readOnly={recordedWeightKg !== undefined} onChange={(event) => setStartingWeightKg(event.target.value)} placeholder="例：62.5" />
+                {recordedWeightKg !== undefined && <Link href="/weight" className="text-link mt-2">体重を記録する</Link>}
+              </div>
             </div>
           </section>
           {notice && <p role="alert" className="break-words rounded-md bg-[var(--coral-soft)] p-3 text-sm leading-6 text-[var(--coral)]">{notice}</p>}

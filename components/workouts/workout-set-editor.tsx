@@ -13,6 +13,7 @@ interface WorkoutSetEditorProps {
   exerciseName: string;
   cardio: boolean;
   sets: WorkoutSet[];
+  previousSets: readonly WorkoutSet[];
   onUpdateSet: (setId: string, patch: Partial<WorkoutSet>) => void;
   onAddSet: () => void;
   onRemoveSet: (setId: string) => void;
@@ -51,7 +52,7 @@ function revealSetControl(scroller: HTMLElement, field: HTMLElement) {
   else if (bottom > bounds.bottom - margin) scroller.scrollTop += bottom - bounds.bottom + margin;
 }
 
-export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAddSet, onRemoveSet, onBack }: WorkoutSetEditorProps) {
+export function WorkoutSetEditor({ exerciseName, cardio, sets, previousSets, onUpdateSet, onAddSet, onRemoveSet, onBack }: WorkoutSetEditorProps) {
   const movement = getExerciseMotion(exerciseName);
   const keypadMode = useSyncExternalStore(subscribeToKeypadMode, usesNumberPad, () => false);
   const [selected, setSelected] = useState<ActiveField | null>(null);
@@ -132,7 +133,10 @@ export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAd
         <div className="flex items-center gap-3">
           <ExerciseMotionIcon name={exerciseName} className="size-32 sm:size-40" />
           <div className="min-w-0">
-            <h2 className="break-words text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h2 className="min-w-0 break-words text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
+              {previousSets.length > 0 && <span className="text-xs leading-5 text-[var(--muted)]">※赤文字は前回の記録です</span>}
+            </div>
             {movement.kind !== "custom" && <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{movement.action}</p>}
           </div>
         </div>
@@ -158,6 +162,7 @@ export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAd
                   autoFocusTarget={key === firstField.key}
                   lastField={key === lastField.key && index === sets.length - 1}
                   value={set[key]}
+                  historicalValue={previousSets[index]?.[key]}
                   onCommit={(value) => {
                     if (isActive) setSelected({ ...active, value: String(value ?? ""), replaceOnType: true });
                     onUpdateSet(set.id, { [key]: value });
@@ -181,8 +186,9 @@ export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAd
               </button>
               <textarea
                 data-workout-set-note
+                data-workout-set-history-hint={Boolean(previousSets[index]?.note?.trim()) || undefined}
                 aria-label={`セット${index + 1}のメモ`}
-                placeholder="セットメモ（任意）"
+                placeholder={previousSets[index]?.note?.trim() || "セットメモ（任意）"}
                 rows={1}
                 maxLength={500}
                 value={set.note ?? ""}

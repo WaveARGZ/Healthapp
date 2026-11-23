@@ -18,8 +18,8 @@ const recordDestinations = [
   { key: "weight", title: "体重", href: "/weight" },
 ] as const;
 const displayDate = new Intl.DateTimeFormat("ja-JP", { month: "long", day: "numeric", weekday: "long" });
-const positiveBalanceColor = "#9c5149";
-const negativeBalanceColor = "#4d6875";
+const expenditureHigherColor = "#4d6875";
+const intakeHigherColor = "#9c5149";
 
 function amount(value: number | null) {
   return value === null ? "—" : Math.round(value).toLocaleString("ja-JP");
@@ -64,21 +64,23 @@ function recordedGrams(macros: DailyMacros, key: "proteinG" | "fatG" | "carbsG",
     ? null : Math.round(macros[key]);
 }
 
-export function MobileDashboard({ today, recordedToday, weight, goal, profile, macros, intake, consumed, burned, incompleteCalories, workouts, feedback, loading, profileUnavailable, mealUnavailable, burnUnavailable, workoutUnavailable, error }: {
+export function MobileDashboard({ today, recordedToday, currentWeightKg, profile, macros, intake, consumed, burned, burnRestingOnly, burnNeedsProfile, incompleteCalories, workouts, feedback, loading, profileUnavailable, weightsUnavailable, mealUnavailable, burnUnavailable, workoutUnavailable, error }: {
   today: string;
   recordedToday: RecordedToday;
-  weight: number | null;
-  goal: string;
+  currentWeightKg?: number;
   profile: UserProfile | null;
   macros: DailyMacros;
   intake: number | null;
   consumed: number | null;
   burned: number | null;
+  burnRestingOnly: boolean;
+  burnNeedsProfile: boolean;
   incompleteCalories: boolean;
   workouts: WorkoutEntry[];
   feedback: { meal: DailyFeedbackItem; workout: DailyFeedbackItem };
   loading: boolean;
   profileUnavailable: boolean;
+  weightsUnavailable: boolean;
   mealUnavailable: boolean;
   burnUnavailable: boolean;
   workoutUnavailable: boolean;
@@ -87,11 +89,17 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
   const recordsKnown = !loading && Object.values(recordedToday).every((value) => value !== null);
   const doneCount = Object.values(recordedToday).filter(Boolean).length;
   const macroUnavailable = loading || mealUnavailable;
-  const guide = profile && !profileUnavailable ? estimateDailyCalorieGuide({ age: profile.age, gender: profile.gender, heightCm: profile.heightCm, weightKg: weight ?? undefined, goal: profile.goal }) : { status: "missing-profile" as const };
+  const guideUnavailable = profileUnavailable ? "profile" : weightsUnavailable ? "weight" : null;
+  const guide = profile && !guideUnavailable ? estimateDailyCalorieGuide({
+    age: profile.age,
+    gender: profile.gender,
+    heightCm: profile.heightCm,
+    weightKg: currentWeightKg,
+    goal: profile.goal,
+  }) : { status: "missing-profile" as const };
   const macroGuide = guide.status === "ready" && profile ? estimateDailyMacroGuide(guide, profile.goal) : null;
   const intakeTarget = guide.status === "ready" ? range(guide.minKcal, guide.maxKcal) : null;
   const intakeRatio = targetRatio(consumed, guide.status === "ready" ? guide.maxKcal : undefined);
-  const burnTarget = guide.status === "ready" ? range(guide.minNonRestingKcal, guide.maxNonRestingKcal) : null;
   const macroRows = ([
     { key: "proteinG", label: "P", name: "たんぱく質", target: macroGuide?.protein, color: "#4f7668", targetColor: "#dce8e2" },
     { key: "fatG", label: "F", name: "脂質", target: macroGuide?.fat, color: "#947449", targetColor: "#eee3d1" },
@@ -109,7 +117,7 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
   const activity = summarizeMuscleActivity(workouts, today);
   const differenceText = difference === null ? "—" : `${difference > 0 ? "+" : ""}${difference.toLocaleString("ja-JP")}`;
   const differenceStatus = difference === null ? "収支は未計算" : difference > 0 ? "消費が多い" : difference < 0 ? "摂取が多い" : "消費と摂取が同じ";
-  const differenceColor = difference === null || difference === 0 ? "var(--ink)" : difference > 0 ? positiveBalanceColor : negativeBalanceColor;
+  const differenceColor = difference === null || difference === 0 ? "var(--ink)" : difference > 0 ? expenditureHigherColor : intakeHigherColor;
   const calorieStatus = loading || mealUnavailable ? null
     : macros.mealCount === 0 ? "まだ食事の記録はありません。"
     : intake === null ? "食事は記録済みですが、カロリーは未入力です。収支は計算できません。"
@@ -121,6 +129,7 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
       : "PFCは未入力です。";
   const calorieDescription = calorieStatus ? "mobile-calorie-status" : undefined;
   const intakeDescription = [calorieDescription, macroStatus ? "mobile-macro-status" : null].filter(Boolean).join(" ") || undefined;
+  const balanceDescription = [calorieDescription, difference !== null ? "mobile-balance-note" : null].filter(Boolean).join(" ") || undefined;
 
   return <div className="mobile-dashboard grid min-w-0 gap-5 sm:gap-7" aria-busy={loading}>
     <header>
@@ -145,10 +154,6 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
           </Link>;
         })}
       </div>
-      {!loading && <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-[var(--muted)]">
-        <span>体重 <strong className="metric ml-1 font-medium text-[var(--ink)]">{recordedToday.weight === null ? "確認できません" : weight === null ? "未登録" : `${weight.toLocaleString("ja-JP")} kg`}</strong></span>
-        <span>目標 <strong className="ml-1 font-medium text-[var(--ink)]">{profileUnavailable ? "確認できません" : goal}</strong></span>
-      </div>}
     </section>
 
     <section aria-labelledby="mobile-calories-title" className="min-w-0 border-t border-[var(--line)] pt-5">
@@ -170,18 +175,21 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
             {intakeRatio !== null && <span className="mt-1 block text-xs text-[var(--muted)]">目安上限比 {intakeRatio}%</span>}
           </>}
         </Link>
-        <Link href="/progress" className="block min-w-0 pl-4 transition-colors hover:text-[var(--sage-deep)] sm:pl-6" aria-describedby={calorieDescription} aria-label={"進捗を開く。消費 " + amount(burned) + " kcal。消費から摂取を引いた収支 " + differenceText + " kcal。" + differenceStatus + (burnTarget ? "。活動による消費の推定 " + burnTarget + " kcal" : "")}>
+        <Link href="/progress" className="block min-w-0 pl-4 transition-colors hover:text-[var(--sage-deep)] sm:pl-6" aria-describedby={balanceDescription} aria-label={`進捗を開く。消費から摂取を引いた収支 ${differenceText} kcal。${differenceStatus}`}>
           <span className="flex items-center justify-between text-base font-bold text-[var(--ink)]">カロリー収支</span>
           <span className="mt-3 block">
             <span className="block min-w-0">
               <strong className="metric block text-[clamp(1.5rem,5vw,2rem)] font-semibold leading-tight" style={{ color: differenceColor }}>{differenceText} <small className="text-sm font-medium">kcal</small></strong>
               <span className="mt-1 block text-sm font-semibold" style={{ color: differenceColor }}>{differenceStatus}</span>
-              <span className="mt-2 block text-sm text-[var(--ink-soft)]">記録した消費 {amount(burned)} kcal</span>
+              {difference !== null && <span id="mobile-balance-note" className="mt-2 block text-xs leading-5 text-[var(--muted)]">
+                ※基礎代謝の値を考慮した数値です{burnRestingOnly && <span className="block">活動消費は未記録です。</span>}
+              </span>}
             </span>
           </span>
         </Link>
       </div>
       {calorieStatus && <p id="mobile-calorie-status" className="mt-3 text-sm leading-6 text-[var(--muted)]">{calorieStatus}</p>}
+      {burnNeedsProfile && <p className="mt-3 text-sm text-[var(--muted)]">基礎代謝を推定できないため、収支は未計算です。 <Link href="/onboarding" className="text-link">プロフィールを確認</Link></p>}
       {(mealUnavailable || burnUnavailable) && <p className="mt-3 text-sm text-[var(--coral)]">一部の記録を表示できません。</p>}
       <Link href="/meals" className="mt-4 block border-t border-[var(--line)] pt-4 transition-colors hover:bg-[var(--canvas)]">
         <h3 className="text-base font-bold text-[var(--ink)]">PFCの摂取量</h3>
@@ -201,7 +209,7 @@ export function MobileDashboard({ today, recordedToday, weight, goal, profile, m
         </div>)}</div>
       </Link>
       {macroStatus && <p id="mobile-macro-status" className="mt-3 text-sm leading-6 text-[var(--muted)]">{macroStatus}</p>}
-      <PersonalNutritionGuide profile={profile} weightKg={weight} loading={loading} unavailable={profileUnavailable} />
+      <PersonalNutritionGuide guide={guide} loading={loading} unavailable={guideUnavailable} />
     </section>
 
     <HomeAdviceCard key={today} today={today} />

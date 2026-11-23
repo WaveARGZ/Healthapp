@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
 import vm from "node:vm";
+import * as jsxRuntime from "react/jsx-runtime";
 
 const source = await readFile("lib/utils/mobile-viewport.ts", "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } });
@@ -132,3 +133,35 @@ update("resize", 422, 90);
 assert.equal(viewportState.height, 0, "pinch zoom keeps the browser's native viewport");
 cleanup();
 console.log("Modal scroll restoration and keyboard focus-switch stability passed.");
+
+const { WorkoutSetNumberField } = loadModule(await readFile("components/workouts/workout-set-number-field.tsx", "utf8"), {
+  react: { useState: (initial) => [initial, () => {}] },
+  "react/jsx-runtime": jsxRuntime,
+  "@/components/ui/form-fields": { TextInput: "input" },
+  "@/components/ui/icon": { Icon: "span" },
+});
+const emptySetField = {
+  value: undefined,
+  historicalValue: 62.5,
+  label: "セット1の重量 kg",
+  step: "0.5",
+  onCommit: () => assert.fail("a displayed historical value must not be committed"),
+};
+const [desktopField] = WorkoutSetNumberField(emptySetField).props.children;
+assert.equal(desktopField.props.value, "");
+assert.equal(desktopField.props.placeholder, "62.5");
+assert.equal(desktopField.props["data-workout-set-history-hint"], true);
+desktopField.props.onBlur({ currentTarget: { value: "" } });
+
+const touchField = { active: false, value: "", onSelect() {} };
+const [phoneField] = WorkoutSetNumberField({ ...emptySetField, touchField }).props.children;
+assert.match(phoneField.props["aria-label"], /未入力/);
+assert.equal(phoneField.props["aria-description"], "前回の記録 62.5");
+assert.equal(phoneField.props.children.props.children, "62.5");
+assert.equal(phoneField.props.children.props["data-workout-set-history-hint"], true);
+const [noHistoryPhone] = WorkoutSetNumberField({ ...emptySetField, historicalValue: undefined, touchField }).props.children;
+assert.equal(noHistoryPhone.props.children.props["data-workout-set-history-hint"], undefined);
+const [filledPhone] = WorkoutSetNumberField({ ...emptySetField, value: 0, touchField: { ...touchField, value: "0" } }).props.children;
+assert.equal(filledPhone.props.children, "0");
+assert.equal(filledPhone.props["aria-description"], undefined);
+console.log("Previous set hints remain placeholders on desktop and the mobile keypad.");

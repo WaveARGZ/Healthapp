@@ -286,7 +286,10 @@ export function WorkoutRecorder() {
             </div>
             <div className="px-3 py-5 sm:px-5">
               <div className="mt-2 flex items-center gap-3">{exercise.name && <ExerciseMotionIcon name={exercise.name} category={exercise.category} className="size-20" />}<p className={`min-w-0 break-words text-sm font-bold ${exercise.name ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}>{exercise.name || "種目を選んでください"}</p></div>
-              <ExercisePicker date={performedAt} startWithEquipmentSetup={index === 0} exerciseName={exercise.name} cardio={cardio} sets={sets} onSelect={(name, category) => selectExercise(exercise.id, name, category ?? null)} onUpdateSet={(setId, patch) => updateSet(exercise.id, setId, patch)} onAddSet={() => addSet(exercise.id)} onRemoveSet={(setId) => removeSet(exercise.id, setId)} />
+              <ExercisePicker date={performedAt} time={performedTime} workouts={history} startWithEquipmentSetup={index === 0}
+                exerciseName={exercise.name} exerciseCategory={exercise.category} cardio={cardio} sets={sets}
+                onSelect={(name, category) => selectExercise(exercise.id, name, category ?? null)}
+                onUpdateSet={(setId, patch) => updateSet(exercise.id, setId, patch)} onAddSet={() => addSet(exercise.id)} onRemoveSet={(setId) => removeSet(exercise.id, setId)} />
               {exercise.name && <>
                 <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm leading-6 text-[var(--muted)]">{!cardio && <span>総ボリューム <strong className="metric font-semibold text-[var(--ink)]">{volumeFor(exercise).toLocaleString()} kg</strong></span>}<span>完了 {completedCount} / {sets.length}</span></div>
                 <div aria-label={`${exercise.name}のセット内容`} className="divide-y divide-[var(--line)] overflow-hidden rounded-lg border border-[var(--line)]">{sets.map((set, setIndex) => <div key={set.id} className="px-3">

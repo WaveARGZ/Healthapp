@@ -58,3 +58,16 @@ test("a meal with no calories remains unknown rather than zero", () => {
   assert.equal(review.days[6].calories, null);
   assert.equal(review.incompleteDays, 1);
 });
+
+test("the weekly balance uses the resting estimate for each activity record and preserves legacy totals", () => {
+  const burns = [
+    { performedAt: "2026-11-16", caloriesBurned: 400, burnScope: "activity" },
+    { performedAt: "2026-11-17", caloriesBurned: 400, burnScope: "activity" },
+    { performedAt: "2026-11-18", caloriesBurned: 1900 },
+  ];
+  const meals = burns.map(({ performedAt }) => meal(performedAt, performedAt, 1800));
+  const resting = { "2026-11-16": 1500, "2026-11-17": 1600 };
+  const review = summarizeWeeklyMealReview(meals, "2026-11-22", burns, (date) => resting[date] ?? null);
+  assert.deepEqual(review.days.slice(0, 3).map(({ balance }) => balance), [100, 200, 100]);
+  assert.equal(summarizeWeeklyMealReview(meals, "2026-11-22", burns).days[0].balance, null);
+});

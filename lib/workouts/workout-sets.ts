@@ -1,5 +1,5 @@
-import { registeredExerciseForName } from "../data/registration-exercise-catalog.ts";
-import type { WorkoutExercise, WorkoutSet } from "../../types/workout";
+import { canonicalExerciseName, registeredExerciseForName } from "../data/registration-exercise-catalog.ts";
+import type { WorkoutEntry, WorkoutExercise, WorkoutSet } from "../../types/workout";
 
 type ExerciseSelection = Pick<WorkoutExercise, "name" | "category">;
 
@@ -33,6 +33,35 @@ export function setsFor(exercise: WorkoutExercise): WorkoutSet[] {
     reps: exercise.reps,
     completed: false,
   }));
+}
+
+export function previousWorkoutSets(
+  workouts: readonly WorkoutEntry[],
+  selection: ExerciseSelection,
+  { performedAt, performedTime }: Pick<WorkoutEntry, "performedAt" | "performedTime">,
+): readonly WorkoutSet[] {
+  const name = canonicalExerciseName(selection.name);
+  if (!name) return [];
+
+  const category = selection.category ?? registeredExerciseForName(name)?.category;
+  const metrics = isCardioExercise(selection) ? ["durationMinutes", "distanceKm"] as const : ["weightKg", "reps"] as const;
+  const prior = workouts.filter((entry) => {
+    if (entry.performedAt !== performedAt) return entry.performedAt < performedAt;
+    return !entry.performedTime || !performedTime || entry.performedTime <= performedTime;
+  }).sort((a, b) => b.performedAt.localeCompare(a.performedAt)
+    || (b.performedTime ?? "").localeCompare(a.performedTime ?? "")
+    || b.createdAt.localeCompare(a.createdAt));
+
+  for (const workout of prior) {
+    for (let index = workout.exercises.length - 1; index >= 0; index--) {
+      const exercise = workout.exercises[index];
+      if (canonicalExerciseName(exercise.name) !== name || (category && exercise.category && exercise.category !== category)) continue;
+      const sets = setsFor(exercise);
+      if (sets.some((set) => set.note?.trim() || metrics.some((key) => Number.isFinite(set[key])))) return sets;
+    }
+  }
+
+  return [];
 }
 
 export function formatWorkoutSet(exercise: ExerciseSelection, set: WorkoutSet): string {
