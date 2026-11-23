@@ -73,6 +73,7 @@ export function MealRecorder() {
   const [recordedTime, setRecordedTime] = useState("");
   const [manualFood, setManualFood] = useState<MealFoodItem>(newFood);
   const [history, setHistory] = useState<MealEntry[]>([]);
+  const [expandedMealType, setExpandedMealType] = useState<MealType | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [inputMode, setInputMode] = useState<"search" | "photo" | "manual" | "barcode">("search");
@@ -158,7 +159,10 @@ export function MealRecorder() {
     <PageHeader title="食事" />
     <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2">
       <label htmlFor="meal-date" className="text-sm font-semibold text-[var(--ink-soft)]">記録日</label>
-      <input id="meal-date" type="date" value={recordedAt} onChange={(event) => setRecordedAt(event.target.value)} required className="form-input w-auto max-w-full" />
+      <input id="meal-date" type="date" value={recordedAt} onChange={(event) => {
+        setRecordedAt(event.target.value);
+        setExpandedMealType(null);
+      }} required className="form-input w-auto max-w-full" />
     </div>
     <div className="grid items-start gap-5 md:grid-cols-[minmax(0,1.12fr)_minmax(0,.88fr)]">
       <section aria-labelledby="meal-list-title" className="overflow-hidden rounded-lg border border-[var(--line)] bg-white">
@@ -169,21 +173,33 @@ export function MealRecorder() {
           const totals = summarizeDailyCalories(entries, recordedAt);
           const incomplete = totals.missingMeals > 0 || totals.partiallyCountedMeals > 0;
           const caloriesLabel = totals.countedMeals === 0 ? "カロリー未入力" : `${incomplete ? "入力済み分 " : ""}${Math.round(totals.calories)} kcal`;
+          const detailsOpen = expandedMealType === type;
+          const detailsId = `meal-details-${type}`;
           return <article key={type} className="border-b border-[var(--line)] last:border-b-0">
-            <div className="flex items-center justify-between gap-3 px-5 py-4 sm:px-6">
-              <div>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-4 sm:px-6">
+              <div className="min-w-0">
                 <h3 className="font-bold text-[var(--ink)]">{label}</h3>
                 <p className="metric mt-1 text-sm text-[var(--muted)]">{entries.length ? `${caloriesLabel} · ${foodCount}品` : "未記録"}</p>
               </div>
-              <button id={`meal-add-${type}`} type="button" onClick={() => openComposer(type)} aria-label={`${label}に食品を追加`} aria-expanded={composerOpen && mealType === type} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md bg-[var(--sage-soft)] px-4 text-sm font-bold text-[var(--sage-deep)] hover:bg-[var(--sage-deep)] hover:text-white">
-                <Icon name="plus" className="size-4" />追加
-              </button>
+              <div className="flex items-center gap-2">
+                {entries.length > 0 && <button type="button" aria-expanded={detailsOpen} aria-controls={detailsId}
+                  aria-label={`${label}の内容を${detailsOpen ? "閉じる" : "見る"}`}
+                  onClick={() => setExpandedMealType(detailsOpen ? null : type)}
+                  className="inline-flex min-h-11 items-center gap-1 rounded-md border border-[var(--line)] px-2.5 text-sm font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)] sm:px-3">
+                  {detailsOpen ? "閉じる" : "内容を見る"}<Icon name="chevron-right" className={`size-4 ${detailsOpen ? "-rotate-90" : "rotate-90"}`} aria-hidden="true" />
+                </button>}
+                <button id={`meal-add-${type}`} type="button" onClick={() => openComposer(type)} aria-label={`${label}に食品を追加`} aria-expanded={composerOpen && mealType === type} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md bg-[var(--sage-soft)] px-4 text-sm font-bold text-[var(--sage-deep)] hover:bg-[var(--sage-deep)] hover:text-white">
+                  <Icon name="plus" className="size-4" />追加
+                </button>
+              </div>
             </div>
-            {entries.length > 0 && <div className="border-t border-[var(--line)] px-4 sm:px-5">{entries.map((entry) => <div key={entry.id} className="flex min-h-16 items-center gap-3 border-b border-[var(--line)] py-2 last:border-b-0">
+            {entries.length > 0 && <div id={detailsId} hidden={!detailsOpen} className="border-t border-[var(--line)] px-4 sm:px-5">{entries.map((entry) => <div key={entry.id} className="flex min-h-16 items-center gap-3 border-b border-[var(--line)] py-2 last:border-b-0">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[var(--ink)]">{entry.name}</p>
+                <p className="break-words text-sm font-semibold text-[var(--ink)]">{entry.name}</p>
                 <p className="mt-0.5 text-xs text-[var(--muted)]">{entry.recordedTime || "時刻なし"}{entry.items && entry.items.length > 1 ? ` · ${entry.items.length}品` : entry.items?.[0]?.portionQuantity ? ` · ${entry.items[0].portionQuantity}${entry.items[0].portionUnit ?? "g"}` : ""}</p>
-                {entry.items && entry.items.length > 1 && <details className="mt-1 text-xs text-[var(--muted)]"><summary className="min-h-8 cursor-pointer py-1 text-[var(--sage-deep)]">食品の内訳を見る</summary><ul className="space-y-1 pb-2">{entry.items.map((item) => <li key={item.id}>{item.name}{item.calories !== undefined ? ` · ${item.calories} kcal` : ""}</li>)}</ul></details>}
+                {entry.items && entry.items.length > 1 && <ul className="mt-2 space-y-1 break-words text-xs leading-5 text-[var(--muted)]" aria-label="食品の内訳">
+                  {entry.items.map((item) => <li key={item.id}>{item.name}{item.calories !== undefined ? ` · ${item.calories} kcal` : ""}</li>)}
+                </ul>}
                 {entry.items?.[0]?.sourceBarcode && <a href={`https://world.openfoodfacts.org/product/${encodeURIComponent(entry.items[0].sourceBarcode)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sage-deep)] underline">出典：Open Food Facts</a>}
               </div>
               <span className="metric shrink-0 text-xs font-semibold text-[var(--ink)]">{recordedCalories(entry) === undefined ? "—" : `${Math.round(recordedCalories(entry) ?? 0)} kcal`}</span>
