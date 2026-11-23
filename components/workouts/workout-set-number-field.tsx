@@ -8,6 +8,7 @@ interface WorkoutSetNumberFieldProps {
   value: number | undefined;
   onCommit: (value: number | undefined) => void;
   previousValue?: number;
+  historicalValue?: number;
   label: string;
   copyLabel?: string;
   step: string;
@@ -33,7 +34,7 @@ function focusNextSetField(input: HTMLInputElement) {
   else if (fieldRect.top < scrollRect.top + margin) scroller.scrollTop -= scrollRect.top + margin - fieldRect.top;
 }
 
-export function WorkoutSetNumberField({ value, onCommit, previousValue, label, copyLabel, step, autoFocusTarget = false, lastField = false, touchField }: WorkoutSetNumberFieldProps) {
+export function WorkoutSetNumberField({ value, onCommit, previousValue, historicalValue, label, copyLabel, step, autoFocusTarget = false, lastField = false, touchField }: WorkoutSetNumberFieldProps) {
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
 
@@ -45,16 +46,20 @@ export function WorkoutSetNumberField({ value, onCommit, previousValue, label, c
   }
 
   const fieldClass = `metric h-12 px-1.5 text-left ${copyLabel ? "rounded-r-none" : ""}`;
+  const hint = Number.isFinite(historicalValue) ? String(historicalValue) : undefined;
+  const hintDescription = hint === undefined ? undefined : `前回の記録 ${hint}`;
+  const inputValue = editing ? draft : value ?? "";
 
   return <div className={copyLabel ? "grid min-w-0 grid-cols-[minmax(0,1fr)_36px] items-center" : "min-w-0"}>
     {touchField ? <button
       type="button"
       data-workout-set-field="true"
       aria-label={`${label}、${touchField.value || "未入力"}`}
+      aria-description={touchField.value ? undefined : hintDescription}
       aria-pressed={touchField.active}
       className={`form-input ${fieldClass} touch-manipulation truncate aria-pressed:border-[var(--sage-deep)] aria-pressed:bg-[var(--sage-soft)]`}
       onClick={touchField.onSelect}
-    >{touchField.value || <span className="text-[var(--muted)]">0</span>}</button> : <TextInput
+    >{touchField.value || <span className="text-[var(--muted)]">{hint ?? "0"}</span>}</button> : <TextInput
       data-set-primary={autoFocusTarget || undefined}
       data-workout-set-field="true"
       type="number"
@@ -63,12 +68,13 @@ export function WorkoutSetNumberField({ value, onCommit, previousValue, label, c
       inputMode="decimal"
       enterKeyHint={lastField ? "done" : "next"}
       aria-label={label}
-      value={editing ? draft : value ?? ""}
+      aria-description={inputValue === "" ? hintDescription : undefined}
+      value={inputValue}
       onFocus={() => { setDraft(value === undefined ? "" : String(value)); setEditing(true); }}
       onChange={(event) => { if (step !== "1" || /^\d*$/.test(event.target.value)) setDraft(event.target.value); }}
       onBlur={(event) => { setEditing(false); commit(event.currentTarget.value); }}
       onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); focusNextSetField(event.currentTarget); } }}
-      placeholder="0"
+      placeholder={hint ?? "0"}
       className={`${fieldClass} appearance-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none`}
     />}
     {copyLabel && <button

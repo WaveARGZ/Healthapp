@@ -13,6 +13,7 @@ interface WorkoutSetEditorProps {
   exerciseName: string;
   cardio: boolean;
   sets: WorkoutSet[];
+  previousSets: readonly WorkoutSet[];
   onUpdateSet: (setId: string, patch: Partial<WorkoutSet>) => void;
   onAddSet: () => void;
   onRemoveSet: (setId: string) => void;
@@ -51,7 +52,7 @@ function revealSetControl(scroller: HTMLElement, field: HTMLElement) {
   else if (bottom > bounds.bottom - margin) scroller.scrollTop += bottom - bounds.bottom + margin;
 }
 
-export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAddSet, onRemoveSet, onBack }: WorkoutSetEditorProps) {
+export function WorkoutSetEditor({ exerciseName, cardio, sets, previousSets, onUpdateSet, onAddSet, onRemoveSet, onBack }: WorkoutSetEditorProps) {
   const movement = getExerciseMotion(exerciseName);
   const keypadMode = useSyncExternalStore(subscribeToKeypadMode, usesNumberPad, () => false);
   const [selected, setSelected] = useState<ActiveField | null>(null);
@@ -158,6 +159,7 @@ export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAd
                   autoFocusTarget={key === firstField.key}
                   lastField={key === lastField.key && index === sets.length - 1}
                   value={set[key]}
+                  historicalValue={previousSets[index]?.[key]}
                   onCommit={(value) => {
                     if (isActive) setSelected({ ...active, value: String(value ?? ""), replaceOnType: true });
                     onUpdateSet(set.id, { [key]: value });
@@ -182,7 +184,7 @@ export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAd
               <textarea
                 data-workout-set-note
                 aria-label={`セット${index + 1}のメモ`}
-                placeholder="セットメモ（任意）"
+                placeholder={previousSets[index]?.note?.trim() || "セットメモ（任意）"}
                 rows={1}
                 maxLength={500}
                 value={set.note ?? ""}
