@@ -36,7 +36,7 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
           signal: controller.signal, redirect: "manual", credentials: "omit", cache: "no-store",
         });
         phase = "headers";
-        if (!response.body || !response.headers.get("content-type")?.startsWith("application/json")) { void response.body?.cancel().catch(() => undefined); apiFail(`provider_http_${response.status}`, 502); }
+        if (!response.body || !response.headers.get("content-type")?.startsWith("application/json")) { void response.body?.cancel().catch(() => undefined); apiFail(`provider_http_${response.status}_non_json`, 502); }
         if (response.ok && response.headers.get("openai-organization") !== account.organization) { void response.body.cancel().catch(() => undefined); apiFail("provider_cost_unconfirmed"); }
         reader = response.body.getReader();
         phase = "body";
@@ -47,6 +47,10 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
           // Upstream messages can contain credentials. Return only a fixed diagnostic allow-list.
           const code = object(model) && object(model.error) ? model.error.code : null;
           const allowed = new Set(["invalid_api_key", "invalid_organization", "invalid_project", "mismatched_organization", "mismatched_project", "model_not_found", "insufficient_quota", "permission_denied", "account_deactivated", "rate_limit_exceeded", "organization_not_found", "project_not_found"]);
+          if (code == null && object(model) && object(model.error) && typeof model.error.message === "string") {
+            const reason = /project/i.test(model.error.message) ? "project" : /organization/i.test(model.error.message) ? "organization" : /api.?key|authentication/i.test(model.error.message) ? "credential" : null;
+            if (reason) apiFail(`provider_http_${response.status}_${reason}`, 502);
+          }
           apiFail(typeof code === "string" && allowed.has(code) ? `provider_${code}` : `provider_http_${response.status}`, 502);
         }
         if (!object(model) || model.object !== "model" || typeof model.id !== "string" || !/^gpt-[a-z0-9.-]{1,64}$/.test(model.id)) apiFail("provider_metadata_invalid", 502);
