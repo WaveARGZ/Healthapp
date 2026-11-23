@@ -63,7 +63,7 @@ html { scroll-padding-bottom: 180px; }
   .form-input { height: 50px; width: 100%; min-width: 0; border: 1px solid var(--field-line); border-radius: 6px; background: white; padding: 0 14px; font-size: 16px; color: var(--ink); transition: border-color 180ms ease, background-color 180ms ease; }
   .form-input::placeholder { color: #65717f; }
   .form-input[data-workout-set-history-hint]::placeholder,
-  span[data-workout-set-history-hint] { color: #a45759; opacity: 1; }
+  span[data-workout-set-history-hint] { color: #b65b61; opacity: 1; }
   .form-input:focus { border-color: var(--sage-deep); outline: 2px solid var(--sage-deep); outline-offset: 1px; }
   .delete-button { display: grid; min-width: 44px; min-height: 44px; place-items: center; border-radius: 7px; color: var(--muted); }
   .delete-button:hover { color: var(--coral); background: var(--coral-soft); }
