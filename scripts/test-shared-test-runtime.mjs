@@ -301,6 +301,8 @@ test("a Firebase session restored on a records URL goes to setup before renderin
       react: {
         useState: (initial) => [status ?? initial, (value) => { status = value; }],
         useEffect: (effect) => effects.push(effect),
+        useLayoutEffect() {},
+        useRef: (current) => ({ current }),
         useSyncExternalStore: () => true,
       },
       "@/components/layout/bottom-nav": { BottomNav: "BottomNav" },
@@ -327,4 +329,130 @@ test("a Firebase session restored on a records URL goes to setup before renderin
     assert.deepEqual(redirects, destination === setupPath ? [setupPath] : []);
     unsubscribe();
   }
+});
+
+const element = (type, props, key) => ({ type, props, key });
+const recordJsx = { jsx: element, jsxs: element, Fragment: "Fragment" };
+
+function findElement(node, matches) {
+  if (Array.isArray(node)) return node.map((child) => findElement(child, matches)).find(Boolean);
+  if (!node || typeof node !== "object") return undefined;
+  return matches(node) ? node : findElement(node.props.children, matches);
+}
+
+function recordHooks(snapshot) {
+  const state = [];
+  const refs = [];
+  let position;
+  let refPosition;
+  let layoutEffects;
+  return {
+    react: {
+      useState(initial) {
+        const index = position++;
+        if (!Object.hasOwn(state, index)) state[index] = typeof initial === "function" ? initial() : initial;
+        return [state[index], (next) => { state[index] = typeof next === "function" ? next(state[index]) : next; }];
+      },
+      useRef(current) { return refs[refPosition++] ??= { current }; },
+      useMemo: (evaluate) => evaluate(),
+      useSyncExternalStore: () => snapshot,
+      useEffect() {},
+      useLayoutEffect(effect) { layoutEffects.push(effect); },
+    },
+    render(component) {
+      position = 0;
+      refPosition = 0;
+      layoutEffects = [];
+      const view = component();
+      layoutEffects.forEach((effect) => effect());
+      return view;
+    },
+  };
+}
+
+test("bottom tabs reset same-page state and scroll only when the destination is shown", () => {
+  let path = "/workouts/";
+  const replacedPaths = [];
+  const scrolls = [];
+  const browser = {
+    location: { pathname: "/Healthapp/workouts/", search: "?setup=equipment", hash: "#daily-burn-title" },
+    history: { replaceState: (_state, _title, url) => replacedPaths.push(url) },
+    scrollTo: ({ top, left }) => scrolls.push([top, left]),
+  };
+  const state = recordHooks(true);
+  const navigation = { useRouter: () => ({}), usePathname: () => path };
+  const cloud = { "@/lib/cloud/config": {}, "@/lib/firebase/config": {} };
+  const { BottomNav } = load("components/layout/bottom-nav.tsx", {}, {
+    ...cloud, "react/jsx-runtime": recordJsx, "next/link": "Link", "next/navigation": navigation, "@/components/ui/icon": { Icon: "Icon" },
+  }, { window: browser });
+  const { AppShell } = load("components/layout/app-shell.tsx", {}, {
+    ...cloud, react: state.react, "react/jsx-runtime": recordJsx, "next/navigation": navigation,
+    "@/components/layout/bottom-nav": { BottomNav },
+    "@/components/ui/page-header": { AppTopBar: "AppTopBar" },
+    "@/components/layout/mobile-viewport": { MobileViewport: "MobileViewport" },
+    "@/components/ui/logo": {}, "@/lib/auth/cognito-session": {}, "@/lib/auth/firebase-session": {},
+    "@/lib/auth/firebase-login-destination": {}, "@/lib/auth/profile-destination": {},
+  }, { window: browser });
+  const render = () => state.render(() => AppShell({ children: "records" }));
+  const mainKey = (view) => findElement(view, (node) => node.type === "main").key;
+  const pressTab = (view, href) => {
+    const menu = BottomNav(findElement(view, (node) => node.type === BottomNav).props);
+    let prevented = false;
+    findElement(menu, (node) => node.type === "Link" && node.props.href === href).props.onNavigate({ preventDefault() { prevented = true; } });
+    return prevented;
+  };
+  const initial = render();
+  assert.equal(pressTab(initial, "/workouts"), true);
+  const reset = render();
+  assert.notEqual(mainKey(reset), mainKey(initial));
+  assert.deepEqual(replacedPaths, ["/Healthapp/workouts/"]);
+  assert.deepEqual(scrolls, [[0, 0]]);
+
+  assert.equal(pressTab(reset, "/meals"), false);
+  assert.equal(mainKey(render()), mainKey(reset));
+  assert.equal(scrolls.length, 1);
+  path = "/meals/";
+  assert.equal(mainKey(render()), "/meals:1");
+  assert.deepEqual(scrolls, [[0, 0], [0, 0]]);
+});
+
+test("saved foods are disclosed only through the matching meal type's button", async () => {
+  const today = "2026-11-23";
+  const state = recordHooks("");
+  let saved;
+  let nextId = 0;
+  const { MealRecorder } = load("components/meals/meal-recorder.tsx", {}, {
+    react: state.react, "react/jsx-runtime": recordJsx,
+    "@/components/ui/form-fields": { FieldLabel: "FieldLabel", TextInput: "TextInput" },
+    "@/components/ui/page-header": { PageHeader: "PageHeader" },
+    "@/components/ui/icon": { Icon: "Icon" },
+    "@/components/ui/record-actions": {}, "@/components/meals/photo-meal-analyzer": {}, "@/components/meals/barcode-meal-entry": {},
+    "@/components/meals/food-library-search": { FoodLibrarySearch: "FoodLibrarySearch" },
+    "@/lib/api/client": { bodyMakeClient: { saveMeal: async (entry) => { saved = entry; } } },
+    "@/lib/utils/date": { toDateInputValue: () => today, toTimeInputValue: () => "08:00" },
+    "@/lib/utils/id": { createId: () => `test-${++nextId}` },
+    "@/lib/utils/meal-calories": load("lib/utils/meal-calories.ts"),
+    "@/lib/utils/meal-entry": load("lib/utils/meal-entry.ts"),
+    "@/lib/utils/meal-macros": load("lib/utils/meal-macros.ts"),
+    "@/types/meal": load("types/meal.ts"),
+  }, { requestAnimationFrame() {} });
+  const render = () => state.render(() => MealRecorder());
+  const findId = (view, id) => findElement(view, (node) => node.props.id === id);
+  const detailsButton = (view) => findElement(view, (node) => node.props["aria-controls"] === "meal-details-breakfast");
+  findId(render(), "meal-add-breakfast").props.onClick();
+  const composer = findElement(render(), (node) => node.type === "FoodLibrarySearch");
+  await composer.props.onAddFoods([{ name: "おにぎり", calories: 180 }, { name: "ゆで卵", calories: 75 }]);
+  assert.equal(saved.mealType, "breakfast");
+
+  const collapsed = render();
+  assert.equal(findId(collapsed, "meal-details-breakfast").props.hidden, true);
+  assert.equal(detailsButton(collapsed).props["aria-expanded"], false);
+  detailsButton(collapsed).props.onClick();
+  const expanded = render();
+  const panel = findId(expanded, "meal-details-breakfast");
+  assert.equal(panel.props.hidden, false);
+  assert.equal(detailsButton(expanded).props["aria-expanded"], true);
+  assert.ok(findElement(panel, (node) => node.type === "li" && node.props.children[0] === "ゆで卵"));
+  detailsButton(expanded).props.onClick();
+  assert.equal(findId(render(), "meal-details-breakfast").props.hidden, true);
 });
