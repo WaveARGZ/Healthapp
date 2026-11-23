@@ -69,7 +69,7 @@ test("provider usage is bounded; cache-write premium and long inputs are account
 test("one fixed Responses request, no storage/tools/retry; schema and usage validated",async()=>{
   let calls=0;
   const provider=createAdviceProvider("synthetic-openai-key",account,async(url,init)=>{
-    calls++;assert.equal(url,"https://api.openai.com/v1/responses");assert.equal(init.redirect,"error");
+    calls++;assert.equal(url,"https://api.openai.com/v1/responses");assert.equal(init.redirect,"manual");
     assert.equal(init.headers["OpenAI-Organization"],account.organization);assert.equal(init.headers["OpenAI-Project"],account.project);
     const payload=JSON.parse(init.body);assert.equal(payload.store,false);assert.equal(payload.tools,undefined);assert.equal(payload.model,ADVICE_MODEL);
     return new Response(JSON.stringify({model:ADVICE_MODEL,service_tier:"default",status:"completed",usage:{input_tokens:1000,output_tokens:500,total_tokens:1500},output:[{type:"message",role:"assistant",status:"completed",content:[{type:"output_text",text:JSON.stringify(advice())}]}]}),{headers:{"Content-Type":"application/json","openai-organization":account.organization}});
@@ -80,6 +80,13 @@ test("one fixed Responses request, no storage/tools/retry; schema and usage vali
 test("provider timeout includes a stalled body and never retries",async()=>{
   let calls=0;const provider=createAdviceProvider("synthetic-openai-key",account,async()=>{calls++;return new Response(new ReadableStream({start(){}}),{headers:{"Content-Type":"application/json","openai-organization":account.organization}});},()=>NOW,10);
   await assert.rejects(provider(input()),/provider_timeout/);assert.equal(calls,1);
+});
+test("provider rejects redirects without forwarding credentials or retrying",async()=>{
+  let calls=0;const provider=createAdviceProvider("synthetic-openai-key",account,async(url,init)=>{
+    calls++;assert.equal(url,"https://api.openai.com/v1/responses");assert.equal(init.redirect,"manual");
+    return new Response(null,{status:307,headers:{Location:"https://untrusted.invalid"}});
+  },()=>NOW);
+  await assert.rejects(provider(input()),/provider_failed/);assert.equal(calls,1);
 });
 test("worker rejects missing consent, wrong origin, disabled API and failed auth without paid work",async t=>{
   const s=await store(t);let calls=0;
@@ -130,7 +137,7 @@ test("connection preflight only reads fixed model metadata with the verified acc
   let calls=0;
   const result=await verifyAdviceConnection("synthetic-openai-key",account,async(url,init)=>{
     calls++;assert.equal(url,`https://api.openai.com/v1/models/${ADVICE_MODEL}`);
-    assert.equal(init.method,"GET");assert.equal(init.body,undefined);assert.equal(init.redirect,"error");
+    assert.equal(init.method,"GET");assert.equal(init.body,undefined);assert.equal(init.redirect,"manual");
     assert.equal(init.headers["OpenAI-Organization"],account.organization);assert.equal(init.headers["OpenAI-Project"],account.project);
     return Response.json({id:ADVICE_MODEL,object:"model"},{headers:{"openai-organization":account.organization}});
   });

@@ -91,7 +91,9 @@ async function fetchJson(
     }, timeoutMs);
   });
   const operation = async () => {
-    const response = await fetchImpl(url, { ...init, signal: controller.signal, redirect: "error", credentials: "omit", cache: "no-store" });
+    // Workers rejects redirect:"error" before sending. Manual + !ok below also
+    // rejects every redirect, without forwarding the token or key elsewhere.
+    const response = await fetchImpl(url, { ...init, signal: controller.signal, redirect: "manual", credentials: "omit", cache: "no-store" });
     const cancel = () => { void response.body?.cancel().catch(() => undefined); };
     if (!response.ok || !response.body) { cancel(); fail("auth_unavailable"); }
     const contentType = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();

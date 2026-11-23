@@ -31,7 +31,9 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
       (async () => {
         const response = await fetcher(`https://api.openai.com/v1/models/${ADVICE_MODEL}`, {
           method: "GET", headers: { Authorization: `Bearer ${apiKey}`, "OpenAI-Organization": account.organization, "OpenAI-Project": account.project },
-          signal: controller.signal, redirect: "error", credentials: "omit", cache: "no-store",
+          // Workers supports manual redirects, not the Fetch standard's error mode.
+          // Non-2xx responses below are rejected; credentials never follow a Location.
+          signal: controller.signal, redirect: "manual", credentials: "omit", cache: "no-store",
         });
         phase = "headers";
         if (!response.body || !response.headers.get("content-type")?.startsWith("application/json")) { void response.body?.cancel().catch(() => undefined); apiFail(`provider_http_${response.status}`, 502); }
@@ -104,7 +106,7 @@ export function createAdviceProvider(apiKey: string, account: OpenAiAccount, fet
       return await Promise.race([timeout, (async () => {
         const r = await fetcher("https://api.openai.com/v1/responses", {
           method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "OpenAI-Organization": account.organization, "OpenAI-Project": account.project },
-          body: JSON.stringify(advicePayload(input)), signal: controller.signal, redirect: "error", credentials: "omit", cache: "no-store",
+          body: JSON.stringify(advicePayload(input)), signal: controller.signal, redirect: "manual", credentials: "omit", cache: "no-store",
         });
         if (!r.ok || !r.body || !r.headers.get("content-type")?.startsWith("application/json")) { void r.body?.cancel().catch(() => undefined); apiFail("provider_failed", 502); }
         if (r.headers.get("openai-organization") !== account.organization) { void r.body.cancel().catch(() => undefined); apiFail("provider_cost_unconfirmed"); }

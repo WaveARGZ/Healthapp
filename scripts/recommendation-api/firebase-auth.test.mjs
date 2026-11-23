@@ -55,7 +55,7 @@ test("verified owner returns only UID and uses one fixed, no-retry lookup", asyn
   assert.equal(calls.length, 1);
   const { init } = calls[0];
   assert.equal(init.method, "POST");
-  assert.equal(init.redirect, "error");
+  assert.equal(init.redirect, "manual");
   assert.equal(init.credentials, "omit");
   assert.equal(init.cache, "no-store");
   assert.deepEqual(JSON.parse(init.body), { idToken: token });
