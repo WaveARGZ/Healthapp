@@ -16,7 +16,8 @@ export function DailyBurnRecorder({ day }: { day: string }) {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ day: string; text: string } | null>(null);
   const savedEntry = entries.find((entry) => entry.performedAt === day);
-  const calories = draft?.day === day ? draft.value : savedEntry?.caloriesBurned.toString() ?? "";
+  const savedActivity = savedEntry?.burnScope === "activity";
+  const calories = draft?.day === day ? draft.value : savedActivity ? savedEntry.caloriesBurned.toString() : "";
 
   useEffect(() => {
     let active = true;
@@ -36,7 +37,7 @@ export function DailyBurnRecorder({ day }: { day: string }) {
     }
     const entry: DailyBurnEntry = {
       id: dailyBurnId(day), performedAt: day, recordType: "daily-burn",
-      caloriesBurned: amount, exercises: [], createdAt: savedEntry?.createdAt ?? new Date().toISOString(),
+      caloriesBurned: amount, burnScope: "activity", exercises: [], createdAt: savedEntry?.createdAt ?? new Date().toISOString(),
     };
     setSaving(true);
     setNotice(null);
@@ -64,9 +65,17 @@ export function DailyBurnRecorder({ day }: { day: string }) {
   }
 
   return <section aria-labelledby="daily-burn-title" className="mb-6 rounded-lg border border-[var(--line)] bg-white p-4 sm:p-5">
-    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 id="daily-burn-title" className="text-base font-bold">消費カロリー</h2><p className="mt-1 text-xs leading-5 text-[var(--muted)]">{formatDate(day, { year: "numeric" })}に使った合計を記録</p></div>{savedEntry && <span className="metric rounded-full bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-bold text-[var(--sage-deep)]">保存済み {savedEntry.caloriesBurned.toLocaleString("ja-JP")} kcal</span>}</div>
-    <form onSubmit={save} className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,180px)_auto] sm:items-end">
-      <div className="min-w-0"><FieldLabel htmlFor="burn-calories">消費カロリー（kcal）</FieldLabel><TextInput id="burn-calories" type="number" min="0" max="20000" step="1" inputMode="numeric" value={calories} onChange={(event) => { setDraft({ day, value: event.target.value }); setNotice(null); }} placeholder="例：2200" required disabled={loading || loadFailed || saving} /></div>
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div><h2 id="daily-burn-title" className="text-base font-bold">消費カロリー</h2><p className="mt-1 text-xs leading-5 text-[var(--muted)]">{formatDate(day, { year: "numeric" })}の活動消費を記録</p></div>
+      {savedEntry && <span className="metric rounded-full bg-[var(--sage-soft)] px-3 py-1.5 text-xs font-bold text-[var(--sage-deep)]">{savedActivity ? "活動消費" : "以前の総消費"} {savedEntry.caloriesBurned.toLocaleString("ja-JP")} kcal</span>}
+    </div>
+    <p id="daily-burn-help" className="mt-2 text-sm leading-6 text-[var(--muted)]">基礎代謝を除いた消費カロリーを入力してください。基礎代謝はプロフィールから自動で計算し、収支に加えます。</p>
+    <form onSubmit={save} className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,220px)_auto] sm:items-end sm:justify-start">
+      <div className="min-w-0">
+        <FieldLabel htmlFor="burn-calories">活動消費（kcal）</FieldLabel>
+        <TextInput id="burn-calories" aria-describedby="daily-burn-help" type="number" min="0" max="20000" step="1" inputMode="numeric" value={calories}
+          onChange={(event) => { setDraft({ day, value: event.target.value }); setNotice(null); }} placeholder="例：400" required disabled={loading || loadFailed || saving} />
+      </div>
       <Button type="submit" disabled={loading || loadFailed || saving}>{saving ? "保存中…" : savedEntry ? "更新する" : "保存する"}</Button>
     </form>
     {savedEntry && !loading && !loadFailed && <div className="mt-1 flex justify-end"><button type="button" onClick={() => void remove()} disabled={saving} className="min-h-11 text-xs text-[var(--coral)] underline underline-offset-2 disabled:opacity-45">この日の記録を削除</button></div>}

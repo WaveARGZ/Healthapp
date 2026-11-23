@@ -32,9 +32,11 @@ export interface WorkoutEntry {
   createdAt: string;
 }
 
-/** A daily total stored alongside workouts for compatibility with the existing record API. */
+/** A daily expenditure reading stored alongside workouts. */
 export interface DailyBurnEntry extends WorkoutEntry {
   recordType: "daily-burn";
   caloriesBurned: number;
+  /** Older records without a scope already include resting expenditure. */
+  burnScope?: "total" | "activity";
   exercises: [];
 }

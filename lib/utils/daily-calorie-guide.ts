@@ -15,6 +15,31 @@ interface DailyCalorieGuideInput {
   weightKg?: number;
   goal: FitnessGoal;
 }
+type RestingInput = Omit<DailyCalorieGuideInput, "goal">;
+
+function restingRange({ age, gender, heightCm, weightKg }: RestingInput) {
+  if (age === undefined || heightCm === undefined || weightKg === undefined
+    || !Number.isFinite(age) || !Number.isFinite(heightCm) || !Number.isFinite(weightKg)
+    || heightCm < 50 || heightCm > 250 || weightKg < 20 || weightKg > 400) {
+    return { status: "missing-profile" } as const;
+  }
+  // The source equation was derived in adults.
+  if (age < 20 || age > 78) return { status: "outside-adult-range" } as const;
+  const base = 10 * weightKg + 6.25 * heightCm - 5 * age;
+  return {
+    status: "ready",
+    minRmr: base + (gender === "male" ? 5 : -161),
+    maxRmr: base + (gender === "female" ? -161 : 5),
+    bmi: weightKg / (heightCm / 100) ** 2,
+    broadRange: gender !== "male" && gender !== "female",
+  } as const;
+}
+
+export function estimateRestingCalories(input: RestingInput): number | null {
+  const range = restingRange(input);
+  if (range.status !== "ready" || range.minRmr <= 0) return null;
+  return Math.round((range.minRmr + range.maxRmr) / 2);
+}
 
 const roundTo50 = (value: number) => Math.round(value / 50) * 50;
 const roundTo5 = (value: number) => Math.round(value / 5) * 5;
@@ -43,24 +68,12 @@ export function estimateDailyMacroGuide(guide: ReadyGuide, goal: FitnessGoal): D
  * https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner
  */
 export function estimateDailyCalorieGuide(input: DailyCalorieGuideInput): DailyCalorieGuide {
-  const { age, gender, heightCm, weightKg, goal } = input;
-  if (!Number.isFinite(age) || !Number.isFinite(heightCm) || !Number.isFinite(weightKg)
-    || age === undefined || heightCm === undefined || weightKg === undefined
-    || heightCm < 50 || heightCm > 250 || weightKg < 20 || weightKg > 400) {
-    return { status: "missing-profile" };
-  }
-  // The source equation was derived in adults; do not turn it into guidance for children.
-  if (age < 20 || age > 78) return { status: "outside-adult-range" };
-
-  const bmi = weightKg / (heightCm / 100) ** 2;
+  const { goal } = input;
+  const resting = restingRange(input);
+  if (resting.status !== "ready") return resting;
+  const { bmi, minRmr, maxRmr, broadRange } = resting;
   if (goal === "lose-fat" && bmi < 18.5) return { status: "underweight" };
 
-  const base = 10 * weightKg + 6.25 * heightCm - 5 * age;
-  const femaleRmr = base - 161;
-  const maleRmr = base + 5;
-  const broadRange = gender !== "male" && gender !== "female";
-  const minRmr = gender === "male" ? maleRmr : femaleRmr;
-  const maxRmr = gender === "female" ? femaleRmr : maleRmr;
   const goalFactor = goal === "build-muscle" ? 1.05 : goal === "lose-fat" ? 0.9 : 1;
   const minExpenditure = minRmr * 1.4;
   const maxExpenditure = maxRmr * 1.6;

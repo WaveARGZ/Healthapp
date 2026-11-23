@@ -22,3 +22,9 @@ export function burnMinusIntake(burned: number | null, consumed: number | null):
   if (burned === null || consumed === null || !Number.isFinite(burned) || !Number.isFinite(consumed)) return null;
   return Math.round(burned - consumed);
 }
+
+export function totalDailyBurn(entry: Pick<DailyBurnEntry, "caloriesBurned" | "burnScope"> | undefined, restingKcal: number | null): number | null {
+  if (!entry || !Number.isFinite(entry.caloriesBurned) || entry.caloriesBurned < 0) return null;
+  if (entry.burnScope !== "activity") return entry.caloriesBurned;
+  return restingKcal === null ? null : Math.round(entry.caloriesBurned + restingKcal);
+}
