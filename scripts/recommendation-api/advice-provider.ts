@@ -46,7 +46,7 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
         if (!response.ok) {
           // Upstream messages can contain credentials. Return only a fixed diagnostic allow-list.
           const code = object(model) && object(model.error) ? model.error.code : null;
-          const allowed = new Set(["invalid_api_key", "invalid_organization", "invalid_project", "model_not_found", "insufficient_quota", "permission_denied", "account_deactivated", "rate_limit_exceeded", "organization_not_found", "project_not_found"]);
+          const allowed = new Set(["invalid_api_key", "invalid_organization", "invalid_project", "mismatched_organization", "mismatched_project", "model_not_found", "insufficient_quota", "permission_denied", "account_deactivated", "rate_limit_exceeded", "organization_not_found", "project_not_found"]);
           apiFail(typeof code === "string" && allowed.has(code) ? `provider_${code}` : `provider_http_${response.status}`, 502);
         }
         if (!object(model) || model.object !== "model" || typeof model.id !== "string" || !/^gpt-[a-z0-9.-]{1,64}$/.test(model.id)) apiFail("provider_metadata_invalid", 502);
