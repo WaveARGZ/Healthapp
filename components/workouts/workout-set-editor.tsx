@@ -130,7 +130,7 @@ export function WorkoutSetEditor({ exerciseName, cardio, sets, onUpdateSet, onAd
       <section data-workout-set-editor aria-label={`${exerciseName}のセット入力`} className="px-4 py-5 sm:px-5">
         <button type="button" onClick={onBack} className="mb-2 min-h-11 text-sm font-semibold text-[var(--sage-deep)] underline underline-offset-2">← 種目選択へ戻る</button>
         <div className="flex items-center gap-3">
-          <ExerciseMotionIcon name={exerciseName} className="h-[60px] w-[72px]" />
+          <ExerciseMotionIcon name={exerciseName} className="size-32 sm:size-40" />
           <div className="min-w-0">
             <h2 className="break-words text-base font-bold text-[var(--ink)]">{exerciseName}</h2>
             {movement.kind !== "custom" && <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{movement.action}</p>}
