@@ -9,6 +9,7 @@ import { summarizeDailyCalories } from "../lib/utils/meal-calories.ts";
 import { summarizeDailyMacros } from "../lib/utils/meal-macros.ts";
 import { burnMinusIntake } from "../lib/utils/daily-burn.ts";
 import { estimateDailyCalorieGuide, estimateDailyMacroGuide } from "../lib/utils/daily-calorie-guide.ts";
+import { latestWeightEntry } from "../lib/utils/current-weight.ts";
 
 // Actual aggregation, parent prop wiring, and rendered shared component, using
 // synthetic records in RAM. No account, browser storage, network, or file writes.
@@ -35,40 +36,30 @@ function load(relativePath, modules) {
 }
 
 const sharedModules = { "react/jsx-runtime": jsxRuntime, "next/link": { default: "a" } };
+const { PersonalNutritionGuide } = load("components/dashboard/personal-nutrition-guide.tsx", sharedModules);
 const { MobileDashboard } = load("components/dashboard/mobile-dashboard.tsx", {
   ...sharedModules,
   "@/components/dashboard/anatomy-figure": { AnatomyFigure: () => null },
-  "@/components/dashboard/personal-nutrition-guide": { PersonalNutritionGuide: () => null },
+  "@/components/dashboard/personal-nutrition-guide": { PersonalNutritionGuide },
   "@/lib/workouts/muscle-activity": { summarizeMuscleActivity: () => ({}) },
   "@/lib/utils/daily-burn": { burnMinusIntake },
   "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide, estimateDailyMacroGuide },
 });
-const { PersonalNutritionGuide } = load("components/dashboard/personal-nutrition-guide.tsx", {
-  ...sharedModules,
-  "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide, estimateDailyMacroGuide },
-  "@/types/user": { fitnessGoalLabels: { "build-muscle": "筋肉を増やす", "lose-fat": "体脂肪を減らす", maintain: "現在の体型を維持する" } },
-});
-
-function renderDashboard(meals, { loading = false, mealUnavailable = false, burnUnavailable = false, profile = null } = {}) {
-  const data = { profile, workouts: [], meals, weights: [], burns: [{ performedAt: day, caloriesBurned: 2000 }] };
-  const states = [data, loading, "", false, mealUnavailable, false, burnUnavailable, day];
+function renderDashboard(meals, { loading = false, mealUnavailable = false, burnUnavailable = false, profile = null, weights = [], weightsUnavailable = false } = {}) {
+  const data = { profile, workouts: [], meals, weights, weightsUnavailable, burns: [{ performedAt: day, caloriesBurned: 2000 }] };
+  const states = [data, loading, false, mealUnavailable, false, burnUnavailable, day];
   let stateIndex = 0;
   const { DashboardContent } = load("components/dashboard/dashboard-content.tsx", {
     ...sharedModules,
     react: { useState: () => [states[stateIndex++], () => {}], useEffect() {}, useMemo: (callback) => callback() },
-    "@/components/ui/icon": { Icon: () => null },
-    "@/components/progress/weight-trend-chart": { WeightTrendChart: () => null },
-    "@/components/dashboard/muscle-activity-map": { MuscleActivityMap: () => null },
-    "@/components/dashboard/daily-calorie-rings": { DailyCalorieRings: () => null },
     "@/components/dashboard/mobile-dashboard": { MobileDashboard },
     "@/components/dashboard/weekly-review": { WeeklyReview: () => null },
     "@/lib/api/client": { bodyMakeClient: {} },
+    "@/lib/utils/current-weight": { latestWeightEntry },
     "@/lib/utils/date": { formatToday: () => day, toDateInputValue: () => day },
     "@/lib/utils/meal-calories": { summarizeDailyCalories },
     "@/lib/utils/meal-macros": { summarizeDailyMacros },
     "@/lib/utils/daily-feedback": { summarizeDailyFeedback: () => ({ meal: { href: "/meals", title: "" }, workout: { href: "/workouts", title: "" } }) },
-    "@/lib/utils/daily-calorie-guide": { estimateDailyCalorieGuide: () => null },
-    "@/types/user": { fitnessGoalLabels: {} },
   });
   function findShared(node) {
     if (!node || typeof node !== "object") return undefined;
@@ -218,7 +209,7 @@ test("the calorie target distinguishes unrecorded intake, recorded zero and miss
 
 test("calculation details retain resting and total expenditure estimates", () => {
   const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
-  const html = renderToStaticMarkup(PersonalNutritionGuide({ profile, weightKg: 70, loading: false, unavailable: false }));
+  const html = renderDashboard([known], { profile });
   assert.match(html, /基礎代謝/);
   assert.match(html, /1,600/);
   assert.match(html, /2,250～2,600/);
@@ -226,9 +217,34 @@ test("calculation details retain resting and total expenditure estimates", () =>
 });
 
 test("personal guide requests missing profile details instead of inventing calorie targets", () => {
-  const html = renderToStaticMarkup(PersonalNutritionGuide({ profile: null, weightKg: null, loading: false, unavailable: false }));
+  const html = renderDashboard([known]);
   assert.match(html, /年齢・身長・体重を登録すると/);
   assert.ok(!html.includes("総消費"));
+});
+
+test("the same latest measurement drives the calorie target and resting estimate without displaying weight or goal", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  const weights = [
+    { measuredOn: "2026-11-14", createdAt: "2026-11-15T13:00:00.000Z", weightKg: 94 },
+    { measuredOn: day, createdAt: "2026-11-15T12:00:00.000Z", weightKg: 82 },
+    { measuredOn: day, createdAt: "2026-11-15T08:00:00.000Z", weightKg: 75 },
+    { measuredOn: "2026-11-16", createdAt: "2026-11-15T10:00:00.000Z", weightKg: 105 },
+  ];
+  const html = renderDashboard([known], { profile, weights });
+  assert.match(html, /1日の摂取目安.*2,550～2,900 kcal/);
+  assert.match(html, /基礎代謝 <span[^>]*>1,750 kcal/);
+  assert.doesNotMatch(html, />82\s*kg|筋肉を増やす|目標：/);
+
+  const afterDeletion = renderDashboard([known], { profile, weights: weights.slice(2) });
+  assert.match(afterDeletion, /1日の摂取目安.*2,450～2,800 kcal/);
+  assert.match(afterDeletion, /基礎代謝 <span[^>]*>1,650 kcal/);
+});
+
+test("an unavailable weight log is distinguished from a user with no weight entries", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 70, goal: "build-muscle" };
+  const html = renderDashboard([known], { profile, weightsUnavailable: true });
+  assert.match(html, /体重記録を読み込めないため、目安を表示できません/);
+  assert.doesNotMatch(html, /aria-label="今日の摂取カロリー"|基礎代謝 <span/);
 });
 
 test("unavailable burn records do not hide the partial-intake warning or invent a balance", () => {

@@ -1,12 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { RecordActions } from "@/components/ui/record-actions";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 import { bodyMakeClient } from "@/lib/api/client";
+import { latestWeightEntry } from "@/lib/utils/current-weight";
 import { formatDate, toDateInputValue } from "@/lib/utils/date";
 import { createId } from "@/lib/utils/id";
 import type { WeightEntry } from "@/types/progress";
@@ -20,7 +21,7 @@ export function WeightRecorder() {
 
   useEffect(() => { void loadEntries(); }, []);
   async function loadEntries() { setEntries((await bodyMakeClient.getWeightEntries()).sort((a, b) => b.measuredOn.localeCompare(a.measuredOn) || b.createdAt.localeCompare(a.createdAt))); }
-  const latest = useMemo(() => entries.find((entry) => entry.measuredOn <= toDateInputValue()), [entries]);
+  const latest = latestWeightEntry(entries, toDateInputValue());
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!weightKg) return; setIsSaving(true);
@@ -42,7 +43,7 @@ export function WeightRecorder() {
         <RecordActions label={isSaving ? "保存中…" : "体重を保存"} summary={weightKg ? `${weightKg} kg` : "体重の記録"} disabled={isSaving || !weightKg} notice={notice} />
       </form>
       {latest && <section className="rounded-lg border border-[var(--line)] bg-white p-5 sm:p-6">
-        <h2 className="text-sm font-semibold text-[var(--ink-soft)]">最新の記録</h2>
+        <h2 className="text-sm font-semibold text-[var(--ink-soft)]">現在の体重</h2>
         <p className="metric mt-3 text-4xl font-semibold text-[var(--ink)]">{latest.weightKg}<span className="ml-2 text-sm font-medium">kg</span></p>
         <p className="mt-2 text-sm text-[var(--muted)]">{formatDate(latest.measuredOn)}</p>
       </section>}
