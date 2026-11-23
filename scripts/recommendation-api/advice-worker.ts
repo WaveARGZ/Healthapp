@@ -1,6 +1,6 @@
 import { createFirebaseOwnerVerifier, FirebaseAuthError } from "./firebase-auth.ts";
 import { AdviceBudgetError, adviceBudget, initializeAdviceBudget, reserveAdvice, settleAdvice } from "./advice-budget.ts";
-import { createAdviceProvider, validateOpenAiAccount, AdviceApiError, apiFail, type AdviceProvider } from "./advice-provider.ts";
+import { createAdviceProvider, verifyAdviceConnection, validateOpenAiAccount, AdviceApiError, apiFail, type AdviceProvider } from "./advice-provider.ts";
 import type { CloudflareSqliteStorage } from "./cloudflare-budget-store.ts";
 import { object, validateAdviceInput } from "../../lib/advice/contracts.ts";
 
@@ -18,8 +18,8 @@ export interface AdviceEnvironment {
   CREDIT_NO_ADDITIONAL_CHARGE_CONFIRMED?: string;
   OPENAI_ORGANIZATION_ID?: string; OPENAI_PROJECT_ID?: string;
 }
-type Dependencies = { verifyAuthorization?: (value: string | null) => Promise<{ uid: string }>; provider?: AdviceProvider; now?: () => number };
-const methods: Record<string, string> = { "/health": "GET", "/session": "GET", "/advice": "POST", "/admin/credit-init": "POST", "/admin/budget": "GET" };
+type Dependencies = { verifyAuthorization?: (value: string | null) => Promise<{ uid: string }>; provider?: AdviceProvider; verifyConnection?: typeof verifyAdviceConnection; now?: () => number };
+const methods: Record<string, string> = { "/health": "GET", "/session": "GET", "/advice": "POST", "/admin/credit-init": "POST", "/admin/budget": "GET", "/admin/provider-check": "GET" };
 const statuses: Record<string, number> = { not_found:404, method_not_allowed:405, origin_not_allowed:403, admin_required:401, invalid_request:400, json_required:415, request_too_large:413, request_timeout:408, duplicate_request:409, budget_already_initialized:409, credit_exhausted:429, rate_limited:429, request_in_progress:429, consent_required:403 };
 function fail(code: string): never { return apiFail(code, statuses[code] ?? 503); }
 function reply(r: Request, status: number, body: unknown) {
@@ -89,6 +89,11 @@ export class BodyMakeRecommendationBudget {
       const now=this.deps.now?.()??Date.now();
       if(path.startsWith("/admin/")) {
         admin(r,this.env);
+        if(path==="/admin/provider-check") {
+          if(this.env.BODYMAKE_ADVICE_ENABLED!=="false")fail("initialization_not_allowed");
+          const connection=await (this.deps.verifyConnection??verifyAdviceConnection)(this.env.OPENAI_API_KEY??"",{organization:this.env.OPENAI_ORGANIZATION_ID??"",project:this.env.OPENAI_PROJECT_ID??""});
+          return reply(r,200,{connection});
+        }
         if(path==="/admin/credit-init") {
           if(this.env.BODYMAKE_ADVICE_ENABLED==="true")fail("initialization_not_allowed");
           const body=await readJson(r);if(!object(body)||Object.keys(body).length)fail("invalid_request");

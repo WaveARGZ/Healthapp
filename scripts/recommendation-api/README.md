@@ -2,7 +2,7 @@
 
 食事・完了した筋トレの直近7日間、目標、今日の分割メニューと使用可能な器具をもとに、次の食事・筋トレ・回復の案を表示する。写真認識の追加学習とは独立した機能。
 
-**現在は無効。既存APIキーの登録は確認できたが、残高100ドル・クレジットの期限・対象組織・自動追加購入オフは未確認。実API呼び出し、Worker更新、予算の移行・有効化は行っていない。** クレジット購入処理は存在しない。APIキーは既存Cloudflare secretだけで管理し、ブラウザやGitに含めない。
+**現在は無効。2026-11-23に所有者の請求画面で既存クレジットが利用可能であること・有効期限・有料請求プラン未開始を確認した。既存APIキーの対象組織・プロジェクトとの一致と、実際の利用額の照合は未完了。実API呼び出し、Worker更新、予算の移行・有効化は行っていない。** クレジット購入処理は存在しない。APIキーは既存Cloudflare secretだけで管理し、ブラウザやGitに含めない。
 
 ## 操作と個人情報
 
@@ -33,12 +33,12 @@
 
 サーバー設定は OWNER_UID / FIREBASE_WEB_API_KEY / SUBJECT_HMAC_KEY / 既存OPENAI_API_KEY。課金条件の監査後だけ CREDIT_NO_ADDITIONAL_CHARGE_CONFIRMED=true、CREDIT_ALLOCATION_MICROS（USDの百万分の一、最大100ドル）、CREDIT_VERIFIED_AT、CREDIT_VALID_UNTIL と実際に確認した OPENAI_ORGANIZATION_ID / OPENAI_PROJECT_ID を設定する。この組織・プロジェクトをAPIのリクエストヘッダーへ固定し、応答の組織IDも照合する。残高を100ドルと仮定する既定値はない。残高確認は24時間で失効し、再確認が必要。時刻だけ延長しない。価格表の再確認期限は2026-12-23。
 
-無効状態のまま一時的な INITIALIZE_SECRET と /admin/credit-init で一度だけ移行し、管理用secretを削除する。/admin/budget は認証付きの集計値のみ。課金条件を実際に確認してからサーバーの BODYMAKE_ADVICE_ENABLED=true と本番ビルドの NEXT_PUBLIC_BODYMAKE_ADVICE_ENABLED=true を設定する。テストビルドは常にAPIを呼ばない。現在の変更では両方無効。手順書自体を有効化の許可とみなさない。
+無効状態のまま一時的な INITIALIZE_SECRET で /admin/provider-check を確認する。この経路は同じ既存secret・固定組織／プロジェクトでモデル情報をGETし、応答の組織を照合するだけで、文章生成・個人記録の送信・予算変更は行わない。残高や実APIの利用成功をこの結果だけで認定しない。接続確認後に /admin/credit-init で一度だけ移行し、管理用secretを削除する。/admin/budget は認証付きの集計値のみ。課金条件を実際に確認してからサーバーの BODYMAKE_ADVICE_ENABLED=true と本番ビルドの NEXT_PUBLIC_BODYMAKE_ADVICE_ENABLED=true を設定する。テストビルドは常にAPIを呼ばない。現在の変更では両方無効。手順書自体を有効化の許可とみなさない。
 
 ## 検証
 
 Node22.23.4 / npm10で npm run test:advice、npm run lint、npm run build:test。認証・HTTP・SQLiteはRAM/モック。実写真・Firestore書込み・Drive送信・有料API呼び出しは使用しない。ローカルnpm ciは容量不足で失敗し、同一lockの既存依存をAPFS複製、追加joseのみ同じ固定版から使用。GitHub CIはクリーンなnpm ciを行う。
 
-2026-11-23のコード検証はRAM/モック162件、lint、型検査、build:test、test:environment-build、Workerの公開しないバンドル検証が合格。画面は合成記録を使い、同意前の生成0回・同意後1回、10ドル通知後の継続、未入力と0、アカウント切替時の消去、幅320/390/1024pxを確認した。実API・実記録での提案品質と課金照合は未検証。
+2026-11-23のコード検証はRAM/モック165件、lint、型検査、build:test、test:environment-build、Workerの公開しないバンドル検証が合格。接続確認経路の追加後にはRAM/モック・lint・型検査・Workerバンドルを再検証した。画面は合成記録を使い、同意前の生成0回・同意後1回、10ドル通知後の継続、未入力と0、アカウント切替時の消去、幅320/390/1024pxを確認した。実API・実記録での提案品質と課金照合は未検証。
 
 一次資料（2026-11-23確認）：[OpenAIモデル料金](https://developers.openai.com/api/docs/models/gpt-6-luna)、[Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)、[クレジットと自動追加購入](https://help.openai.com/en/articles/8264644-setting-up-and-managing-prepaid-api-billing)、[特典クレジットの付与先と期限](https://help.openai.com/en/articles/20001626-api-credits-benefit-for-eligible-chatgpt-subscriptions)、[Durable Object SQLite](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)。

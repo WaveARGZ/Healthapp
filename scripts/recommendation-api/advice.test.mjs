@@ -6,7 +6,7 @@ import { initializeCloudflareBudgetStore, createCloudflareBudgetStore } from "./
 import { reserveCumulativeBudget } from "./cumulative-budget.ts";
 import { initializeAdviceBudget, reserveAdvice, settleAdvice, adviceBudget, CALL_HOLD_MICROS } from "./advice-budget.ts";
 import { BodyMakeRecommendationBudget, creditConfiguration } from "./advice-worker.ts";
-import { createAdviceProvider, checkedUsage, ADVICE_MODEL, advicePayload } from "./advice-provider.ts";
+import { createAdviceProvider, verifyAdviceConnection, checkedUsage, ADVICE_MODEL, advicePayload } from "./advice-provider.ts";
 import { summarizeAdviceRecords } from "../../lib/advice/summary.ts";
 
 const NOW = Date.parse("2026-11-23T04:00:00Z");
@@ -124,4 +124,40 @@ test("unexpected billing organization or expired prices are never silently accep
   assert.equal(calls,1);
   await assert.rejects(createAdviceProvider("synthetic-openai-key",account,fetcher,()=>Date.parse("2026-12-24"))(input()),/pricing_review_required/);
   assert.equal(calls,1);
+});
+
+test("connection preflight only reads fixed model metadata with the verified account",async()=>{
+  let calls=0;
+  const result=await verifyAdviceConnection("synthetic-openai-key",account,async(url,init)=>{
+    calls++;assert.equal(url,`https://api.openai.com/v1/models/${ADVICE_MODEL}`);
+    assert.equal(init.method,"GET");assert.equal(init.body,undefined);assert.equal(init.redirect,"error");
+    assert.equal(init.headers["OpenAI-Organization"],account.organization);assert.equal(init.headers["OpenAI-Project"],account.project);
+    return Response.json({id:ADVICE_MODEL,object:"model"},{headers:{"openai-organization":account.organization}});
+  });
+  assert.deepEqual(result,{model:ADVICE_MODEL,accountMatched:true,inferencePerformed:false});assert.equal(calls,1);
+});
+test("preflight rejects wrong accounts, bad metadata, redirects and stalled bodies without retry",async()=>{
+  const cases=[
+    ()=>Response.json({id:ADVICE_MODEL,object:"model"},{headers:{"openai-organization":"org-other"}}),
+    ()=>Response.json({id:"different",object:"model"},{headers:{"openai-organization":account.organization}}),
+    ()=>new Response("",{status:302,headers:{Location:"https://untrusted.invalid"}}),
+    ()=>new Response(" ".repeat(8193),{headers:{"content-type":"application/json","openai-organization":account.organization}}),
+    ()=>new Response(new ReadableStream({start(){}}),{headers:{"content-type":"application/json","openai-organization":account.organization}}),
+  ];
+  for(const response of cases){let calls=0;await assert.rejects(verifyAdviceConnection("synthetic-openai-key",account,async()=>{calls++;return response();},10));assert.equal(calls,1);}
+});
+test("admin connection check requires explicit disabled state and cannot touch budget or inference",async t=>{
+  const s=new MemoryStorage(t);let checks=0;
+  const deps={now:()=>NOW,verifyAuthorization:async()=>{throw Error("user auth must not be used for metadata");},provider:async()=>{throw Error("no inference");},verifyConnection:async(key,scope)=>{
+    assert.equal(key,"synthetic-openai-key");assert.deepEqual(scope,account);checks++;return {model:ADVICE_MODEL,accountMatched:true,inferencePerformed:false};
+  }};
+  const config={...env(),BODYMAKE_ADVICE_ENABLED:"false",OPENAI_API_KEY:"synthetic-openai-key",INITIALIZE_SECRET:"c".repeat(64)};
+  const req=(secret="c".repeat(64),origin="https://healthapp-14a3f.web.app")=>new Request("https://worker.invalid/admin/provider-check",{headers:{Origin:origin,Authorization:"Bearer "+secret}});
+  const worker=new BodyMakeRecommendationBudget({storage:s},config,deps);
+  assert.equal((await worker.fetch(req("invalid"))).status,401);
+  assert.equal((await worker.fetch(req(undefined,"https://untrusted.invalid"))).status,403);
+  for(const state of [undefined,"true"]){assert.equal((await new BodyMakeRecommendationBudget({storage:s},{...config,BODYMAKE_ADVICE_ENABLED:state},deps).fetch(req())).status,503);}
+  assert.equal(checks,0);
+  const r=await worker.fetch(req());assert.equal(r.status,200);assert.equal((await r.json()).connection.inferencePerformed,false);assert.equal(checks,1);
+  assert.equal(s.db.prepare("SELECT count(*) n FROM sqlite_master").get().n,0);
 });

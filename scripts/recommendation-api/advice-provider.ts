@@ -16,6 +16,35 @@ export function validateOpenAiAccount(account: OpenAiAccount) {
   if (!/^org-[A-Za-z0-9_-]{4,120}$/.test(account.organization) || !/^proj_[A-Za-z0-9_-]{4,120}$/.test(account.project)) apiFail("credit_not_verified");
   return account;
 }
+
+/** Read-only model metadata check: no inference, user records, or budget mutation. */
+export async function verifyAdviceConnection(apiKey: string, account: OpenAiAccount, fetcher = fetch, timeoutMs = 10000) {
+  validateOpenAiAccount(account);
+  if (!/^[A-Za-z0-9_-]{12,512}$/.test(apiKey)) apiFail("configuration_required");
+  const controller = new AbortController();
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); void reader?.cancel().catch(() => undefined); reject(new AdviceApiError("provider_timeout", 504)); }, timeoutMs); }),
+      (async () => {
+        const response = await fetcher(`https://api.openai.com/v1/models/${ADVICE_MODEL}`, {
+          method: "GET", headers: { Authorization: `Bearer ${apiKey}`, "OpenAI-Organization": account.organization, "OpenAI-Project": account.project },
+          signal: controller.signal, redirect: "error", credentials: "omit", cache: "no-store",
+        });
+        if (!response.ok || !response.body || !response.headers.get("content-type")?.startsWith("application/json")) { void response.body?.cancel().catch(() => undefined); apiFail("provider_failed", 502); }
+        if (response.headers.get("openai-organization") !== account.organization) { void response.body.cancel().catch(() => undefined); apiFail("provider_cost_unconfirmed"); }
+        reader = response.body.getReader();
+        let bytes = 0, body = ""; const decoder = new TextDecoder("utf-8", { fatal: true });
+        while (true) { const chunk = await reader.read(); if (chunk.done) break; bytes += chunk.value.byteLength; if (bytes > 8192) apiFail("provider_failed", 502); body += decoder.decode(chunk.value, { stream: true }); }
+        body += decoder.decode(); const model: unknown = JSON.parse(body);
+        if (!object(model) || model.object !== "model" || model.id !== ADVICE_MODEL) apiFail("provider_failed", 502);
+        return { model: ADVICE_MODEL, accountMatched: true, inferencePerformed: false } as const;
+      })(),
+    ]);
+  } catch (error) { if (error instanceof AdviceApiError) throw error; return apiFail("provider_failed", 502); }
+  finally { if (timer) clearTimeout(timer); void reader?.cancel().catch(() => undefined); }
+}
 const string = { type: "string" };
 const schemaObject = (properties: Record<string, unknown>) => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
 
