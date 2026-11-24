@@ -40,7 +40,14 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
         });
         phase = "headers";
         if (!response.body || !response.headers.get("content-type")?.startsWith("application/json")) { void response.body?.cancel().catch(() => undefined); apiFail(`provider_http_${response.status}_non_json`, 502); }
-        if (response.ok && response.headers.get("openai-organization") !== account.organization) { void response.body.cancel().catch(() => undefined); apiFail("provider_cost_unconfirmed"); }
+        // The metadata endpoint can omit this common response header. Explicit
+        // organization/project request headers select the account (API reference).
+        // A conflicting echo is rejected; this read-only check never proves credit
+        // availability. Inference below still requires the organization echo.
+        if (response.ok && response.headers.has("openai-organization") && response.headers.get("openai-organization") !== account.organization) {
+          void response.body.cancel().catch(() => undefined);
+          apiFail("provider_metadata_organization_mismatch");
+        }
         reader = response.body.getReader();
         phase = "body";
         let bytes = 0, body = ""; const decoder = new TextDecoder("utf-8", { fatal: true });
@@ -59,7 +66,7 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
         }
         if (!object(model) || model.object !== "model" || typeof model.id !== "string" || !/^gpt-[a-z0-9.-]{1,64}$/.test(model.id)) apiFail("provider_metadata_invalid", 502);
         if (model.id !== ADVICE_MODEL) apiFail(`provider_model_mismatch_${model.id}`, 502);
-        return { model: ADVICE_MODEL, accountMatched: true, inferencePerformed: false } as const;
+        return { model: ADVICE_MODEL, accountScoped: true, organizationEchoVerified: response.headers.get("openai-organization") === account.organization, inferencePerformed: false } as const;
       })(),
     ]);
   } catch (error) {

@@ -2,7 +2,13 @@
 
 食事・完了した筋トレの直近7日間、目標、今日の分割メニューと使用可能な器具をもとに、次の食事・筋トレ・回復の案を表示する。写真認識の追加学習とは独立した機能。
 
-**現在は生成無効。2026-11-24（日本時間）に画面操作を再開し、所有者画面で既存クレジットの利用条件と有料請求プラン未開始を再確認した。既存APIキーの有効期限切れを確認したため、所有者による認証情報の更新が必要。既存Workerのhealth応答も生成無効であることを確認した。この再確認では有料API呼び出し・サーバー設定変更・予算移行は行っていない。Responses APIによる生成・クレジット消費の照合・有効化・本番Hostingへの公開は未実施。** 2026-11-23にはWorkers Freeを確認し、既存Workerへ生成無効のコードを更新したが、モデル情報をGETする検査でHTTP 401が返っていた。同じ課金先への有効な接続は引き続き未確認。請求画面の確認内容をサーバーのクレジット設定へ反映したとは扱わない。クレジット購入処理は存在しない。APIキーは既存Cloudflare secretだけで管理し、ブラウザやGitに含めない。
+**現在は生成無効・本番Hosting未公開。2026-11-24の所有者によるキー更新後、固定した組織・プロジェクトを指定したモデル情報GETが成功した。キーの再更新は不要。** モデル情報APIでは `openai-organization` 応答ヘッダーが省略されることを実際に確認したため、読み取り検査はリクエストの明示的な組織／プロジェクト指定と成功応答で接続を確認する。応答ヘッダーがある場合の不一致は引き続き拒否する。この読み取り検査はクレジット残高・生成成功・課金先の応答確認を証明しない。文章生成側の組織応答・model・service tier・usageの厳格な照合は維持した。
+
+同日に既存クレジットの利用条件とWorkersの運用条件を通常の所有者画面で確認した。既存v1台帳を検証して履歴を保持したv2移行に成功し、所有者本人の既存Firebaseアカウントを照合して必要なサーバー設定を登録した。認証・Firestoreルール・共有先は変更していない。
+
+一般利用を無効にしたまま、一時的な管理用の固定合成データ経路でResponses API試験を1回だけ実行した。実利用者の記録・写真は送信していない。試験は `provider_cost_unconfirmed` で停止した。予約0.25ドルは同じDurable Objectに保持され、pending/stoppedの状態を再取得して確認した。予約額は実際の請求額ではない。OpenAI画面の集計は確認時点で0件だったが、集計遅延や未照合の可能性があるため、利用ゼロ・無料成功とは認定しない。実際の組織応答とusageのどの条件で停止したかは、今回の固定エラーだけでは断定できない。追加の生成・予約の削除・未確認の精算・予算リセットは行わない。
+
+一時的な試験用経路は検証後にコードから除去し、管理用 `INITIALIZE_SECRET` も削除した。残る作業は試験1回の実際のプロバイダー利用明細の照合と、応答互換性の修正・検証。その結果が確定するまでは予約を保ち、PRはDraft、通常生成と本番公開は無効のままにする。APIキーは既存Cloudflare secretだけで管理し、Gitやクライアントへ含めない。
 
 ## 操作と個人情報
 
@@ -33,11 +39,11 @@
 
 サーバー設定は OWNER_UID / FIREBASE_WEB_API_KEY / SUBJECT_HMAC_KEY / 既存OPENAI_API_KEY。課金条件の監査後だけ CREDIT_NO_ADDITIONAL_CHARGE_CONFIRMED=true、CREDIT_ALLOCATION_MICROS（USDの百万分の一、最大100ドル）、CREDIT_VERIFIED_AT、CREDIT_VALID_UNTIL と実際に確認した OPENAI_ORGANIZATION_ID / OPENAI_PROJECT_ID を設定する。この組織・プロジェクトをAPIのリクエストヘッダーへ固定し、応答の組織IDも照合する。残高を100ドルと仮定する既定値はない。残高確認は24時間で失効し、再確認が必要。時刻だけ延長しない。価格表の再確認期限は2026-12-23。
 
-無効状態のまま一時的な INITIALIZE_SECRET で /admin/provider-check を確認する。この経路は同じ既存secret・固定組織／プロジェクトでモデル情報をGETし、応答の組織を照合するだけで、文章生成・個人記録の送信・予算変更は行わない。残高や実APIの利用成功をこの結果だけで認定しない。接続確認後に /admin/credit-init で一度だけ移行し、管理用secretを削除する。/admin/budget は認証付きの集計値のみ。課金条件を実際に確認してからサーバーの BODYMAKE_ADVICE_ENABLED=true と本番ビルドの NEXT_PUBLIC_BODYMAKE_ADVICE_ENABLED=true を設定する。テストビルドは常にAPIを呼ばない。現在の変更では両方無効。手順書自体を有効化の許可とみなさない。
+無効状態のまま一時的な INITIALIZE_SECRET で /admin/provider-check を確認する。この経路は同じ既存secret・固定組織／プロジェクトでモデル情報をGETし、成功したモデル情報と明示的な課金先指定を確認するだけで、文章生成・個人記録の送信・予算変更は行わない。応答の組織ヘッダーがある場合は必ず照合し、省略時はその事実を返す。残高や実APIの利用成功をこの結果だけで認定しない。接続確認後に /admin/credit-init で一度だけ移行し、管理用secretを削除する。/admin/budget は認証付きの集計値のみ。課金条件を実際に確認してからサーバーの BODYMAKE_ADVICE_ENABLED=true と本番ビルドの NEXT_PUBLIC_BODYMAKE_ADVICE_ENABLED=true を設定する。テストビルドは常にAPIを呼ばない。現在の変更では両方無効。手順書自体を有効化の許可とみなさない。
 
 認証エラー時は生成を試さず、既存キーが有効か・所有者の同じ組織とプロジェクトに属するかを通常の所有者画面で確認する。診断結果は固定の分類だけを返し、APIからのエラーメッセージやキーを表示しない。作業中断時も一時的な INITIALIZE_SECRET を削除する。Workersでは redirect:"error" が通信前に例外となるため、redirect:"manual" と非2xx拒否を組み合わせる。転送先へキーや本人トークンを送らない。
 
-2026-11-23の確認で使った一時的な INITIALIZE_SECRET は削除済み。元の OPENAI_API_KEY と旧台帳を保持し、生成無効のまま中断した。次回は通常の所有者画面で認証と課金先の一致を確認する。ロックや認証を迂回しない。
+一時的な INITIALIZE_SECRET は作業終了時に削除してリモート一覧で確認する。所有者が更新した OPENAI_API_KEY と旧台帳・未精算予約は保持する。認証と予算の停止条件を迂回しない。
 
 ## 検証
 
@@ -48,3 +54,5 @@ Node22.23.4 / npm10で npm run test:advice、npm run lint、npm run build:test�
 2026-11-24（日本時間）はmainの最新体重・カロリー収支・前回入力ヒント・タブ操作を統合し、関連RAM/モック214件、lint、型検査を含むbuild:test、test:environment-buildが合格。ビルド中だけキャッシュを無効化し1 workerで実行し、終了後にnext.config.tsを元へ戻して差分がないことを確認した。最終API本文のUTF-8サイズ制限は、超過時の通信0回と境界値をモックで検証した。本番公開・実生成・クレジット消費の試験は未実施。
 
 一次資料（2026-11-23確認）：[OpenAIモデル料金](https://developers.openai.com/api/docs/models/gpt-6-luna)、[Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)、[クレジットと自動追加購入](https://help.openai.com/en/articles/8264644-setting-up-and-managing-prepaid-api-billing)、[特典クレジットの付与先と期限](https://help.openai.com/en/articles/20001626-api-credits-benefit-for-eligible-chatgpt-subscriptions)、[Durable Object SQLite](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)。
+
+2026-11-24のキー更新後、読み取り接続検査の修正を含むRAM/モック170件とlintを確認。実API試験用の一時経路は、固定合成入力・1回限り・既存台帳への予約と精算・失敗後の予約保持を含む172件で検証して使用後に除去した。本番生成の実API試験は前述の未照合により停止しており、成功・利用額確定・本番反映とは扱わない。

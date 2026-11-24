@@ -167,7 +167,17 @@ test("connection preflight only reads fixed model metadata with the verified acc
     assert.equal(init.headers["OpenAI-Organization"],account.organization);assert.equal(init.headers["OpenAI-Project"],account.project);
     return Response.json({id:ADVICE_MODEL,object:"model"},{headers:{"openai-organization":account.organization}});
   });
-  assert.deepEqual(result,{model:ADVICE_MODEL,accountMatched:true,inferencePerformed:false});assert.equal(calls,1);
+  assert.deepEqual(result,{model:ADVICE_MODEL,accountScoped:true,organizationEchoVerified:true,inferencePerformed:false});assert.equal(calls,1);
+});
+test("metadata without an organization echo verifies only the explicitly scoped connection",async()=>{
+  const result=await verifyAdviceConnection("synthetic-openai-key",account,async(url,init)=>{
+    assert.equal(url,`https://api.openai.com/v1/models/${ADVICE_MODEL}`);
+    assert.equal(init.method,"GET");assert.equal(init.body,undefined);
+    assert.equal(init.headers["OpenAI-Organization"],account.organization);assert.equal(init.headers["OpenAI-Project"],account.project);
+    return Response.json({id:ADVICE_MODEL,object:"model"});
+  });
+  assert.deepEqual(result,{model:ADVICE_MODEL,accountScoped:true,organizationEchoVerified:false,inferencePerformed:false});
+  await assert.rejects(createAdviceProvider("synthetic-openai-key",account,async()=>Response.json({}),()=>NOW)(input()),/provider_cost_unconfirmed/);
 });
 test("preflight rejects wrong accounts, bad metadata, redirects and stalled bodies without retry",async()=>{
   const cases=[
@@ -180,6 +190,9 @@ test("preflight rejects wrong accounts, bad metadata, redirects and stalled bodi
   for(const response of cases){let calls=0;await assert.rejects(verifyAdviceConnection("synthetic-openai-key",account,async()=>{calls++;return response();},10));assert.equal(calls,1);}
 });
 test("preflight diagnostics never return upstream messages or arbitrary error codes",async()=>{
+  for (const [headers, code] of [[{"openai-organization":"synthetic-private-value"}, "provider_metadata_organization_mismatch"]]) {
+    await assert.rejects(verifyAdviceConnection("synthetic-openai-key", account, async()=>Response.json({id:ADVICE_MODEL,object:"model"},{headers})), e=>e.code===code&&!String(e).includes("synthetic-private-value"));
+  }
   for(const [code,expected] of [["invalid_api_key","provider_invalid_api_key"],["synthetic-private-value","provider_http_401"]]) {
     await assert.rejects(verifyAdviceConnection("synthetic-openai-key",account,async()=>Response.json({error:{code,message:"Do not echo synthetic-private-value"}},{status:401})),e=>e.code===expected&&!String(e).includes("synthetic-private-value"));
   }
@@ -188,7 +201,7 @@ test("preflight diagnostics never return upstream messages or arbitrary error co
 test("admin connection check requires explicit disabled state and cannot touch budget or inference",async t=>{
   const s=new MemoryStorage(t);let checks=0;
   const deps={now:()=>NOW,verifyAuthorization:async()=>{throw Error("user auth must not be used for metadata");},provider:async()=>{throw Error("no inference");},verifyConnection:async(key,scope)=>{
-    assert.equal(key,"synthetic-openai-key");assert.deepEqual(scope,account);checks++;return {model:ADVICE_MODEL,accountMatched:true,inferencePerformed:false};
+    assert.equal(key,"synthetic-openai-key");assert.deepEqual(scope,account);checks++;return {model:ADVICE_MODEL,accountScoped:true,organizationEchoVerified:true,inferencePerformed:false};
   }};
   const config={...env(),BODYMAKE_ADVICE_ENABLED:"false",OPENAI_API_KEY:"synthetic-openai-key",INITIALIZE_SECRET:"c".repeat(64)};
   const req=(secret="c".repeat(64),origin="https://healthapp-14a3f.web.app")=>new Request("https://worker.invalid/admin/provider-check",{headers:{Origin:origin,Authorization:"Bearer "+secret}});
