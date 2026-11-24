@@ -2,13 +2,17 @@
 
 食事・完了した筋トレの直近7日間、目標、今日の分割メニューと使用可能な器具をもとに、次の食事・筋トレ・回復の案を表示する。写真認識の追加学習とは独立した機能。
 
-**現在は生成無効・本番Hosting未公開。2026-11-24の所有者によるキー更新後、固定した組織・プロジェクトを指定したモデル情報GETが成功した。キーの再更新は不要。** モデル情報APIでは `openai-organization` 応答ヘッダーが省略されることを実際に確認したため、読み取り検査はリクエストの明示的な組織／プロジェクト指定と成功応答で接続を確認する。応答ヘッダーがある場合の不一致は引き続き拒否する。この読み取り検査はクレジット残高・生成成功・課金先の応答確認を証明しない。文章生成側の組織応答・model・service tier・usageの厳格な照合は維持した。
+## 2026年11月25日の検証結果（日本時間）
 
-同日に既存クレジットの利用条件とWorkersの運用条件を通常の所有者画面で確認した。既存v1台帳を検証して履歴を保持したv2移行に成功し、所有者本人の既存Firebaseアカウントを照合して必要なサーバー設定を登録した。認証・Firestoreルール・共有先は変更していない。
+所有者の指定した既存OpenAI組織・Default project・BodyMake用キーで、固定の架空データによる日本語アドバイスの生成とusageの記録が成功しました。写真・実利用者の記録は送信していません。前回の失敗を含む4回の使用量を同じ予算台帳へ記録し、確認待ち0・停止なしを再取得しました。保守的な累計概算は0.001586ドルで、請求額やクレジット残高そのものではありません。
 
-一般利用を無効にしたまま、一時的な管理用の固定合成データ経路でResponses API試験を1回だけ実行した。実利用者の記録・写真は送信していない。試験は `provider_cost_unconfirmed` で停止した。予約0.25ドルは同じDurable Objectに保持され、pending/stoppedの状態を再取得して確認した。予約額は実際の請求額ではない。OpenAI画面の集計は確認時点で0件だったが、集計遅延や未照合の可能性があるため、利用ゼロ・無料成功とは認定しない。実際の組織応答とusageのどの条件で停止したかは、今回の固定エラーだけでは断定できない。追加の生成・予約の削除・未確認の精算・予算リセットは行わない。
+停止の原因は、組織IDの応答形式に関する過剰な仮定でした。この個人アカウントでは、明示指定した `org-*` と同じ文字列ではなく `user-*` が返ります。同じキー・固定した組織／プロジェクトで読み取り専用のModels APIを使い、応答識別子と一致するプロジェクトを確認しました。所有者の使用量画面でも、同じキー・プロジェクト・モデル・default tierの試験件数と入力／出力トークンを照合しています。
 
-一時的な試験用経路は検証後にコードから除去し、管理用 `INITIALIZE_SECRET` も削除した。残る作業は試験1回の実際のプロバイダー利用明細の照合と、応答互換性の修正・検証。その結果が確定するまでは予約を保ち、PRはDraft、通常生成と本番公開は無効のままにする。APIキーは既存Cloudflare secretだけで管理し、Gitやクライアントへ含めない。
+この確認済み識別子だけをサーバー変数 `OPENAI_RESPONSE_ORGANIZATION` に固定します。別形式の識別子を受け入れる場合は、`openai-project` 応答も指定プロジェクトと完全一致することを必須にします。未知の別名を自動学習せず、不一致を拒否します。省略可能な応答ヘッダーの欠落だけでusageを破棄しません。料金計算は引き続きモデル・処理tier・トークン数・合計・上限を検証します。
+
+失敗した3回は通常の所有者画面の実明細で照合し、予約を削除せず精算記録だけを追記しました。生成・精算用の一時管理経路は使用後に除去し、一時管理secretも削除してリモート確認しました。管理操作は入口Workerでも認証し、古いDurable Objectが残っていても削除済み管理secretで入れないようにしました。
+
+OpenAIは無料特典クレジット・支払いプラン未開始、CloudflareはWorkers Free・支払い方法未登録を確認しています。追加購入・自動追加購入・有料プランへの変更は行いません。既存95ドルの割当、確認の24時間期限、クレジット有効期限より前の停止、10ドル通知を維持します。本番Hostingだけを公開し、認証・Firestoreルール・本番モデル・学習共有先は変更しません。
 
 ## 操作と個人情報
 
@@ -30,16 +34,16 @@
 
 既存の lifetime-usd5-v1 の名前・クラス・namespaceを維持する。旧5ドル台帳と全履歴を検証して読み取り、予約済み額をv2へ繰り越す。v1テーブルは変更・削除しない。v2の3テーブルへ追記する。欠損・不整合・未確認の旧呼び出しは移行不可。再初期化、旧予算への巻戻し、消費枠の復活は行わない。
 
-## 有効化前の確認（未完了）
+## 公開・再有効化時の確認
 
 - キーが属する組織・プロジェクトとクレジット付与先が一致すること。ChatGPT契約額やキーの存在だけでは証明できない。
 - 実際の残高・付与種別・有効期限・自動追加購入オフ・クレジット外の後払いなし。他のAPI利用で残高を共有する場合、その消費も確認する。
 - OpenAIの停止には遅延があるため残高ぎりぎりまで使わない。この機能へ確保できる既存クレジットから余裕を差し引いて割り当てる。残高表示だけで追加課金ゼロと断定しない。
 - 既存Cloudflareプラン、旧台帳の実状態、通常のFirebase本人認証、実APIの応答形式と料金を順に検証する。実API試験も割当枠へ計上する。
 
-サーバー設定は OWNER_UID / FIREBASE_WEB_API_KEY / SUBJECT_HMAC_KEY / 既存OPENAI_API_KEY。課金条件の監査後だけ CREDIT_NO_ADDITIONAL_CHARGE_CONFIRMED=true、CREDIT_ALLOCATION_MICROS（USDの百万分の一、最大100ドル）、CREDIT_VERIFIED_AT、CREDIT_VALID_UNTIL と実際に確認した OPENAI_ORGANIZATION_ID / OPENAI_PROJECT_ID を設定する。この組織・プロジェクトをAPIのリクエストヘッダーへ固定し、応答の組織IDも照合する。残高を100ドルと仮定する既定値はない。残高確認は24時間で失効し、再確認が必要。時刻だけ延長しない。価格表の再確認期限は2026-12-23。
+サーバー設定は OWNER_UID / FIREBASE_WEB_API_KEY / SUBJECT_HMAC_KEY / 既存OPENAI_API_KEY。課金条件の監査後だけ CREDIT_NO_ADDITIONAL_CHARGE_CONFIRMED=true、CREDIT_ALLOCATION_MICROS（USDの百万分の一、最大100ドル）、CREDIT_VERIFIED_AT、CREDIT_VALID_UNTIL と実際に確認した OPENAI_ORGANIZATION_ID / OPENAI_PROJECT_ID を設定する。この組織・プロジェクトをAPIのリクエストヘッダーへ固定する。応答が別形式の個人組織識別子を返す場合は、読み取り専用APIと所有者の明細で照合した値だけを OPENAI_RESPONSE_ORGANIZATION に固定し、応答のプロジェクトも必須で照合する。残高を100ドルと仮定する既定値はない。残高確認は24時間で失効し、再確認が必要。時刻だけ延長しない。価格表の再確認期限は2026-12-23。
 
-無効状態のまま一時的な INITIALIZE_SECRET で /admin/provider-check を確認する。この経路は同じ既存secret・固定組織／プロジェクトでモデル情報をGETし、成功したモデル情報と明示的な課金先指定を確認するだけで、文章生成・個人記録の送信・予算変更は行わない。応答の組織ヘッダーがある場合は必ず照合し、省略時はその事実を返す。残高や実APIの利用成功をこの結果だけで認定しない。接続確認後に /admin/credit-init で一度だけ移行し、管理用secretを削除する。/admin/budget は認証付きの集計値のみ。課金条件を実際に確認してからサーバーの BODYMAKE_ADVICE_ENABLED=true と本番ビルドの NEXT_PUBLIC_BODYMAKE_ADVICE_ENABLED=true を設定する。テストビルドは常にAPIを呼ばない。現在の変更では両方無効。手順書自体を有効化の許可とみなさない。
+無効状態のまま一時的な INITIALIZE_SECRET で /admin/provider-check を確認する。この経路は同じ既存secret・固定組織／プロジェクトでモデル情報をGETし、成功したモデル情報と明示的な課金先指定を確認するだけで、文章生成・個人記録の送信・予算変更は行わない。応答の組織ヘッダーがある場合は確認済みの組織IDまたは固定した別形式の識別子と照合し、省略時はその事実を返す。残高や実APIの利用成功をこの結果だけで認定しない。接続確認後に /admin/credit-init で一度だけ移行し、管理用secretを削除する。/admin/budget は認証付きの集計値のみ。課金条件を実際に確認してからサーバーの BODYMAKE_ADVICE_ENABLED=true と本番ビルドの NEXT_PUBLIC_BODYMAKE_ADVICE_ENABLED=true を設定する。テストビルドは常にAPIを呼ばない。ソースの既定値は無効のままとし、承認された本番公開時だけ有効にする。手順書自体を有効化の許可とみなさない。
 
 認証エラー時は生成を試さず、既存キーが有効か・所有者の同じ組織とプロジェクトに属するかを通常の所有者画面で確認する。診断結果は固定の分類だけを返し、APIからのエラーメッセージやキーを表示しない。作業中断時も一時的な INITIALIZE_SECRET を削除する。Workersでは redirect:"error" が通信前に例外となるため、redirect:"manual" と非2xx拒否を組み合わせる。転送先へキーや本人トークンを送らない。
 
@@ -47,12 +51,10 @@
 
 ## 検証
 
-Node22.23.4 / npm10で npm run test:advice、npm run lint、npm run build:test。認証・HTTP・SQLiteはRAM/モック。実写真・Firestore書込み・Drive送信・有料API呼び出しは使用しない。ローカルnpm ciは容量不足で失敗し、同一lockの既存依存をAPFS複製、追加joseのみ同じ固定版から使用。GitHub CIはクリーンなnpm ciを行う。
+Node22.23.4 / npm10を使用する。`npm run test:advice` は認証・HTTP・SQLiteをRAM/モックで検証し、実写真・Firestore書込み・Drive送信・実API呼び出しを行わない。GitHub CIは固定lockからクリーンな `npm ci` を行う。
 
-2026-11-23のコード検証はRAM/モック167件、lint、型検査、build:test、test:environment-build、Workerの公開しないバンドル検証が合格。接続確認経路の追加後にはRAM/モック・lint・型検査・Workerバンドルを再検証した。実際のworkerdで通信設定の不一致を再現し、修正後のWorkerバンドルは架空キーに対する認証拒否まで到達することを確認した。実APIの読み取り検査は上記の認証エラーで停止。画面は合成記録を使い、同意前の生成0回・同意後1回、10ドル通知後の継続、未入力と0、アカウント切替時の消去、幅320/390/1024pxを確認した。実API・実記録での提案品質と課金照合は未検証。
+2026年11月25日（日本時間）の最終確認では、省略されるヘッダー・確認済み個人組織の別形式・必須プロジェクト照合・未知の別名拒否・管理secret削除時の入口拒否を追加したRAM/モック、lint、型検査と本番静的ビルドを実施する。最終ソースには一時的な精算／試験経路を含めない。実APIの合成入力による成功と台帳の照合結果は冒頭のとおり。実利用者の健康記録による提案品質を検証済みとは扱わない。
 
-2026-11-24（日本時間）はmainの最新体重・カロリー収支・前回入力ヒント・タブ操作を統合し、関連RAM/モック214件、lint、型検査を含むbuild:test、test:environment-buildが合格。ビルド中だけキャッシュを無効化し1 workerで実行し、終了後にnext.config.tsを元へ戻して差分がないことを確認した。最終API本文のUTF-8サイズ制限は、超過時の通信0回と境界値をモックで検証した。本番公開・実生成・クレジット消費の試験は未実施。
+統合済みmainの最新体重・カロリー収支・前回入力ヒント・タブ操作を保持する。画面は合成記録で同意前の生成0回・同意後1回、10ドル通知後の継続、未入力と0、アカウント切替時の消去、幅320/390/1024pxを検証済み。最終API本文のUTF-8サイズ制限は超過時の通信0回と境界値を検証している。ビルド時だけキャッシュを無効化し1 workerを使用し、終了後の設定ファイルは元に戻す。最終公開のコミット・Hosting release・検証結果はPR #57に記録する。
 
-一次資料（2026-11-23確認）：[OpenAIモデル料金](https://developers.openai.com/api/docs/models/gpt-6-luna)、[Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)、[クレジットと自動追加購入](https://help.openai.com/en/articles/8264644-setting-up-and-managing-prepaid-api-billing)、[特典クレジットの付与先と期限](https://help.openai.com/en/articles/20001626-api-credits-benefit-for-eligible-chatgpt-subscriptions)、[Durable Object SQLite](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)。
-
-2026-11-24のキー更新後、読み取り接続検査の修正を含むRAM/モック170件とlintを確認。実API試験用の一時経路は、固定合成入力・1回限り・既存台帳への予約と精算・失敗後の予約保持を含む172件で検証して使用後に除去した。本番生成の実API試験は前述の未照合により停止しており、成功・利用額確定・本番反映とは扱わない。
+一次資料：[課金先指定と応答ヘッダー](https://developers.openai.com/api/reference/overview)、[OpenAIモデル料金](https://developers.openai.com/api/docs/models/gpt-6-luna)（2026年11月25日再確認）、[Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)、[クレジットと自動追加購入](https://help.openai.com/en/articles/8264644-setting-up-and-managing-prepaid-api-billing)、[特典クレジットの付与先と期限](https://help.openai.com/en/articles/20001626-api-credits-benefit-for-eligible-chatgpt-subscriptions)、[Durable Object SQLite](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)。

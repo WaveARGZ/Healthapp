@@ -16,7 +16,10 @@ export interface AdviceEnvironment {
   // Set only from an actual billing audit of the SAME organization/project as the stored key.
   CREDIT_ALLOCATION_MICROS?: string; CREDIT_VERIFIED_AT?: string; CREDIT_VALID_UNTIL?: string;
   CREDIT_NO_ADDITIONAL_CHARGE_CONFIRMED?: string;
-  OPENAI_ORGANIZATION_ID?: string; OPENAI_PROJECT_ID?: string;
+  OPENAI_ORGANIZATION_ID?: string; OPENAI_PROJECT_ID?: string; OPENAI_RESPONSE_ORGANIZATION?: string;
+}
+function openAiAccount(e: AdviceEnvironment) {
+  return { organization: e.OPENAI_ORGANIZATION_ID ?? "", project: e.OPENAI_PROJECT_ID ?? "", ...(e.OPENAI_RESPONSE_ORGANIZATION ? {responseOrganization:e.OPENAI_RESPONSE_ORGANIZATION} : {}) };
 }
 type Dependencies = { verifyAuthorization?: (value: string | null) => Promise<{ uid: string }>; provider?: AdviceProvider; verifyConnection?: typeof verifyAdviceConnection; now?: () => number };
 const methods: Record<string, string> = { "/health": "GET", "/session": "GET", "/advice": "POST", "/admin/credit-init": "POST", "/admin/budget": "GET", "/admin/provider-check": "GET" };
@@ -62,7 +65,7 @@ function admin(r:Request,e:AdviceEnvironment) {
 }
 /** Missing billing evidence is never treated as $100 of available credits. */
 export function creditConfiguration(e:AdviceEnvironment,now:number) {
-  validateOpenAiAccount({ organization: e.OPENAI_ORGANIZATION_ID ?? "", project: e.OPENAI_PROJECT_ID ?? "" });
+  validateOpenAiAccount(openAiAccount(e));
   const verified=Date.parse(e.CREDIT_VERIFIED_AT??""),until=Date.parse(e.CREDIT_VALID_UNTIL??"");
   const allowance=Number(e.CREDIT_ALLOCATION_MICROS);
   if(e.CREDIT_NO_ADDITIONAL_CHARGE_CONFIRMED!=="true" || !Number.isFinite(verified) || verified>now || now-verified>86400000
@@ -91,7 +94,7 @@ export class BodyMakeRecommendationBudget {
         admin(r,this.env);
         if(path==="/admin/provider-check") {
           if(this.env.BODYMAKE_ADVICE_ENABLED!=="false")fail("initialization_not_allowed");
-          const connection=await (this.deps.verifyConnection??verifyAdviceConnection)(this.env.OPENAI_API_KEY??"",{organization:this.env.OPENAI_ORGANIZATION_ID??"",project:this.env.OPENAI_PROJECT_ID??""});
+          const connection=await (this.deps.verifyConnection??verifyAdviceConnection)(this.env.OPENAI_API_KEY??"",openAiAccount(this.env));
           return reply(r,200,{connection});
         }
         if(path==="/admin/credit-init") {
@@ -119,7 +122,7 @@ export class BodyMakeRecommendationBudget {
         if(!this.env.OPENAI_API_KEY && !this.deps.provider)fail("configuration_required");
         const subject=await hash(identity.uid,this.env.SUBJECT_HMAC_KEY),inputHash=await hash(JSON.stringify(input));
         await reserveAdvice(this.storage,{id:body.requestId,subject,input:inputHash},now);
-        const result=await (this.deps.provider??createAdviceProvider(this.env.OPENAI_API_KEY!, { organization: this.env.OPENAI_ORGANIZATION_ID!, project: this.env.OPENAI_PROJECT_ID! }))(input);
+        const result=await (this.deps.provider??createAdviceProvider(this.env.OPENAI_API_KEY!, openAiAccount(this.env)))(input);
         await settleAdvice(this.storage,body.requestId,result.usage);
         const updated=adviceBudget(this.storage);
         return reply(r,result.advice?200:502,result.advice?{advice:result.advice,budget:updated}:{error:"provider_bad_output",budget:updated});
@@ -132,6 +135,7 @@ const worker = {
     try {
       const path=route(r);if(path instanceof Response)return path;
       if(path==="/health")return reply(r,200,{service:"bodymake-home-advice",enabled:e.BODYMAKE_ADVICE_ENABLED==="true"});
+      if(typeof path === "string" && path.startsWith("/admin/"))admin(r,e);
       if(!e.RECOMMENDATION_BUDGET)fail("configuration_required");
       return await e.RECOMMENDATION_BUDGET.get(e.RECOMMENDATION_BUDGET.idFromName(GLOBAL_RECOMMENDATION_BUDGET_NAME)).fetch(r);
     }catch(error){return safeError(r,error);}

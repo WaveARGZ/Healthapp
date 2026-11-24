@@ -14,10 +14,21 @@ export class AdviceApiError extends Error {
 export function apiFail(code: string, status = 503): never { throw new AdviceApiError(code, status); }
 export type UsageReceipt = { costMicros: number; inputTokens: number; outputTokens: number };
 export type AdviceProvider = (input: AdviceInput) => Promise<{ advice: Advice | null; usage: UsageReceipt }>;
-export type OpenAiAccount = { organization: string; project: string };
+export type OpenAiAccount = { organization: string; project: string; responseOrganization?: string };
 export function validateOpenAiAccount(account: OpenAiAccount) {
   if (!/^org-[A-Za-z0-9_-]{4,120}$/.test(account.organization) || !/^proj_[A-Za-z0-9_-]{4,120}$/.test(account.project)) apiFail("credit_not_verified");
+  if (account.responseOrganization !== undefined && !/^user-[A-Za-z0-9_-]{4,120}$/.test(account.responseOrganization)) apiFail("credit_not_verified");
   return account;
+}
+/** Legacy personal accounts can echo a user-* identifier instead of the org-* ID.
+ * Pin only an alias verified with a scoped metadata request and the owner's usage
+ * dashboard. An alias additionally requires an exact project echo; never accept
+ * arbitrary labels or learn a new alias from a generation response. */
+function checkAccountEcho(headers: Headers, account: OpenAiAccount, prefix: string) {
+  const org = headers.get("openai-organization"), project = headers.get("openai-project");
+  if (project !== null && project !== account.project) apiFail(`${prefix}_project`);
+  if (org !== null && org !== account.organization
+    && !(account.responseOrganization && org === account.responseOrganization && project === account.project)) apiFail(`${prefix}_organization`);
 }
 
 /** Read-only model metadata check: no inference, user records, or budget mutation. */
@@ -43,11 +54,8 @@ export async function verifyAdviceConnection(apiKey: string, account: OpenAiAcco
         // The metadata endpoint can omit this common response header. Explicit
         // organization/project request headers select the account (API reference).
         // A conflicting echo is rejected; this read-only check never proves credit
-        // availability. Inference below still requires the organization echo.
-        if (response.ok && response.headers.has("openai-organization") && response.headers.get("openai-organization") !== account.organization) {
-          void response.body.cancel().catch(() => undefined);
-          apiFail("provider_metadata_organization_mismatch");
-        }
+        // availability. Inference uses the same explicitly scoped request.
+        if (response.ok) { try { checkAccountEcho(response.headers, account, "provider_metadata_mismatch"); } catch (error) { void response.body.cancel().catch(() => undefined); throw error; } }
         reader = response.body.getReader();
         phase = "body";
         let bytes = 0, body = ""; const decoder = new TextDecoder("utf-8", { fatal: true });
@@ -109,12 +117,15 @@ summary <=400 characters; meal/workout titles <=100; reasons <=400; foods <=150 
 
 /** Conservative token estimate: cache writes use the highest input rate. Not an invoice or balance. */
 export function checkedUsage(v: unknown): UsageReceipt {
-  if (!object(v) || v.model !== ADVICE_MODEL || v.service_tier !== "default" || !object(v.usage)) apiFail("provider_cost_unconfirmed");
+  if (!object(v)) apiFail("provider_cost_unconfirmed_shape");
+  if (v.model !== ADVICE_MODEL) apiFail(typeof v.model === "string" && /^gpt-[a-z0-9.-]{1,64}$/.test(v.model) ? `provider_cost_unconfirmed_model_${v.model}` : "provider_cost_unconfirmed_model");
+  if (v.service_tier !== "default") apiFail(typeof v.service_tier === "string" && ["auto","flex","priority","scale"].includes(v.service_tier) ? `provider_cost_unconfirmed_tier_${v.service_tier}` : "provider_cost_unconfirmed_tier_missing");
+  if (!object(v.usage)) apiFail("provider_cost_unconfirmed_usage_missing");
   const { input_tokens: i, output_tokens: o, total_tokens: total } = v.usage;
   if (typeof i !== "number" || !Number.isSafeInteger(i) || i < 0 || i > 922000
-    || typeof o !== "number" || !Number.isSafeInteger(o) || o < 0 || o > MAX_OUTPUT_TOKENS || total !== i + o) apiFail("provider_cost_unconfirmed");
+    || typeof o !== "number" || !Number.isSafeInteger(o) || o < 0 || o > MAX_OUTPUT_TOKENS || total !== i + o) apiFail("provider_cost_unconfirmed_usage_invalid");
   const costMicros = Math.ceil(i * (i > 272000 ? 0.25 : 0.125) + o * (i > 272000 ? 0.75 : 0.5));
-  if (costMicros > 250000) apiFail("provider_cost_unconfirmed");
+  if (costMicros > 250000) apiFail("provider_cost_unconfirmed_limit");
   return { costMicros, inputTokens: i, outputTokens: o };
 }
 
@@ -136,7 +147,10 @@ export function createAdviceProvider(apiKey: string, account: OpenAiAccount, fet
           body: requestBody, signal: controller.signal, redirect: "manual", credentials: "omit", cache: "no-store",
         });
         if (!r.ok || !r.body || !r.headers.get("content-type")?.startsWith("application/json")) { void r.body?.cancel().catch(() => undefined); apiFail("provider_failed", 502); }
-        if (r.headers.get("openai-organization") !== account.organization) { void r.body.cancel().catch(() => undefined); apiFail("provider_cost_unconfirmed"); }
+        // OpenAI documents this as a common, not mandatory, response header.
+        // The fixed organization/project request headers select the billing account.
+        // Never discard valid usage solely because the optional echo is absent.
+        try { checkAccountEcho(r.headers, account, "provider_cost_unconfirmed"); } catch (error) { void r.body.cancel().catch(() => undefined); throw error; }
         reader = r.body.getReader(); let bytes = 0; let body = ""; const decoder = new TextDecoder("utf-8", { fatal: true });
         while (true) { const chunk = await reader.read(); if (chunk.done) break; bytes += chunk.value.byteLength; if (bytes > 65536) apiFail("provider_failed", 502); body += decoder.decode(chunk.value, { stream: true }); }
         body += decoder.decode(); const result: unknown = JSON.parse(body);

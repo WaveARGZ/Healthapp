@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { initializeCloudflareBudgetStore, createCloudflareBudgetStore } from "./cloudflare-budget-store.ts";
 import { reserveCumulativeBudget } from "./cumulative-budget.ts";
 import { initializeAdviceBudget, reserveAdvice, settleAdvice, adviceBudget, CALL_HOLD_MICROS } from "./advice-budget.ts";
-import { BodyMakeRecommendationBudget, creditConfiguration } from "./advice-worker.ts";
+import workerEntry, { BodyMakeRecommendationBudget, creditConfiguration } from "./advice-worker.ts";
 import { createAdviceProvider, verifyAdviceConnection, checkedUsage, ADVICE_MODEL, advicePayload, MAX_PROVIDER_REQUEST_BYTES } from "./advice-provider.ts";
 import { summarizeAdviceRecords } from "../../lib/advice/summary.ts";
 
@@ -76,6 +76,32 @@ test("one fixed Responses request, no storage/tools/retry; schema and usage vali
   },()=>NOW);
   const result=await provider(input());assert.deepEqual(result.advice,advice());assert.equal(result.usage.costMicros,375);assert.equal(calls,1);
   assert.equal(advicePayload(input()).text.format.strict,true);
+});
+test("missing optional organization echo retains scoped usage validation and settles once",async t=>{
+  const s=await store(t);let calls=0;
+  const provider=createAdviceProvider("synthetic-openai-key",account,async(url,init)=>{
+    calls++;assert.equal(init.headers["OpenAI-Organization"],account.organization);assert.equal(init.headers["OpenAI-Project"],account.project);
+    return Response.json({model:ADVICE_MODEL,service_tier:"default",status:"completed",usage:{input_tokens:1991,output_tokens:262,total_tokens:2253},output:[{type:"message",role:"assistant",status:"completed",content:[{type:"output_text",text:JSON.stringify(advice())}]}]});
+  },()=>NOW);
+  const worker=new BodyMakeRecommendationBudget({storage:s},env(),{verifyAuthorization:async()=>({uid:"synthetic-owner"}),now:()=>NOW,provider});
+  const r=request(), duplicate=r.clone();
+  assert.equal((await worker.fetch(r)).status,200);
+  assert.equal(adviceBudget(s).estimatedMicros,380);assert.equal(adviceBudget(s).pending,false);
+  assert.equal((await worker.fetch(duplicate)).status,409);assert.equal(calls,1);
+  for(const result of [{}, {model:ADVICE_MODEL,service_tier:"priority",usage:{input_tokens:1,output_tokens:1,total_tokens:2}}, {model:"unknown",service_tier:"default",usage:{input_tokens:1,output_tokens:1,total_tokens:2}}]){
+    await assert.rejects(createAdviceProvider("synthetic-openai-key",account,async()=>Response.json(result),()=>NOW)(input()),/provider_cost_unconfirmed/);
+  }
+});
+test("verified legacy organization alias requires the same project echo; unknown aliases cannot be enrolled",async()=>{
+  const scoped={...account,responseOrganization:"user-synthetic"};
+  const payload={model:ADVICE_MODEL,service_tier:"default",status:"incomplete",usage:{input_tokens:1000,output_tokens:100,total_tokens:1100}};
+  const headers={"openai-organization":"user-synthetic","openai-project":account.project};
+  const result=await createAdviceProvider("synthetic-openai-key",scoped,async()=>Response.json(payload,{headers}),()=>NOW)(input());
+  assert.equal(result.usage.costMicros,175);
+  for(const [scope,h] of [[account,headers],[scoped,{...headers,"openai-project":"proj_other"}],[scoped,{"openai-organization":"user-synthetic"}],[scoped,{...headers,"openai-organization":"user-other"}],[scoped,{...headers,"openai-organization":"org-other"}],[account,{"openai-project":"proj_other"}]]) {
+    await assert.rejects(createAdviceProvider("synthetic-openai-key",scope,async()=>Response.json(payload,{headers:h}),()=>NOW)(input()),/provider_cost_unconfirmed/);
+  }
+  assert.throws(()=>createAdviceProvider("synthetic-openai-key",{...account,responseOrganization:"arbitrary"}),/credit_not_verified/);
 });
 test("provider bounds the final UTF-8 payload before any network call or credential exposure",async()=>{
   let calls=0;
@@ -190,7 +216,7 @@ test("preflight rejects wrong accounts, bad metadata, redirects and stalled bodi
   for(const response of cases){let calls=0;await assert.rejects(verifyAdviceConnection("synthetic-openai-key",account,async()=>{calls++;return response();},10));assert.equal(calls,1);}
 });
 test("preflight diagnostics never return upstream messages or arbitrary error codes",async()=>{
-  for (const [headers, code] of [[{"openai-organization":"synthetic-private-value"}, "provider_metadata_organization_mismatch"]]) {
+  for (const [headers, code] of [[{"openai-organization":"synthetic-private-value"}, "provider_metadata_mismatch_organization"]]) {
     await assert.rejects(verifyAdviceConnection("synthetic-openai-key", account, async()=>Response.json({id:ADVICE_MODEL,object:"model"},{headers})), e=>e.code===code&&!String(e).includes("synthetic-private-value"));
   }
   for(const [code,expected] of [["invalid_api_key","provider_invalid_api_key"],["synthetic-private-value","provider_http_401"]]) {
@@ -212,4 +238,12 @@ test("admin connection check requires explicit disabled state and cannot touch b
   assert.equal(checks,0);
   const r=await worker.fetch(req());assert.equal(r.status,200);assert.equal((await r.json()).connection.inferencePerformed,false);assert.equal(checks,1);
   assert.equal(s.db.prepare("SELECT count(*) n FROM sqlite_master").get().n,0);
+});
+
+test("removing the admin secret rejects at the entry Worker before any warm Durable Object",async()=>{
+  let forwarded=0;
+  const e={...env(),RECOMMENDATION_BUDGET:{idFromName:()=>"fixed",get:()=>({fetch:async()=>{forwarded++;return Response.json({});}})}};
+  const r=()=>new Request("https://worker.invalid/admin/budget",{headers:{Origin:"https://healthapp-14a3f.web.app",Authorization:"Bearer "+"a".repeat(64)}});
+  assert.equal((await workerEntry.fetch(r(),e)).status,401);assert.equal(forwarded,0);
+  assert.equal((await workerEntry.fetch(r(),{...e,INITIALIZE_SECRET:"a".repeat(64)})).status,200);assert.equal(forwarded,1);
 });
