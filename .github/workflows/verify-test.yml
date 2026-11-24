@@ -78,6 +78,9 @@ jobs:
       - name: Verify dashboard partial nutrition totals in memory
         run: npm run test:dashboard-nutrition
 
+      - name: Verify advice privacy, authentication and credit alerts in memory
+        run: npm run test:advice
+
       - name: Verify Japanese food search and spelling variants
         run: npm run test:food-catalog
 

@@ -8,6 +8,8 @@ Firebase（Spark）版は `healthapp-14a3f` に接続し、Googleログイン・
 
 ## チーム共通の始め方（現行）
 
+ホームのChatGPTアドバイスは、本人が確認・同意した直近7日間の記録から食事・筋トレ・回復の案を表示します。[設定と検証結果](scripts/recommendation-api/README.md)を確認してください。2026年11月25日に実APIの生成・使用量記録・前回試験の照合を確認しました。既存の無料クレジットとWorkers Freeだけを使い、残高確認の期限切れ・未確認の使用量・利用枠不足では停止します。APIキーはサーバーのsecretだけで管理し、食事写真の学習とは別機能です。
+
 共有する最新版は [WaveARGZ/Healthapp の `main`](https://github.com/WaveARGZ/Healthapp) です。GitHubの招待を受け取り、各自のアカウントで承諾してから作業します。Codexでは各自が取得したこのリポジトリのフォルダを開いてください。チャット履歴はGitでは共有されないため、最初にこのREADMEと `AGENTS.md` を読みます。
 
 初回はGit、Node.js **22.23.4**（`.nvmrc`）、npm **10系**を用意します。Node.jsの最低対応版は22.13.0です。通常の画面開発に `.env.local`、本番の認証情報、Driveへのアクセス権は不要です。
