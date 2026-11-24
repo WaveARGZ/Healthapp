@@ -14,6 +14,8 @@
 
 OpenAIは無料特典クレジット・支払いプラン未開始、CloudflareはWorkers Free・支払い方法未登録を確認しています。追加購入・自動追加購入・有料プランへの変更は行いません。既存95ドルの割当、確認の24時間期限、クレジット有効期限より前の停止、10ドル通知を維持します。本番Hostingだけを公開し、認証・Firestoreルール・本番モデル・学習共有先は変更しません。
 
+本番の本人認証確認では、Firebaseが有効なアカウントの `disabled` を省略する実応答を確認しました。[公式Admin SDK](https://github.com/firebase/firebase-admin-node/blob/main/src/auth/user-record.ts)と同じく、このフィールドの省略だけを有効として扱います。UID・署名・Googleログイン・確認済みメール・`validSince`・失効時刻の検証は維持し、`disabled:true`、不正な型、失効情報の欠落は拒否します。診断には値やトークンを記録せず、項目の型だけをRAMで確認し、一時診断コードは削除しました。
+
 ## 操作と個人情報
 
 1. 本番でGoogleログインした所有者本人が記録確認ボタンを押す。

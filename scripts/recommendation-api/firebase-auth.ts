@@ -231,8 +231,9 @@ export function createFirebaseOwnerVerifier(
     }, timeoutMs);
     if (!record(value) || !Array.isArray(value.users) || value.users.length !== 1 || !record(value.users[0])) fail("auth_unavailable");
     const user = value.users[0];
-    // Omitted fields are deliberately NOT inferred: compatibility must be verified before launch.
-    if (user.localId !== subject || typeof user.disabled !== "boolean" || user.emailVerified !== true
+    // Firebase omits disabled for enabled accounts (also the Admin SDK default).
+    // Only absence means false; malformed values and missing revocation evidence fail closed.
+    if (user.localId !== subject || (Object.hasOwn(user, "disabled") && typeof user.disabled !== "boolean") || user.emailVerified !== true
       || typeof user.validSince !== "string" || !/^(0|[1-9]\d{0,15})$/.test(user.validSince)) fail("auth_unavailable");
     const validSince = Number(user.validSince);
     if (!seconds(validSince)) fail("auth_unavailable");

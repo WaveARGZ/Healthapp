@@ -144,11 +144,23 @@ test("revocation uses auth_time, not newly refreshed iat; exact validSince equal
   assert.deepEqual(await verifier(authorization(await signed())), { uid: OWNER });
 });
 
+test("omitted disabled is enabled only with verified identity and revocation evidence", async () => {
+  const accepted = harness({ lookup: () => json(account({ disabled: undefined })) });
+  assert.deepEqual(await accepted.verifier(authorization(await signed())), { uid: OWNER });
+  assert.equal(accepted.calls.length, 1);
+  for (const missing of ["validSince", "emailVerified"]) {
+    const rejected = harness({ lookup: () => json(account({ disabled: undefined, [missing]: undefined })) });
+    await expectCode(rejected.verifier(authorization(await signed())), "auth_unavailable", 503);
+  }
+  const revoked = harness({ lookup: () => json(account({ disabled: undefined, validSince: String(NOW - 999) })) });
+  await expectCode(revoked.verifier(authorization(await signed())), "auth_revoked", 401);
+});
+
 test("missing, malformed, mismatched account fields never infer revocation success", async (t) => {
   const cases = [
     {}, { users: [] }, { users: [account().users[0], account().users[0]] }, { users: [null] },
     ...[
-      { localId: "other" }, { localId: undefined }, { disabled: undefined }, { disabled: "false" },
+      { localId: "other" }, { localId: undefined }, { disabled: null }, { disabled: "false" }, { disabled: 0 },
       { emailVerified: undefined }, { emailVerified: false }, { validSince: undefined },
       { validSince: NOW - 2_000 }, { validSince: "-1" }, { validSince: "123.5" }, { validSince: "NaN" },
       { validSince: "9999999999999999" },
