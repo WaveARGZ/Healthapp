@@ -355,6 +355,7 @@ function recordHooks(snapshot) {
       },
       useRef(current) { return refs[refPosition++] ??= { current }; },
       useMemo: (evaluate) => evaluate(),
+      useCallback: (callback) => callback,
       useSyncExternalStore: () => snapshot,
       useEffect() {},
       useLayoutEffect(effect) { layoutEffects.push(effect); },
@@ -423,17 +424,21 @@ test("saved foods are disclosed only through the matching meal type's button", a
   let nextId = 0;
   const { MealRecorder } = load("components/meals/meal-recorder.tsx", {}, {
     react: state.react, "react/jsx-runtime": recordJsx,
+    "@/components/ui/button": { Button: "Button" },
     "@/components/ui/form-fields": { FieldLabel: "FieldLabel", TextInput: "TextInput" },
     "@/components/ui/page-header": { PageHeader: "PageHeader" },
     "@/components/ui/icon": { Icon: "Icon" },
     "@/components/ui/record-actions": {}, "@/components/meals/photo-meal-analyzer": {}, "@/components/meals/barcode-meal-entry": {},
     "@/components/meals/food-library-search": { FoodLibrarySearch: "FoodLibrarySearch" },
     "@/lib/api/client": { bodyMakeClient: { saveMeal: async (entry) => { saved = entry; } } },
+    "@/lib/api/meal-menu-client": { loadMealMenu: async () => [] },
+    "@/lib/food-barcode": { recordedBarcodeSource: () => undefined },
     "@/lib/utils/date": { toDateInputValue: () => today, toTimeInputValue: () => "08:00" },
     "@/lib/utils/id": { createId: () => `test-${++nextId}` },
     "@/lib/utils/meal-calories": load("lib/utils/meal-calories.ts"),
     "@/lib/utils/meal-entry": load("lib/utils/meal-entry.ts"),
     "@/lib/utils/meal-macros": load("lib/utils/meal-macros.ts"),
+    "@/lib/utils/meal-menu": load("lib/utils/meal-menu.ts"),
     "@/types/meal": load("types/meal.ts"),
   }, { requestAnimationFrame() {} });
   const render = () => state.render(() => MealRecorder());
