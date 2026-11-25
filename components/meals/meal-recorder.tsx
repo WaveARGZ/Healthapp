@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Button } from "@/components/ui/button";
 import { FieldLabel, TextInput } from "@/components/ui/form-fields";
 import { PageHeader } from "@/components/ui/page-header";
 import { Icon } from "@/components/ui/icon";
@@ -8,13 +9,17 @@ import { FoodLibrarySearch } from "@/components/meals/food-library-search";
 import { RecordActions } from "@/components/ui/record-actions";
 import { PhotoMealAnalyzer } from "@/components/meals/photo-meal-analyzer";
 import { BarcodeMealEntry } from "@/components/meals/barcode-meal-entry";
+import type { RenderMealMenuStar } from "@/components/meals/meal-menu-action";
 import { bodyMakeClient } from "@/lib/api/client";
+import { loadMealMenu, removeMealMenuEntry, storeMealMenuEntry } from "@/lib/api/meal-menu-client";
+import { recordedBarcodeSource } from "@/lib/food-barcode";
 import { toDateInputValue, toTimeInputValue } from "@/lib/utils/date";
 import { summarizeDailyCalories } from "@/lib/utils/meal-calories";
 import { mealEntryFromItems } from "@/lib/utils/meal-entry";
+import { createMealMenuEntry, mealMenuItem, mealMenuItems, mealMenuKey } from "@/lib/utils/meal-menu";
 import { summarizeDailyMacros } from "@/lib/utils/meal-macros";
 import { createId } from "@/lib/utils/id";
-import { mealTypeLabels, type MealEntry, type MealFoodItem, type MealType } from "@/types/meal";
+import { mealTypeLabels, type MealEntry, type MealFoodItem, type MealMenuEntry, type MealType } from "@/types/meal";
 
 function newFood(): MealFoodItem {
   return { id: createId("food"), name: "", calories: undefined, proteinG: undefined, fatG: undefined, carbsG: undefined };
@@ -75,16 +80,23 @@ export function MealRecorder() {
   const [history, setHistory] = useState<MealEntry[]>([]);
   const [expandedMealType, setExpandedMealType] = useState<MealType | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [menu, setMenu] = useState<MealMenuEntry[]>([]);
+  const [menuStatus, setMenuStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [menuFeedback, setMenuFeedback] = useState<{ targetId: string; message: string; error?: boolean } | null>(null);
+  const [menuBusyId, setMenuBusyId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [inputMode, setInputMode] = useState<"search" | "photo" | "manual" | "barcode">("search");
+  const [inputMode, setInputMode] = useState<"search" | "photo" | "manual" | "barcode" | "menu">("search");
   const barcodeDraft = useSyncExternalStore(subscribeBarcodeDraft, readBarcodeDraft, () => "");
   const [composerOpen, setComposerOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const composerHeading = useRef<HTMLHeadingElement>(null);
   const saveLock = useRef(false);
+  const menuLock = useRef(false);
   const pendingSave = useRef<{ key: string; id: string } | null>(null);
   const historyRevision = useRef(0);
+  const menuReadRevision = useRef(0);
   const dayMeals = useMemo(() => history.filter((entry) => entry.recordedAt === recordedAt), [history, recordedAt]);
+  const menuKeys = useMemo(() => new Set(menu.map((entry) => mealMenuKey(entry.items))), [menu]);
   const dayCalories = useMemo(() => summarizeDailyCalories(history, recordedAt), [history, recordedAt]);
   const dayMacros = useMemo(() => summarizeDailyMacros(history, recordedAt), [history, recordedAt]);
   const hasMissingCalories = dayCalories.missingMeals > 0 || dayCalories.partiallyCountedMeals > 0;
@@ -92,11 +104,23 @@ export function MealRecorder() {
   const proteinShare = macroEnergy > 0 ? dayMacros.proteinG * 4 / macroEnergy * 100 : 0;
   const fatShare = macroEnergy > 0 ? dayMacros.fatG * 9 / macroEnergy * 100 : 0;
 
+  const loadMenu = useCallback(() => {
+    const revision = ++menuReadRevision.current;
+    void loadMealMenu().then((saved) => {
+      if (revision !== menuReadRevision.current) return;
+      setMenu(saved);
+      setMenuStatus("ready");
+    }, () => {
+      if (revision === menuReadRevision.current) setMenuStatus("error");
+    });
+  }, []);
+
   useEffect(() => {
     void loadHistory();
+    loadMenu();
     const frame = requestAnimationFrame(() => setRecordedTime(toTimeInputValue()));
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [loadMenu]);
   async function loadHistory() {
     const revision = historyRevision.current;
     try {
@@ -111,7 +135,7 @@ export function MealRecorder() {
   function updateManualFood(patch: Partial<MealFoodItem>) { setManualFood((current) => ({ ...current, ...patch })); }
   async function saveFoods(foods: FoodInput[]) {
     if (saveLock.current) throw new Error("保存中です。");
-    const items = foods.map((food) => foodWithManualPortion({ ...food, id: "id" in food ? food.id : createId("food") }));
+    const items = foods.map((food) => ({ ...food, id: "id" in food ? food.id : createId("food") }));
     if (!items.length || items.some((item) => !item.name.trim() || invalidManualPortion(item)) || !recordedAt) {
       setNotice("記録日・料理名・食べた量を確認してください。");
       throw new Error("入力内容を確認してください。");
@@ -137,9 +161,9 @@ export function MealRecorder() {
   async function saveFood(food: FoodInput) { await saveFoods([food]); }
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (inputMode !== "manual") return;
+    if (inputMode !== "manual" || invalidManualPortion(manualFood)) return;
     try {
-      await saveFood(manualFood);
+      await saveFood(foodWithManualPortion(manualFood));
       setManualFood(newFood());
     } catch { /* The visible notice keeps the input available for retry. */ }
   }
@@ -147,6 +171,75 @@ export function MealRecorder() {
     await bodyMakeClient.deleteMeal(id);
     historyRevision.current += 1;
     await loadHistory();
+  }
+
+  async function addToMealMenu(targetId: string, name: string, items: MealMenuEntry["items"]) {
+    if (!items.length || !name.trim() || menuLock.current || menuStatus === "loading" || menuKeys.has(mealMenuKey(items))) return;
+    menuLock.current = true;
+    setMenuBusyId(targetId);
+    setMenuFeedback(null);
+    try {
+      const saved = await createMealMenuEntry(name, items);
+      await storeMealMenuEntry(saved);
+      setMenu((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+      setMenuFeedback({ targetId, message: `${name}をマイメニューに追加しました。` });
+    } catch {
+      setMenuFeedback({ targetId, message: "保存できませんでした。もう一度お試しください。", error: true });
+    } finally {
+      menuLock.current = false;
+      setMenuBusyId(null);
+    }
+  }
+
+  function menuAddButton(targetId: string, name: string, items: MealMenuEntry["items"], star = false) {
+    const inMenu = menuKeys.has(mealMenuKey(items));
+    const label = items.length > 1 ? "食事ごとマイメニューに追加" : "マイメニューに追加";
+    const feedback = menuFeedback?.targetId === targetId ? menuFeedback : null;
+    return <div className="relative shrink-0">
+      <Button type="button" variant="secondary" size="small"
+        aria-label={inMenu ? `${name}はマイメニューに追加済み` : name ? `${name}を${label}` : label}
+        title={star ? inMenu ? "マイメニューに追加済み" : label : undefined}
+        aria-pressed={star ? inMenu : undefined}
+        aria-busy={menuBusyId === targetId}
+        disabled={!items.length || inMenu || menuStatus === "loading" || menuBusyId !== null}
+        onClick={() => addToMealMenu(targetId, name, items)}
+        className={star ? "w-11 px-0! text-[var(--sage-deep)] aria-pressed:bg-[var(--sage-soft)] aria-pressed:opacity-100" : "gap-1! whitespace-nowrap px-2! text-xs!"}>
+        <Icon name={star ? "star" : inMenu ? "check" : "plus"} fill={star && inMenu ? "currentColor" : "none"} className={star ? "size-5" : "size-3.5 shrink-0"} />
+        {!star && (inMenu ? "追加済み" : menuBusyId === targetId ? "保存中…" : label)}
+      </Button>
+      {feedback && <p role="status" className={feedback.error ? star ? "absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-[var(--line)] bg-white p-2 text-xs leading-5 text-[var(--coral)]" : "mt-1 max-w-32 text-xs leading-5 text-[var(--coral)]" : "sr-only"}>{feedback.message}</p>}
+    </div>;
+  }
+
+  const renderMenuStar: RenderMealMenuStar = (placement, food) => {
+    const items = food ? [food] : [];
+    return menuAddButton(`${placement}:${mealMenuKey(items)}`, food?.name ?? "", items, true);
+  };
+  const handleCustomFoodName = (name: string) => {
+    setManualFood((current) => current.name.trim() === name ? current : { ...newFood(), name });
+    setInputMode("manual");
+    setNotice("");
+    requestAnimationFrame(() => document.getElementById("meal-manual-name")?.focus());
+  };
+  const manualMenuFood = manualFood.name.trim() && !invalidManualPortion(manualFood)
+    && [manualFood.calories, manualFood.proteinG, manualFood.fatG, manualFood.carbsG].every((value) => value === undefined || Number.isFinite(value) && value >= 0)
+    ? mealMenuItem(foodWithManualPortion({ ...manualFood, name: manualFood.name.trim() }))
+    : null;
+
+  async function deleteMenuItem(entry: MealMenuEntry) {
+    if (menuLock.current) return;
+    menuLock.current = true;
+    setMenuBusyId(entry.id);
+    try {
+      await removeMealMenuEntry(entry.id);
+      setMenu((current) => current.filter((item) => item.id !== entry.id));
+      setNotice("マイメニューから削除しました。");
+    } catch {
+      setNotice("マイメニューから削除できませんでした。もう一度お試しください。");
+    } finally {
+      menuLock.current = false;
+      setMenuBusyId(null);
+    }
   }
   function openComposer(type: MealType) {
     setMealType(type);
@@ -193,18 +286,42 @@ export function MealRecorder() {
                 </button>
               </div>
             </div>
-            {entries.length > 0 && <div id={detailsId} hidden={!detailsOpen} className="border-t border-[var(--line)] px-4 sm:px-5">{entries.map((entry) => <div key={entry.id} className="flex min-h-16 items-center gap-3 border-b border-[var(--line)] py-2 last:border-b-0">
-              <div className="min-w-0 flex-1">
-                <p className="break-words text-sm font-semibold text-[var(--ink)]">{entry.name}</p>
-                <p className="mt-0.5 text-xs text-[var(--muted)]">{entry.recordedTime || "時刻なし"}{entry.items && entry.items.length > 1 ? ` · ${entry.items.length}品` : entry.items?.[0]?.portionQuantity ? ` · ${entry.items[0].portionQuantity}${entry.items[0].portionUnit ?? "g"}` : ""}</p>
-                {entry.items && entry.items.length > 1 && <ul className="mt-2 space-y-1 break-words text-xs leading-5 text-[var(--muted)]" aria-label="食品の内訳">
-                  {entry.items.map((item) => <li key={item.id}>{item.name}{item.calories !== undefined ? ` · ${item.calories} kcal` : ""}</li>)}
+            {entries.length > 0 && <div id={detailsId} hidden={!detailsOpen} className="border-t border-[var(--line)] px-4 sm:px-5">{entries.map((entry) => {
+              const foods = mealMenuItems(entry);
+              const multipleFoods = foods.length > 1;
+              const calories = recordedCalories(entry);
+              const source = !multipleFoods && recordedBarcodeSource(foods[0]);
+              const portion = foods[0].portionQuantity;
+              return <div key={entry.id} className="border-b border-[var(--line)] py-3 last:border-b-0">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-sm font-semibold text-[var(--ink)]">{entry.name}</p>
+                    <p className="metric mt-0.5 text-xs leading-5 text-[var(--muted)]">
+                      {entry.recordedTime || "時刻なし"} · {calories === undefined ? "—" : `${Math.round(calories)} kcal`}
+                      {multipleFoods ? ` · ${foods.length}品` : portion ? ` · ${portion}${foods[0].portionUnit ?? "g"}` : ""}
+                    </p>
+                    {source && <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sage-deep)] underline">出典：{source.label}</a>}
+                  </div>
+                  {!multipleFoods && menuAddButton(entry.id, foods[0].name, foods)}
+                  <button type="button" aria-label={`${entry.name}の食事記録を削除`} onClick={() => void deleteEntry(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button>
+                </div>
+                {multipleFoods && <ul className="mt-2 divide-y divide-[var(--line)]" aria-label="食品の内訳">
+                  {foods.map((food, index) => {
+                    const foodSource = recordedBarcodeSource(food);
+                    const rowId = `${entry.id}:${index}`;
+                    return <li key={rowId} className="flex items-start justify-between gap-2 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-medium leading-5 text-[var(--ink)]">{food.name}</p>
+                        {food.calories !== undefined && <p className="metric text-xs text-[var(--muted)]">{food.calories} kcal</p>}
+                        {foodSource && <a href={foodSource.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sage-deep)] underline">出典：{foodSource.label}</a>}
+                      </div>
+                      {menuAddButton(rowId, food.name, [food])}
+                    </li>;
+                  })}
                 </ul>}
-                {entry.items?.[0]?.sourceBarcode && <a href={`https://world.openfoodfacts.org/product/${encodeURIComponent(entry.items[0].sourceBarcode)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sage-deep)] underline">出典：Open Food Facts</a>}
-              </div>
-              <span className="metric shrink-0 text-xs font-semibold text-[var(--ink)]">{recordedCalories(entry) === undefined ? "—" : `${Math.round(recordedCalories(entry) ?? 0)} kcal`}</span>
-              <button type="button" aria-label={`${entry.name}の食事記録を削除`} onClick={() => void deleteEntry(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button>
-            </div>)}</div>}
+                {multipleFoods && <div className="mt-2 flex justify-end">{menuAddButton(entry.id, entry.name, foods)}</div>}
+              </div>;
+            })}</div>}
           </article>;
         })}
       </section>
@@ -241,26 +358,43 @@ export function MealRecorder() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 ref={composerHeading} tabIndex={-1} className="section-title scroll-mt-6">{mealTypeLabels[mealType]}に追加</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">{inputMode === "search" ? "食品を選んでまとめて保存できます。" : "追加した食品はそのまま保存されます。"}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{inputMode === "search" ? "食品を選んでまとめて保存できます。" : inputMode === "menu" ? "以前の食事を同じ量で登録できます。" : "追加した食品はそのまま保存されます。"}</p>
           </div>
           <button type="button" onClick={() => { setComposerOpen(false); document.getElementById(`meal-add-${mealType}`)?.focus(); }} className="text-link">閉じる</button>
         </div>
         <div className="mt-4 max-w-44"><FieldLabel htmlFor="meal-time">時刻</FieldLabel><TextInput id="meal-time" type="time" step="60" value={recordedTime} onChange={(event) => setRecordedTime(event.target.value)} required /></div>
-        <div className="mt-4 grid grid-cols-4 gap-2" aria-label="食事の入力方法">{([
+        <div className="mt-4 flex flex-wrap gap-2" aria-label="食事の入力方法">{([
           ["search", "search", "検索"],
           ["photo", "camera", "写真"],
           ["manual", "plus", "手入力"],
           ["barcode", "barcode", "バーコード"],
-        ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => setInputMode(mode)} aria-pressed={inputMode === mode} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg border px-1 text-xs font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)] hover:bg-[var(--sand)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
-        <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} onAddFoods={saveFoods} /></div>
-        {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} previousMeals={history} historyLoading={historyLoading} />}
-        {inputMode === "barcode" && <BarcodeMealEntry onAddFood={saveFood} barcode={barcodeDraft} onBarcodeChange={updateBarcodeDraft} />}
+          ["menu", "copy", "マイメニュー"],
+        ] as const).map(([mode, icon, label]) => <button key={mode} type="button" onClick={() => { setInputMode(mode); setNotice(""); }} aria-pressed={inputMode === mode} className={`flex min-h-14 min-w-16 flex-1 flex-col items-center justify-center gap-1 whitespace-nowrap rounded-lg border px-2 text-xs font-semibold sm:min-h-12 sm:flex-row sm:gap-2 sm:text-sm ${inputMode === mode ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] text-[var(--muted)] hover:bg-[var(--sand)]"}`}><Icon name={icon} className="size-4 shrink-0" />{label}</button>)}</div>
+        <div hidden={inputMode !== "search"}><FoodLibrarySearch onAddFood={saveFood} onAddFoods={saveFoods} renderMenuStar={renderMenuStar} onUseCustomName={handleCustomFoodName} /></div>
+        {inputMode === "photo" && <PhotoMealAnalyzer onAddFood={saveFood} renderMenuStar={renderMenuStar} previousMeals={history} historyLoading={historyLoading} />}
+        {inputMode === "barcode" && <BarcodeMealEntry onAddFood={saveFood} renderMenuStar={renderMenuStar} barcode={barcodeDraft} onBarcodeChange={updateBarcodeDraft} previousMeals={history} />}
+        {inputMode === "menu" && <section aria-label="マイメニュー" className="mt-5">
+          {menuStatus === "loading" && <p role="status" className="text-sm text-[var(--muted)]">読み込み中…</p>}
+          {menuStatus === "error" && <p className="text-sm text-[var(--muted)]">マイメニューを読み込めませんでした。 <button type="button" className="text-link" disabled={menuBusyId !== null} onClick={() => { setMenuStatus("loading"); loadMenu(); }}>再読み込み</button></p>}
+          {menuStatus === "ready" && menu.length === 0 && <p className="text-sm leading-6 text-[var(--muted)]">食事の「内容を見る」からマイメニューに追加できます。</p>}
+          <ul className="divide-y divide-[var(--line)]">{menu.map((entry) => <li key={entry.id} className="flex flex-wrap items-center gap-2 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="break-words text-sm font-bold text-[var(--ink)]">{entry.items.map((item) => item.name).join("・")}</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">{entry.items.length}品</p>
+            </div>
+            <Button type="button" className="min-h-11" disabled={isSaving || !recordedAt} aria-label={`${entry.name}を${mealTypeLabels[mealType]}に登録`} onClick={() => { void saveFoods(entry.items).catch(() => {}); }}>
+              登録する
+            </Button>
+            <button type="button" aria-label={`${entry.name}をマイメニューから削除`} disabled={menuBusyId !== null} onClick={() => void deleteMenuItem(entry)} className="delete-button shrink-0 disabled:opacity-50"><Icon name="trash" className="size-4" /></button>
+          </li>)}</ul>
+          {notice && <p role="status" className="mt-3 text-sm text-[var(--sage-deep)]">{notice}</p>}
+        </section>}
         {inputMode === "photo" && <p role="status" aria-live="polite" className="mt-4 text-sm text-[var(--sage-deep)]">{notice}</p>}
         {inputMode === "manual" && <>
         <p className="mt-4 text-xs leading-6 text-[var(--muted)]">不明な栄養値は空欄のまま保存できます。</p>
         <section className="mt-5">
           <div className="min-w-0 rounded-md border border-[var(--line)] p-3 min-[375px]:p-4 sm:p-5">
-            <FieldLabel htmlFor={`food-${manualFood.id}`}>料理名</FieldLabel><TextInput id={`food-${manualFood.id}`} value={manualFood.name} onChange={(event) => updateManualFood({ name: event.target.value })} placeholder="例：卵" />
+            <FieldLabel htmlFor="meal-manual-name">料理名</FieldLabel><TextInput id="meal-manual-name" value={manualFood.name} onChange={(event) => updateManualFood({ name: event.target.value })} placeholder="例：卵" />
             {manualFood.portionGrams === undefined && <div className="mt-4"><FieldLabel htmlFor={`portion-${manualFood.id}`}>食べた量（任意）</FieldLabel><div className="mt-1 flex flex-wrap items-center gap-2"><TextInput id={`portion-${manualFood.id}`} type="number" min="1" max="3000" step="1" inputMode="numeric" value={manualFood.portionQuantity ?? ""} onChange={(event) => updateManualFood({ portionQuantity: event.target.value ? Number(event.target.value) : undefined })} placeholder="例：2" className="max-w-36" /><select aria-label="食べた量の単位" value={manualFood.portionUnit ?? "g"} onChange={(event) => updateManualFood({ portionUnit: event.target.value as "g" | "個" | "本" })} className="h-12 rounded border border-[var(--line)] bg-white px-3 text-base text-[var(--ink)]"><option value="g">g</option><option value="個">個</option><option value="本">本</option></select></div></div>}
             {invalidManualPortion(manualFood) && <p className="mt-2 text-xs text-[var(--coral)]">1〜3,000の量を入力してください。「個」「本」は整数で入力します。</p>}
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">{([
@@ -269,6 +403,10 @@ export function MealRecorder() {
               ["fatG", "脂質 (g)", "0.1"],
               ["carbsG", "炭水化物 (g)", "0.1"],
             ] as const).map(([field, label, step]) => <div key={field} className="min-w-0"><FieldLabel htmlFor={`${field}-${manualFood.id}`}>{label}</FieldLabel><TextInput id={`${field}-${manualFood.id}`} type="number" min="0" step={step} inputMode="decimal" value={manualFood[field] ?? ""} onChange={(event) => updateManualFood({ [field]: event.target.value ? Number(event.target.value) : undefined })} placeholder="未入力" className="metric" /></div>)}</div>
+            <div className="mt-3 flex items-start gap-2">
+              <Button type="button" variant="secondary" size="small" className="px-2! text-xs!" onClick={() => updateManualFood({ calories: undefined, proteinG: undefined, fatG: undefined, carbsG: undefined })} disabled={isSaving}>カロリー・PFCを一括クリア</Button>
+              {renderMenuStar("manual", isSaving ? null : manualMenuFood)}
+            </div>
           </div>
         </section>
 

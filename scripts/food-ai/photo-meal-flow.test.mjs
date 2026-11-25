@@ -22,7 +22,7 @@ function harness({ sharedTest = false, saveFails = false, previousMeals = [], hi
   const source = ts.transpileModule(readFileSync(new URL("../../components/meals/photo-meal-analyzer.tsx", import.meta.url), "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
-  const states = [], refs = [], effects = [], saved = [], released = [], analyses = [];
+  const states = [], refs = [], effects = [], saved = [], menu = [], released = [], analyses = [];
   let stateIndex = 0, refIndex = 0, effectIndex = 0;
   const modules = {
     react: {
@@ -45,8 +45,11 @@ function harness({ sharedTest = false, saveFails = false, previousMeals = [], hi
     URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL: (url) => released.push(url) },
   });
   const onAddFood = async (item) => { if (saveFails) throw Error("synthetic failure"); saved.push(structuredClone(item)); };
+  const renderMenuStar = (_placement, item) => jsxRuntime.jsx("button", {
+    children: "マイメニューに追加", disabled: !item, onClick: () => menu.push(structuredClone(item)),
+  });
   function nodes(node) { if (!node || typeof node !== "object") return []; if (Array.isArray(node)) return node.flatMap(nodes); return [node, ...nodes(node.props?.children)]; }
-  function render() { stateIndex = refIndex = effectIndex = 0; return nodes(exports.PhotoMealAnalyzer({ onAddFood, previousMeals, historyLoading })); }
+  function render() { stateIndex = refIndex = effectIndex = 0; return nodes(exports.PhotoMealAnalyzer({ onAddFood, renderMenuStar, previousMeals, historyLoading })); }
   function find(predicate) { const node = render().find(predicate); assert.ok(node); return node; }
   function click(label) { const node = find((n) => n.type === "button" && n.props.children === label); assert.notEqual(node.props.disabled, true); node.props.onClick(); }
   function choose() { find((n) => n.props.type === "file").props.onChange({ target: { files: [{ name: "synthetic.jpg", size: 10 }], value: "" } }); }
@@ -55,7 +58,7 @@ function harness({ sharedTest = false, saveFails = false, previousMeals = [], hi
     find((n) => n.props.placeholder === "例：鶏むね肉の照り焼き").props.onChange({ target: { value: "テストの食事" } });
   }
   async function flush() { for (let i = 0; i < 5; i++) await Promise.resolve(); render(); }
-  return { render, find, click, choose, draft, flush, saved, released, analyses };
+  return { render, find, click, choose, draft, flush, saved, menu, released, analyses };
 }
 
 test("camera meal saves only nutritional record, releases preview, then offers a separate optional share page", async () => {
@@ -84,6 +87,18 @@ test("nutrition clear keeps missing fields distinct from an explicitly entered z
   assert.equal(Object.hasOwn(h.saved[0], "proteinG"), false);
   assert.equal(Object.hasOwn(h.saved[0], "fatG"), false);
   assert.equal(Object.hasOwn(h.saved[0], "carbsG"), false);
+});
+
+test("the photo menu star keeps the corrected name and nutrition without saving a meal or an image", () => {
+  const h = harness(); h.draft();
+  h.click("カロリー・PFCを一括クリア");
+  h.find((n) => n.props.placeholder === "例：鶏むね肉の照り焼き").props.onChange({ target: { value: "家の黒豆とりんご煮" } });
+  const fields = h.render().filter((n) => n.props.type === "number" && n.props.placeholder === "未入力");
+  for (const [index, value] of ["175", "12.5", "0", "18.2"].entries()) fields[index].props.onChange({ target: { value } });
+  h.click("マイメニューに追加");
+  assert.deepEqual(h.menu, [{ name: "家の黒豆とりんご煮（100g）", calories: 175, proteinG: 12.5, fatG: 0, carbsG: 18.2, portionGrams: 100, portionUnit: "g", portionQuantity: 100 }]);
+  assert.equal(h.saved.length, 0);
+  assert.equal(h.released.length, 0);
 });
 
 test("failed saves keep the photo for retry and do not show a success or share action", async () => {
