@@ -31,10 +31,10 @@ jobs:
       - run: npm run test:team-runtime
       - run: npm run test:shared-test
       - run: node --experimental-strip-types --test scripts/test-rest-timer-audio.mjs
-      - run: npm ci --prefix scripts/workout-timer-push
-      - run: npm test --prefix scripts/workout-timer-push
       - run: npm run build:shared-test
       - run: npm run test:shared-test-build
+      - run: npm ci --prefix scripts/workout-timer-push
+      - run: npm test --prefix scripts/workout-timer-push
       - uses: actions/upload-artifact@v4
         with:
           name: shared-test-static
