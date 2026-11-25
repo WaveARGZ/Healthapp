@@ -81,7 +81,7 @@ export function MealRecorder() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [menu, setMenu] = useState<MealMenuEntry[]>([]);
   const [menuStatus, setMenuStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [menuFeedback, setMenuFeedback] = useState<{ entryId: string; message: string } | null>(null);
+  const [menuFeedback, setMenuFeedback] = useState<{ targetId: string; message: string; error?: boolean } | null>(null);
   const [menuBusyId, setMenuBusyId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [inputMode, setInputMode] = useState<"search" | "photo" | "manual" | "barcode" | "menu">("search");
@@ -172,22 +172,39 @@ export function MealRecorder() {
     await loadHistory();
   }
 
-  async function addToMealMenu(entry: MealEntry) {
-    if (menuLock.current || menuStatus === "loading" || menuKeys.has(mealMenuKey(mealMenuItems(entry)))) return;
+  async function addToMealMenu(targetId: string, name: string, items: MealMenuEntry["items"]) {
+    if (menuLock.current || menuStatus === "loading" || menuKeys.has(mealMenuKey(items))) return;
     menuLock.current = true;
-    setMenuBusyId(entry.id);
+    setMenuBusyId(targetId);
     setMenuFeedback(null);
     try {
-      const saved = await createMealMenuEntry(entry);
+      const saved = await createMealMenuEntry(name, items);
       await storeMealMenuEntry(saved);
       setMenu((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
-      setMenuFeedback({ entryId: entry.id, message: "マイメニューに追加しました。" });
+      setMenuFeedback({ targetId, message: `${name}をマイメニューに追加しました。` });
     } catch {
-      setMenuFeedback({ entryId: entry.id, message: "マイメニューに保存できませんでした。もう一度お試しください。" });
+      setMenuFeedback({ targetId, message: "保存できませんでした。もう一度お試しください。", error: true });
     } finally {
       menuLock.current = false;
       setMenuBusyId(null);
     }
+  }
+
+  function menuAddButton(targetId: string, name: string, items: MealMenuEntry["items"]) {
+    const inMenu = menuKeys.has(mealMenuKey(items));
+    const label = items.length > 1 ? "食事ごとマイメニューに追加" : "マイメニューに追加";
+    const feedback = menuFeedback?.targetId === targetId ? menuFeedback : null;
+    return <div className="shrink-0">
+      <Button type="button" variant="secondary" size="small"
+        aria-label={inMenu ? `${name}はマイメニューに追加済み` : `${name}を${label}`}
+        disabled={inMenu || menuStatus === "loading" || menuBusyId !== null}
+        onClick={() => addToMealMenu(targetId, name, items)}
+        className="gap-1! whitespace-nowrap px-2! text-xs!">
+        <Icon name={inMenu ? "check" : "plus"} className="size-3.5 shrink-0" />
+        {inMenu ? "追加済み" : menuBusyId === targetId ? "保存中…" : label}
+      </Button>
+      {feedback && <p role="status" className={feedback.error ? "mt-1 max-w-32 text-xs leading-5 text-[var(--coral)]" : "sr-only"}>{feedback.message}</p>}
+    </div>;
   }
 
   async function deleteMenuItem(entry: MealMenuEntry) {
@@ -251,27 +268,40 @@ export function MealRecorder() {
               </div>
             </div>
             {entries.length > 0 && <div id={detailsId} hidden={!detailsOpen} className="border-t border-[var(--line)] px-4 sm:px-5">{entries.map((entry) => {
-              const inMenu = menuKeys.has(mealMenuKey(mealMenuItems(entry)));
-              const source = entry.items?.[0] && recordedBarcodeSource(entry.items[0]);
-              return <div key={entry.id} className="flex min-h-16 flex-wrap items-start gap-x-3 gap-y-1 border-b border-[var(--line)] py-3 last:border-b-0">
-              <div className="min-w-0 flex-1">
-                <p className="break-words text-sm font-semibold text-[var(--ink)]">{entry.name}</p>
-                <p className="mt-0.5 text-xs text-[var(--muted)]">{entry.recordedTime || "時刻なし"}{entry.items && entry.items.length > 1 ? ` · ${entry.items.length}品` : entry.items?.[0]?.portionQuantity ? ` · ${entry.items[0].portionQuantity}${entry.items[0].portionUnit ?? "g"}` : ""}</p>
-                {entry.items && entry.items.length > 1 && <ul className="mt-2 space-y-1 break-words text-xs leading-5 text-[var(--muted)]" aria-label="食品の内訳">
-                  {entry.items.map((item) => <li key={item.id}>{item.name}{item.calories !== undefined ? ` · ${item.calories} kcal` : ""}</li>)}
+              const foods = mealMenuItems(entry);
+              const multipleFoods = foods.length > 1;
+              const calories = recordedCalories(entry);
+              const source = !multipleFoods && recordedBarcodeSource(foods[0]);
+              const portion = foods[0].portionQuantity;
+              return <div key={entry.id} className="border-b border-[var(--line)] py-3 last:border-b-0">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-sm font-semibold text-[var(--ink)]">{entry.name}</p>
+                    <p className="metric mt-0.5 text-xs leading-5 text-[var(--muted)]">
+                      {entry.recordedTime || "時刻なし"} · {calories === undefined ? "—" : `${Math.round(calories)} kcal`}
+                      {multipleFoods ? ` · ${foods.length}品` : portion ? ` · ${portion}${foods[0].portionUnit ?? "g"}` : ""}
+                    </p>
+                    {source && <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sage-deep)] underline">出典：{source.label}</a>}
+                  </div>
+                  {!multipleFoods && menuAddButton(entry.id, foods[0].name, foods)}
+                  <button type="button" aria-label={`${entry.name}の食事記録を削除`} onClick={() => void deleteEntry(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button>
+                </div>
+                {multipleFoods && <ul className="mt-2 divide-y divide-[var(--line)]" aria-label="食品の内訳">
+                  {foods.map((food, index) => {
+                    const foodSource = recordedBarcodeSource(food);
+                    const rowId = `${entry.id}:${index}`;
+                    return <li key={rowId} className="flex items-start justify-between gap-2 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-medium leading-5 text-[var(--ink)]">{food.name}</p>
+                        {food.calories !== undefined && <p className="metric text-xs text-[var(--muted)]">{food.calories} kcal</p>}
+                        {foodSource && <a href={foodSource.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sage-deep)] underline">出典：{foodSource.label}</a>}
+                      </div>
+                      {menuAddButton(rowId, food.name, [food])}
+                    </li>;
+                  })}
                 </ul>}
-                {source && <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sage-deep)] underline">出典：{source.label}</a>}
-              </div>
-              <span className="metric shrink-0 pt-1 text-xs font-semibold text-[var(--ink)]">{recordedCalories(entry) === undefined ? "—" : `${Math.round(recordedCalories(entry) ?? 0)} kcal`}</span>
-              <button type="button" aria-label={`${entry.name}の食事記録を削除`} onClick={() => void deleteEntry(entry.id)} className="delete-button shrink-0"><Icon name="trash" className="size-4" /></button>
-              <div className="w-full">
-                <Button type="button" variant="secondary" disabled={inMenu || menuStatus === "loading" || menuBusyId !== null} onClick={() => void addToMealMenu(entry)} className="min-h-11 gap-1.5">
-                  <Icon name={inMenu ? "check" : "plus"} className="size-4" />
-                  {inMenu ? "マイメニューに追加済み" : menuBusyId === entry.id ? "保存中…" : "マイメニューに追加"}
-                </Button>
-                {menuFeedback?.entryId === entry.id && <p role="status" className="mt-1 text-sm text-[var(--muted)]">{menuFeedback.message}</p>}
-              </div>
-            </div>;
+                {multipleFoods && <div className="mt-2 flex justify-end">{menuAddButton(entry.id, entry.name, foods)}</div>}
+              </div>;
             })}</div>}
           </article>;
         })}

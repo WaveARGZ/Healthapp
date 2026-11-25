@@ -12,8 +12,10 @@ const original = {
   ],
 };
 
+const toMenu = (entry) => createMealMenuEntry(entry.name, mealMenuItems(entry));
+
 test("a saved menu can be recorded for a new meal with quantities, barcode and partial nutrition intact", async () => {
-  const menu = await createMealMenuEntry(original);
+  const menu = await toMenu(original);
   assert.equal(Object.hasOwn(menu, "recordedAt"), false);
   assert.equal(Object.hasOwn(menu.items[0], "id"), false);
   const repeated = mealEntryFromItems(menu.items.map((item, index) => ({ ...item, id: `repeat-${index}` })), {
@@ -22,12 +24,12 @@ test("a saved menu can be recorded for a new meal with quantities, barcode and p
   assert.equal(repeated.calories, 220);
   assert.equal(repeated.proteinG, undefined);
   assert.deepEqual(mealMenuItems(repeated), menu.items);
-  assert.equal((await createMealMenuEntry(repeated)).id, menu.id);
+  assert.equal((await toMenu(repeated)).id, menu.id);
 });
 
 test("older records without items remain reusable and changes to portions create a distinct menu", async () => {
-  const menu = await createMealMenuEntry({ ...original, items: undefined, calories: 0 });
+  const menu = await toMenu({ ...original, items: undefined, calories: 0 });
   assert.deepEqual(menu.items, [{ name: original.name, calories: 0, proteinG: undefined, fatG: undefined, carbsG: undefined }]);
   const changed = { ...original, items: [{ ...original.items[0], portionQuantity: 1 }, original.items[1]] };
-  assert.notEqual((await createMealMenuEntry(changed)).id, (await createMealMenuEntry(original)).id);
+  assert.notEqual((await toMenu(changed)).id, (await toMenu(original)).id);
 });

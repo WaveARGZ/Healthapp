@@ -18,9 +18,8 @@ export function mealMenuKey(items: readonly Omit<MealFoodItem, "id">[]): string 
     [name.trim(), calories, proteinG, fatG, carbsG, sourceBarcode, portionQuantity, portionUnit, portionGrams, gramsPerPiece]));
 }
 
-export async function createMealMenuEntry(entry: MealEntry): Promise<MealMenuEntry> {
-  const items = mealMenuItems(entry);
+export async function createMealMenuEntry(name: string, items: MealMenuEntry["items"]): Promise<MealMenuEntry> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(mealMenuKey(items)));
   const id = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  return { id, name: entry.name.trim(), items, createdAt: new Date().toISOString() };
+  return { id, name: name.trim(), items, createdAt: new Date().toISOString() };
 }

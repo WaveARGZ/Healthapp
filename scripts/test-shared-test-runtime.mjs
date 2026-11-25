@@ -420,7 +420,10 @@ test("bottom tabs reset same-page state and scroll only when the destination is 
 test("saved foods are disclosed only through the matching meal type's button", async () => {
   const today = "2026-11-23";
   const state = recordHooks("");
+  const effects = [];
+  state.react.useEffect = (effect) => effects.push(effect);
   let saved;
+  const savedMenus = [];
   let nextId = 0;
   const { MealRecorder } = load("components/meals/meal-recorder.tsx", {}, {
     react: state.react, "react/jsx-runtime": recordJsx,
@@ -430,21 +433,23 @@ test("saved foods are disclosed only through the matching meal type's button", a
     "@/components/ui/icon": { Icon: "Icon" },
     "@/components/ui/record-actions": {}, "@/components/meals/photo-meal-analyzer": {}, "@/components/meals/barcode-meal-entry": {},
     "@/components/meals/food-library-search": { FoodLibrarySearch: "FoodLibrarySearch" },
-    "@/lib/api/client": { bodyMakeClient: { saveMeal: async (entry) => { saved = entry; } } },
-    "@/lib/api/meal-menu-client": { loadMealMenu: async () => [] },
+    "@/lib/api/client": { bodyMakeClient: { getMeals: async () => [], saveMeal: async (entry) => { saved = entry; } } },
+    "@/lib/api/meal-menu-client": { loadMealMenu: async () => [], storeMealMenuEntry: async (entry) => { savedMenus.push(entry); } },
     "@/lib/food-barcode": { recordedBarcodeSource: () => undefined },
     "@/lib/utils/date": { toDateInputValue: () => today, toTimeInputValue: () => "08:00" },
     "@/lib/utils/id": { createId: () => `test-${++nextId}` },
     "@/lib/utils/meal-calories": load("lib/utils/meal-calories.ts"),
     "@/lib/utils/meal-entry": load("lib/utils/meal-entry.ts"),
     "@/lib/utils/meal-macros": load("lib/utils/meal-macros.ts"),
-    "@/lib/utils/meal-menu": load("lib/utils/meal-menu.ts"),
+    "@/lib/utils/meal-menu": load("lib/utils/meal-menu.ts", {}, {}, { crypto, TextEncoder }),
     "@/types/meal": load("types/meal.ts"),
   }, { requestAnimationFrame() {} });
   const render = () => state.render(() => MealRecorder());
   const findId = (view, id) => findElement(view, (node) => node.props.id === id);
   const detailsButton = (view) => findElement(view, (node) => node.props["aria-controls"] === "meal-details-breakfast");
   findId(render(), "meal-add-breakfast").props.onClick();
+  effects.splice(0).forEach((effect) => effect());
+  await Promise.resolve();
   const composer = findElement(render(), (node) => node.type === "FoodLibrarySearch");
   await composer.props.onAddFoods([{ name: "おにぎり", calories: 180 }, { name: "ゆで卵", calories: 75 }]);
   assert.equal(saved.mealType, "breakfast");
@@ -457,7 +462,19 @@ test("saved foods are disclosed only through the matching meal type's button", a
   const panel = findId(expanded, "meal-details-breakfast");
   assert.equal(panel.props.hidden, false);
   assert.equal(detailsButton(expanded).props["aria-expanded"], true);
-  assert.ok(findElement(panel, (node) => node.type === "li" && node.props.children[0] === "ゆで卵"));
-  detailsButton(expanded).props.onClick();
+  const eggRow = findElement(panel, (node) => node.type === "li" && findElement(node, (child) => child.type === "p" && child.props.children === "ゆで卵"));
+  assert.ok(eggRow);
+  const addEgg = findElement(eggRow, (node) => node.props["aria-label"] === "ゆで卵をマイメニューに追加");
+  assert.equal(addEgg.props.disabled, false);
+  await addEgg.props.onClick();
+  assert.equal(savedMenus[0].name, "ゆで卵");
+  assert.deepEqual(Array.from(savedMenus[0].items, ({ name, calories }) => [name, calories]), [["ゆで卵", 75]]);
+  const updated = render();
+  const added = findElement(updated, (node) => node.props["aria-label"] === "ゆで卵はマイメニューに追加済み");
+  assert.equal(added.props.disabled, true);
+  const addMeal = findElement(updated, (node) => node.props["aria-label"] === "おにぎり ほか1品を食事ごとマイメニューに追加");
+  await addMeal.props.onClick();
+  assert.deepEqual(Array.from(savedMenus[1].items, ({ name }) => name), ["おにぎり", "ゆで卵"]);
+  detailsButton(updated).props.onClick();
   assert.equal(findId(render(), "meal-details-breakfast").props.hidden, true);
 });
