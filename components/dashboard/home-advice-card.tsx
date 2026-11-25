@@ -72,8 +72,8 @@ export function HomeAdviceCard({ today }: { today: string }) {
     </div>
     <p className="mt-2 text-sm leading-6 text-[var(--muted)]">直近7日間の記録と目標・器具設定から、次に食べるものと取り組む種目を提案します。</p>
     {budget && <div className="mt-3 rounded-lg bg-[var(--canvas)] p-3 text-sm">
-      <p>この機能の累計利用額（概算） <strong className="metric">{usd(budget.estimatedMicros)}</strong></p>
-      <p className="mt-1 text-xs text-[var(--muted)]">10ドルで通知・利用は継続。OpenAIの残高や他のAPI利用額は含みません。</p>
+      <p>全利用者共通のクレジット使用額（概算） <strong className="metric">{usd(budget.estimatedMicros)}</strong></p>
+      <p className="mt-1 text-xs text-[var(--muted)]">運営の無料クレジットを共有しています。あなたへの請求額ではありません。10ドルで通知し、無料枠内で利用を継続します。</p>
       {budget.heldMicros > 0 && <p className="mt-1">確認待ちの料金枠 {usd(budget.heldMicros)}</p>}
       {budget.alert && <p role="alert" className="mt-2 font-semibold text-[var(--coral)]">累計利用額の概算が10ドルに達しました。通知後も、確認済みクレジットの範囲で利用を継続できます。</p>}
     </div>}
@@ -102,7 +102,7 @@ export function HomeAdviceCard({ today }: { today: string }) {
         </details>
         <label className="flex items-start gap-3 leading-6"><input type="checkbox" checked={consent} disabled={busy} onChange={e=>setConsent(e.target.checked)} className="mt-1 size-5 shrink-0 accent-[var(--sage-deep)]" /><span>上の記録の要約と配慮事項をOpenAIへ送信することに同意します。写真やプロフィールの氏名・メールは送りません。</span></label>
         <button type="button" onClick={()=>void generate()} disabled={!consent||busy} className="min-h-12 w-full rounded-lg bg-[var(--sage-deep)] px-4 py-3 font-semibold text-white disabled:opacity-40">{busy ? "記録から提案を作成中…" : "この記録でアドバイスを作る"}</button>
-        <p className="text-xs text-[var(--muted)]">既存クレジットを使用します。追加購入・自動送信はしません。</p>
+        <p className="text-xs text-[var(--muted)]">運営の無料クレジットを使用します。利用者への課金はありません。30秒に1回・24時間に20回まで。無料枠の確認期限や上限に達すると停止します。</p>
       </div>}
       {!preview && <button type="button" onClick={()=>void prepare()} disabled={busy} className="mt-4 min-h-12 rounded-lg border border-[var(--sage-deep)] px-5 py-3 text-sm font-semibold text-[var(--sage-deep)] disabled:opacity-40">{busy ? "確認中…" : advice ? "最新の記録で作り直す" : "記録を確認してアドバイスを作る"}</button>}
     </>}

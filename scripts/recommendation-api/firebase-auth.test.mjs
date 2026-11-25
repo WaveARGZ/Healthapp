@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { generateKeyPair, SignJWT } from "jose";
-import { createFirebaseOwnerVerifier, FirebaseAuthError, FIREBASE_RECOMMENDATION_PROJECT } from "./firebase-auth.ts";
+import { createFirebaseAdviceVerifier, FirebaseAuthError, FIREBASE_RECOMMENDATION_PROJECT } from "./firebase-auth.ts";
 
 // All credentials/claims are synthetic; keys, responses, and caches exist only in RAM.
 const { publicKey, privateKey } = await generateKeyPair("RS256");
@@ -36,7 +36,7 @@ const expectCode = (promise, code, status) => assert.rejects(promise, (error) =>
 
 function harness({ config = {}, dependencies = {}, lookup = () => json(account()) } = {}) {
   const calls = [];
-  const verifier = createFirebaseOwnerVerifier({ ownerUid: OWNER, firebaseApiKey: API_KEY, ...config }, {
+  const verifier = createFirebaseAdviceVerifier({ ownerUid: OWNER, firebaseApiKey: API_KEY, ...config }, {
     now: () => NOW * 1_000,
     resolveKey: async (kid) => {
       assert.equal(kid, "test-key-1");
@@ -66,6 +66,7 @@ test("verified owner returns only UID and uses one fixed, no-retry lookup", asyn
 test("missing/invalid owner or API configuration never calls external services", async () => {
   for (const config of [
     { ownerUid: undefined }, { ownerUid: "" }, { ownerUid: " leading-space" }, { ownerUid: "x".repeat(129) },
+    { accessMode: "" }, { accessMode: "public" }, { accessMode: "AUTHENTICATED" },
     { firebaseApiKey: undefined }, { firebaseApiKey: "" }, { firebaseApiKey: "https://attacker.invalid/secret" },
   ]) {
     const { verifier, calls } = harness({ config });
@@ -103,8 +104,8 @@ test("required and strict Firebase claims reject synthetic unsafe identities bef
     ["nonobject provider", { firebase: [] }],
     ...["iss", "aud", "sub", "exp", "iat", "auth_time", "email_verified", "firebase"].map((key) => [`missing ${key}`, { [key]: undefined }]),
   ];
-  for (const [name, claims] of cases) await t.test(name, async () => {
-    const { verifier, calls } = harness();
+  for (const accessMode of ["owner", "authenticated"]) for (const [name, claims] of cases) await t.test(`${accessMode}: ${name}`, async () => {
+    const { verifier, calls } = harness({ config: { accessMode } });
     let paidCalls = 0;
     await expectCode(verifier(authorization(await signed(claims))).then(() => { paidCalls += 1; }), "invalid_auth_token", 401);
     assert.equal(calls.length, 0);
@@ -224,7 +225,7 @@ function certificateHarness({ certificateResponse, importCertificate, now, looku
   let clock = NOW * 1_000;
   let imports = 0;
   const calls = [];
-  const verifier = createFirebaseOwnerVerifier({ ownerUid: OWNER, firebaseApiKey: API_KEY }, {
+  const verifier = createFirebaseAdviceVerifier({ ownerUid: OWNER, firebaseApiKey: API_KEY }, {
     now: now ?? (() => clock),
     fetch: async (url, init) => {
       calls.push({ url, init });
@@ -310,4 +311,33 @@ test("untrusted key resolver errors are sanitized and do not reach lookup", asyn
   const { verifier, calls } = harness({ dependencies: { resolveKey: async () => { throw new Error("synthetic secret"); } } });
   await expectCode(verifier(authorization(await signed())), "auth_unavailable");
   assert.equal(calls.length, 0);
+});
+
+// Public access still means verified production accounts, never anonymous requests.
+test("explicit authenticated mode admits distinct verified users without changing their identities", async () => {
+  for (const sub of [OWNER, "another-synthetic-user"]) {
+    const { verifier, calls } = harness({config: {accessMode: "authenticated"}, lookup: () => json(account({localId: sub}))});
+    assert.deepEqual(await verifier(authorization(await signed({sub}))), {uid: sub});
+    assert.equal(calls.length, 1);
+  }
+});
+test("authenticated mode retains signatures, revocation, lookup identity and configuration checks", async () => {
+  const sub = "another-synthetic-user";
+  for (const [user, code] of [
+    [{localId: sub, disabled: true}, "auth_revoked"],
+    [{localId: sub, validSince: String(NOW - 999)}, "auth_revoked"],
+    [{localId: OWNER}, "auth_unavailable"],
+    [{localId: sub, emailVerified: false}, "auth_unavailable"],
+    [{localId: sub, validSince: undefined}, "auth_unavailable"],
+  ]) {
+    const {verifier} = harness({config: {accessMode: "authenticated"}, lookup: () => json(account(user))});
+    await expectCode(verifier(authorization(await signed({sub}))), code);
+  }
+  const {verifier, calls} = harness({config: {accessMode: "authenticated"}});
+  await expectCode(verifier(null), "auth_required", 401);
+  await expectCode(verifier(authorization(await signed({sub}, {}, alternate.privateKey))), "invalid_auth_token", 401);
+  assert.equal(calls.length, 0);
+  const missingKey = harness({config: {accessMode: "authenticated", firebaseApiKey: undefined}});
+  await expectCode(missingKey.verifier(authorization(await signed({sub}))), "auth_not_configured", 503);
+  assert.equal(missingKey.calls.length, 0);
 });
