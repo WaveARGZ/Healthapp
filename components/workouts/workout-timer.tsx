@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { SelectInput, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
-import { alarmSamples, scheduledRestAlarm } from "@/lib/workouts/rest-timer-audio";
+import { alarmSamples, prepareRestAlarmSession, restAlarmTrack } from "@/lib/workouts/rest-timer-audio";
 
 const timeFields = [{ unit: "minutes", label: "分" }, { unit: "seconds", label: "秒" }] as const;
 type TimerMode = "rest" | "cardio";
@@ -28,39 +28,15 @@ function clock(seconds: number) {
   return [Math.floor(seconds / 60), seconds % 60].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-type ScheduledAlarm = { player: HTMLAudioElement; url: string };
-
-function releaseScheduledAlarm(alarm: ScheduledAlarm | null) {
-  if (!alarm) return;
-  alarm.player.pause();
-  alarm.player.removeAttribute("src");
-  alarm.player.load();
-  URL.revokeObjectURL(alarm.url);
-}
-
-function countdownTime(startedAt: number, timestamp: number, scheduled: RefObject<ScheduledAlarm | null>) {
-  const alarm = scheduled.current;
-  if (!alarm) return timestamp;
-  const mediaTime = startedAt + alarm.player.currentTime * 1000;
-  if (alarm.player.ended || (!alarm.player.paused && !alarm.player.error && timestamp - mediaTime < 3000)) {
-    return mediaTime;
-  }
-  // A suspended or stalled media player should not block the on-screen timer.
-  scheduled.current = null;
-  releaseScheduledAlarm(alarm);
-  return timestamp;
-}
-
 export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<TimerMode>("rest");
   const [durationDraft, setDurationDraft] = useState({ minutes: "1", seconds: "30" });
   const [elapsed, setElapsed] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
-  const [playbackFailed, setPlaybackFailed] = useState(false);
   const audioContext = useRef<AudioContext | null>(null);
   const alarmPlayer = useRef<HTMLAudioElement>(null);
-  const scheduledAlarm = useRef<ScheduledAlarm | null>(null);
+  const alarmSession = useRef<ReturnType<typeof prepareRestAlarmSession>>(null);
   const restMode = mode === "rest";
   const durationMs = (Number(durationDraft.minutes) * 60 + Number(durationDraft.seconds)) * 1000;
   const validDuration = Number.isSafeInteger(durationMs) && durationMs > 0 && Number(durationDraft.seconds) < 60;
@@ -71,14 +47,20 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!running || startedAt === null) return;
-    const tick = () => setNow(countdownTime(startedAt, Date.now(), scheduledAlarm));
+    const tick = () => setNow(Date.now());
     const interval = window.setInterval(tick, 200);
+    const deadline = restMode
+      ? window.setTimeout(tick, Math.min(2147483647, Math.max(0, startedAt + durationMs - elapsed - Date.now())))
+      : undefined;
     document.addEventListener("visibilitychange", tick);
+    window.addEventListener("pageshow", tick);
     return () => {
       window.clearInterval(interval);
+      window.clearTimeout(deadline);
       document.removeEventListener("visibilitychange", tick);
+      window.removeEventListener("pageshow", tick);
     };
-  }, [running, startedAt]);
+  }, [durationMs, elapsed, restMode, running, startedAt]);
 
   useEffect(() => {
     if (!finished || document.visibilityState !== "visible") return;
@@ -87,52 +69,73 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   }, [finished]);
 
   useEffect(() => {
-    const context = audioContext.current;
-    if (!finished || !context) return;
-    const player = playbackFailed ? undefined : scheduledAlarm.current?.player;
+    if (!finished) return;
+    const player = alarmPlayer.current;
+    const session = alarmSession.current;
+    let useWebAudio = Boolean(session?.prioritize() && audioContext.current);
+    let playing = true;
+    let mediaUrl: string | undefined;
     let alarm: AudioBufferSourceNode | undefined;
+
     const playFallback = () => {
-      if (player && !player.ended && !player.paused && !player.error) return;
-      if (document.visibilityState === "visible" && context.state !== "running") void context.resume().catch(() => {});
+      const context = audioContext.current;
+      if (!playing || !context) return;
+      useWebAudio = true;
+      if (context.state !== "running") void context.resume().catch(() => {});
       if (alarm) return;
-      const samples = alarmSamples(context.sampleRate);
-      const buffer = context.createBuffer(1, samples.length, context.sampleRate);
-      buffer.copyToChannel(samples, 0);
-      alarm = context.createBufferSource();
-      alarm.buffer = buffer;
-      alarm.loop = true;
-      alarm.connect(context.destination);
-      alarm.start();
+      try {
+        const samples = alarmSamples(context.sampleRate);
+        const buffer = context.createBuffer(1, samples.length, context.sampleRate);
+        buffer.copyToChannel(samples, 0);
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(context.destination);
+        source.start();
+        alarm = source;
+      } catch {
+        // A browser that suspends audio still shows the completed timer.
+      }
     };
-    playFallback();
-    player?.addEventListener("ended", playFallback);
-    player?.addEventListener("error", playFallback);
-    document.addEventListener("visibilitychange", playFallback);
+
+    if (!useWebAudio && player) {
+      mediaUrl = URL.createObjectURL(restAlarmTrack());
+      player.src = mediaUrl;
+    }
+    const playAlarm = () => {
+      if (useWebAudio || !player || !mediaUrl) {
+        playFallback();
+      } else if (player.paused) {
+        void player.play().catch(playFallback);
+      }
+    };
+    playAlarm();
+    document.addEventListener("visibilitychange", playAlarm);
     return () => {
-      player?.removeEventListener("ended", playFallback);
-      player?.removeEventListener("error", playFallback);
-      document.removeEventListener("visibilitychange", playFallback);
+      playing = false;
+      document.removeEventListener("visibilitychange", playAlarm);
+      if (player && mediaUrl) {
+        player.pause();
+        player.removeAttribute("src");
+        player.load();
+        URL.revokeObjectURL(mediaUrl);
+      }
       alarm?.stop();
       alarm?.disconnect();
+      session?.restore();
+      if (alarmSession.current === session) alarmSession.current = null;
     };
-  }, [finished, playbackFailed]);
+  }, [finished]);
 
   useEffect(() => () => {
-    releaseScheduledAlarm(scheduledAlarm.current);
-    scheduledAlarm.current = null;
+    alarmSession.current?.restore();
+    alarmSession.current = null;
     const context = audioContext.current;
     audioContext.current = null;
     if (context) void context.close().catch(() => {});
   }, []);
 
-  function clearScheduledAlarm() {
-    const alarm = scheduledAlarm.current;
-    scheduledAlarm.current = null;
-    releaseScheduledAlarm(alarm);
-  }
-
   function reset() {
-    clearScheduledAlarm();
     setStartedAt(null);
     setElapsed(0);
   }
@@ -156,34 +159,20 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
     }
     if (restMode && !validDuration) return;
     if (startedAt !== null) {
-      const elapsedMs = elapsed + Math.max(0, countdownTime(startedAt, timestamp, scheduledAlarm) - startedAt);
-      if (!restMode || elapsedMs < durationMs) clearScheduledAlarm();
-      setElapsed(elapsedMs);
+      alarmSession.current?.restore();
+      alarmSession.current = null;
+      setElapsed(elapsed + Math.max(0, timestamp - startedAt));
       setStartedAt(null);
       return;
     }
     if (restMode) {
-      // Mobile browsers require a tap before allowing audio to play.
+      // Unlock Web Audio from the tap without starting a media track or a tone.
+      alarmSession.current = prepareRestAlarmSession(navigator);
       try {
         const context = audioContext.current ??= new AudioContext();
         if (context.state !== "running") void context.resume().catch(() => {});
       } catch {
         // Keep the visual timer available when audio is unsupported.
-      }
-      const track = scheduledRestAlarm(durationMs - elapsed);
-      setPlaybackFailed(false);
-      const player = alarmPlayer.current;
-      if (track && player) {
-        // Start one media track during the tap, with its first tone at the deadline.
-        const url = URL.createObjectURL(track);
-        const alarm = { player, url };
-        scheduledAlarm.current = alarm;
-        player.src = url;
-        void player.play().catch(() => {
-          if (scheduledAlarm.current !== alarm) return;
-          clearScheduledAlarm();
-          setPlaybackFailed(true);
-        });
       }
     }
     setNow(timestamp);
@@ -191,7 +180,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   }
 
   return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsed > 0, changeMode, changeDuration, reset, toggle }}>
-    <audio ref={alarmPlayer} aria-hidden="true" />
+    <audio ref={alarmPlayer} aria-hidden="true" loop />
     {children}
   </TimerContext.Provider>;
 }
