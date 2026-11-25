@@ -1,10 +1,18 @@
-const secondsPerAlarmCycle = 2;
-const wavSampleRate = 8000;
-const bytesPerSample = 2;
-const maxScheduledDelayMs = 30 * 60 * 1000;
+type MixingAudioSession = { type: string };
+
+export function allowTimerAudioMixing(browser: Navigator): boolean {
+  const session = (browser as Navigator & { audioSession?: MixingAudioSession }).audioSession;
+  if (!session) return false;
+  try {
+    session.type = "ambient";
+    return session.type === "ambient";
+  } catch {
+    return false;
+  }
+}
 
 export function alarmSamples(rate: number): Float32Array<ArrayBuffer> {
-  const samples = new Float32Array(rate * secondsPerAlarmCycle);
+  const samples = new Float32Array(rate * 2);
   const toneLength = Math.floor(rate * 0.18);
   const fadeLength = Math.max(1, Math.floor(rate * 0.01));
   for (const [start, frequency] of [[0, 880], [Math.floor(rate * 0.27), 1100]]) {
@@ -16,44 +24,15 @@ export function alarmSamples(rate: number): Float32Array<ArrayBuffer> {
   return samples;
 }
 
-export function scheduledRestAlarm(delayMs: number): Blob | null {
-  // Keep the generated media bounded. Longer rests still use the on-screen alarm.
-  if (!Number.isFinite(delayMs) || delayMs <= 0 || delayMs > maxScheduledDelayMs) return null;
-  const silentSamples = Math.ceil(delayMs * wavSampleRate / 1000);
-  const cycle = alarmSamples(wavSampleRate);
-  const repetitions = 15;
-  const dataBytes = (silentSamples + cycle.length * repetitions) * bytesPerSample;
-
-  const header = new ArrayBuffer(44);
-  const view = new DataView(header);
-  const text = new TextEncoder();
-  const bytes = new Uint8Array(header);
-  bytes.set(text.encode("RIFF"), 0);
-  view.setUint32(4, dataBytes + 36, true);
-  bytes.set(text.encode("WAVEfmt "), 8);
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // PCM
-  view.setUint16(22, 1, true); // Mono
-  view.setUint32(24, wavSampleRate, true);
-  view.setUint32(28, wavSampleRate * bytesPerSample, true);
-  view.setUint16(32, bytesPerSample, true);
-  view.setUint16(34, bytesPerSample * 8, true);
-  bytes.set(text.encode("data"), 36);
-  view.setUint32(40, dataBytes, true);
-
-  const tone = new DataView(new ArrayBuffer(cycle.length * bytesPerSample));
-  for (const [index, sample] of cycle.entries()) {
-    tone.setInt16(index * bytesPerSample, Math.round(sample * 32767), true);
-  }
-
-  // Reuse the same chunks to avoid allocating a PCM array for the full wait.
-  const silentSecondBytes = wavSampleRate * bytesPerSample;
-  const silentSeconds = Math.floor(silentSamples / wavSampleRate);
-  const silentSecond = new Blob([new Uint8Array(silentSecondBytes)]);
-  const partialSecond = silentSecond.slice(0, (silentSamples % wavSampleRate) * bytesPerSample);
-  const alarmCycle = new Blob([tone.buffer]);
-  return new Blob([
-    header, ...Array<Blob>(silentSeconds).fill(silentSecond), partialSecond,
-    ...Array<Blob>(repetitions).fill(alarmCycle),
-  ], { type: "audio/wav" });
+export function scheduleRestChime(context: AudioContext, delayMs: number) {
+  const samples = alarmSamples(context.sampleRate);
+  const buffer = context.createBuffer(1, samples.length, context.sampleRate);
+  buffer.copyToChannel(samples, 0);
+  const source = context.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  source.connect(context.destination);
+  const playAt = context.currentTime + Math.max(0, delayMs) / 1000;
+  source.start(playAt);
+  return { source, playAt };
 }

@@ -1,14 +1,14 @@
 "use client";
 
-import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { SelectInput, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
-import { alarmSamples, scheduledRestAlarm } from "@/lib/workouts/rest-timer-audio";
+import { allowTimerAudioMixing, scheduleRestChime } from "@/lib/workouts/rest-timer-audio";
+import { enableRestNotifications, restNotificationPermission, showRestNotification } from "@/lib/workouts/workout-timer-notifications";
+import { initialWorkoutTimer, restDurationMs, restoreWorkoutTimer, workoutTimerElapsed, type DurationUnit, type TimerMode, type WorkoutTimerState } from "@/lib/workouts/workout-timer-state";
 
 const timeFields = [{ unit: "minutes", label: "分" }, { unit: "seconds", label: "秒" }] as const;
-type TimerMode = "rest" | "cardio";
-type DurationUnit = (typeof timeFields)[number]["unit"];
 
 const TimerContext = createContext<{
   mode: TimerMode;
@@ -22,103 +22,153 @@ const TimerContext = createContext<{
   changeDuration: (unit: DurationUnit, value: string) => void;
   reset: () => void;
   toggle: (timestamp: number) => void;
+  notificationPermission: NotificationPermission | "unsupported";
+  enableNotifications: () => Promise<void>;
 } | null>(null);
 
 function clock(seconds: number) {
   return [Math.floor(seconds / 60), seconds % 60].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-type ScheduledAlarm = { player: HTMLAudioElement; url: string };
+const timerKey = "bodymake.workout-timer.v1";
+const audioOwnerKey = "bodymake.workout-timer.audio-owner";
+const timerChangeEvent = "bodymake:workout-timer-change";
+let cachedTimer: WorkoutTimerState = initialWorkoutTimer;
+let cachedTimerJson: string | null = null;
 
-function releaseScheduledAlarm(alarm: ScheduledAlarm | null) {
-  if (!alarm) return;
-  alarm.player.pause();
-  alarm.player.removeAttribute("src");
-  alarm.player.load();
-  URL.revokeObjectURL(alarm.url);
+function readTimer() {
+  try {
+    const value = window.localStorage.getItem(timerKey);
+    if (cachedTimerJson !== value) {
+      cachedTimerJson = value;
+      cachedTimer = restoreWorkoutTimer(value);
+    }
+  } catch { /* Keep the in-memory timer if browser storage is unavailable. */ }
+  return cachedTimer;
 }
 
-function countdownTime(startedAt: number, timestamp: number, scheduled: RefObject<ScheduledAlarm | null>) {
-  const alarm = scheduled.current;
-  if (!alarm) return timestamp;
-  const mediaTime = startedAt + alarm.player.currentTime * 1000;
-  if (alarm.player.ended || (!alarm.player.paused && !alarm.player.error && timestamp - mediaTime < 3000)) {
-    return mediaTime;
-  }
-  // A suspended or stalled media player should not block the on-screen timer.
-  scheduled.current = null;
-  releaseScheduledAlarm(alarm);
-  return timestamp;
+function writeTimer(state: WorkoutTimerState) {
+  cachedTimer = state;
+  try {
+    const value = JSON.stringify(state);
+    window.localStorage.setItem(timerKey, value);
+    cachedTimerJson = value;
+  } catch { /* Keep the in-memory timer if browser storage is unavailable. */ }
+  window.dispatchEvent(new Event(timerChangeEvent));
+}
+
+function ownsAudio(startedAt: number): boolean {
+  try { return window.sessionStorage.getItem(audioOwnerKey) === String(startedAt); }
+  catch { return false; }
+}
+
+function subscribeTimer(notify: () => void) {
+  const sync = (event: StorageEvent) => { if (event.key === null || event.key === timerKey) notify(); };
+  window.addEventListener(timerChangeEvent, notify);
+  window.addEventListener("storage", sync);
+  return () => {
+    window.removeEventListener(timerChangeEvent, notify);
+    window.removeEventListener("storage", sync);
+  };
+}
+
+type ScheduledAlarm = ReturnType<typeof scheduleRestChime> & { startedAt: number };
+
+function releaseAlarm(alarm: ScheduledAlarm | null) {
+  alarm?.source.stop();
+  alarm?.source.disconnect();
 }
 
 export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<TimerMode>("rest");
-  const [durationDraft, setDurationDraft] = useState({ minutes: "1", seconds: "30" });
-  const [elapsed, setElapsed] = useState(0);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const timer = useSyncExternalStore(subscribeTimer, readTimer, () => initialWorkoutTimer);
+  const { mode, durationDraft, elapsedMs, startedAt } = timer;
   const [now, setNow] = useState(0);
-  const [playbackFailed, setPlaybackFailed] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("unsupported");
   const audioContext = useRef<AudioContext | null>(null);
-  const alarmPlayer = useRef<HTMLAudioElement>(null);
   const scheduledAlarm = useRef<ScheduledAlarm | null>(null);
+  const timerStartedHere = useRef<number | null>(null);
   const restMode = mode === "rest";
-  const durationMs = (Number(durationDraft.minutes) * 60 + Number(durationDraft.seconds)) * 1000;
-  const validDuration = Number.isSafeInteger(durationMs) && durationMs > 0 && Number(durationDraft.seconds) < 60;
-  const milliseconds = elapsed + (startedAt === null ? 0 : Math.max(0, now - startedAt));
+  const durationMs = restDurationMs(durationDraft);
+  const validDuration = durationMs > 0;
+  const milliseconds = workoutTimerElapsed(timer, now);
   const finished = restMode && validDuration && milliseconds >= durationMs;
   const running = startedAt !== null && !finished;
   const seconds = restMode ? (validDuration ? Math.max(0, Math.ceil((durationMs - milliseconds) / 1000)) : 0) : Math.floor(milliseconds / 1000);
 
   useEffect(() => {
     if (!running || startedAt === null) return;
-    const tick = () => setNow(countdownTime(startedAt, Date.now(), scheduledAlarm));
+    const tick = () => setNow(Date.now());
+    const firstTick = window.setTimeout(tick, 0);
     const interval = window.setInterval(tick, 200);
+    window.addEventListener("pageshow", tick);
     document.addEventListener("visibilitychange", tick);
+    document.addEventListener("resume", tick);
     return () => {
+      window.clearTimeout(firstTick);
       window.clearInterval(interval);
+      window.removeEventListener("pageshow", tick);
       document.removeEventListener("visibilitychange", tick);
+      document.removeEventListener("resume", tick);
     };
   }, [running, startedAt]);
 
   useEffect(() => {
-    if (!finished || document.visibilityState !== "visible") return;
-    if (!navigator.vibrate?.([250, 150, 250])) return;
-    return () => { navigator.vibrate(0); };
-  }, [finished]);
+    if (!finished || startedAt === null) return;
+    let alertedWhileHidden = false;
+    let vibrated = false;
+    const alert = () => {
+      if (document.visibilityState !== "visible") {
+        if (!alertedWhileHidden && restNotificationPermission() === "granted") {
+          alertedWhileHidden = true;
+          void showRestNotification(startedAt).catch(() => { alertedWhileHidden = false; });
+        }
+        return;
+      }
+      if (!vibrated) {
+        navigator.vibrate?.([250, 150, 250]);
+        vibrated = true;
+      }
+      if (timerStartedHere.current !== startedAt && !ownsAudio(startedAt)) return;
+      try {
+        if (!audioContext.current) allowTimerAudioMixing(navigator);
+        const context = audioContext.current ??= new AudioContext();
+        const scheduled = scheduledAlarm.current;
+        if (context.state === "running" && scheduled && context.currentTime >= scheduled.playAt) return;
+        if (context.state !== "running") void context.resume().catch(() => {});
+        releaseAlarm(scheduled);
+        scheduledAlarm.current = null;
+        scheduledAlarm.current = { ...scheduleRestChime(context, 0), startedAt };
+      } catch { /* The timer still shows completion if the browser blocks audio. */ }
+    };
+    alert();
+    document.addEventListener("visibilitychange", alert);
+    return () => {
+      document.removeEventListener("visibilitychange", alert);
+      if (vibrated) navigator.vibrate?.(0);
+    };
+  }, [finished, startedAt]);
 
   useEffect(() => {
-    const context = audioContext.current;
-    if (!finished || !context) return;
-    const player = playbackFailed ? undefined : scheduledAlarm.current?.player;
-    let alarm: AudioBufferSourceNode | undefined;
-    const playFallback = () => {
-      if (player && !player.ended && !player.paused && !player.error) return;
-      if (document.visibilityState === "visible" && context.state !== "running") void context.resume().catch(() => {});
-      if (alarm) return;
-      const samples = alarmSamples(context.sampleRate);
-      const buffer = context.createBuffer(1, samples.length, context.sampleRate);
-      buffer.copyToChannel(samples, 0);
-      alarm = context.createBufferSource();
-      alarm.buffer = buffer;
-      alarm.loop = true;
-      alarm.connect(context.destination);
-      alarm.start();
-    };
-    playFallback();
-    player?.addEventListener("ended", playFallback);
-    player?.addEventListener("error", playFallback);
-    document.addEventListener("visibilitychange", playFallback);
+    const alarm = scheduledAlarm.current;
+    if (!alarm || alarm.startedAt === startedAt) return;
+    scheduledAlarm.current = null;
+    releaseAlarm(alarm);
+  }, [startedAt]);
+
+  useEffect(() => {
+    const updatePermission = () => setNotificationPermission(restNotificationPermission());
+    const once = window.setTimeout(updatePermission, 0);
+    window.addEventListener("pageshow", updatePermission);
+    document.addEventListener("visibilitychange", updatePermission);
     return () => {
-      player?.removeEventListener("ended", playFallback);
-      player?.removeEventListener("error", playFallback);
-      document.removeEventListener("visibilitychange", playFallback);
-      alarm?.stop();
-      alarm?.disconnect();
+      window.clearTimeout(once);
+      window.removeEventListener("pageshow", updatePermission);
+      document.removeEventListener("visibilitychange", updatePermission);
     };
-  }, [finished, playbackFailed]);
+  }, []);
 
   useEffect(() => () => {
-    releaseScheduledAlarm(scheduledAlarm.current);
+    releaseAlarm(scheduledAlarm.current);
     scheduledAlarm.current = null;
     const context = audioContext.current;
     audioContext.current = null;
@@ -128,70 +178,68 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   function clearScheduledAlarm() {
     const alarm = scheduledAlarm.current;
     scheduledAlarm.current = null;
-    releaseScheduledAlarm(alarm);
+    releaseAlarm(alarm);
   }
 
-  function reset() {
+  function reset(patch?: Pick<Partial<WorkoutTimerState>, "mode" | "durationDraft">) {
     clearScheduledAlarm();
-    setStartedAt(null);
-    setElapsed(0);
+    writeTimer({ ...readTimer(), ...patch, startedAt: null, elapsedMs: 0 });
   }
 
   function changeMode(next: TimerMode) {
-    setMode(next);
-    reset();
+    reset({ mode: next });
   }
 
   function changeDuration(unit: DurationUnit, input: string) {
     const value = input.normalize("NFKC");
     if (!/^\d*$/.test(value)) return;
-    setDurationDraft((current) => ({ ...current, [unit]: value }));
-    reset();
+    reset({ durationDraft: { ...readTimer().durationDraft, [unit]: value } });
   }
 
   function toggle(timestamp: number) {
-    if (finished) {
+    const current = readTimer();
+    const passed = workoutTimerElapsed(current, timestamp);
+    const target = restDurationMs(current.durationDraft);
+    const rest = current.mode === "rest";
+    if (rest && target && passed >= target) {
       reset();
       return;
     }
-    if (restMode && !validDuration) return;
-    if (startedAt !== null) {
-      const elapsedMs = elapsed + Math.max(0, countdownTime(startedAt, timestamp, scheduledAlarm) - startedAt);
-      if (!restMode || elapsedMs < durationMs) clearScheduledAlarm();
-      setElapsed(elapsedMs);
-      setStartedAt(null);
+    if (rest && !target) return;
+    if (current.startedAt !== null) {
+      clearScheduledAlarm();
+      writeTimer({ ...current, elapsedMs: passed, startedAt: null });
       return;
     }
-    if (restMode) {
-      // Mobile browsers require a tap before allowing audio to play.
+    if (rest) {
       try {
-        const context = audioContext.current ??= new AudioContext();
-        if (context.state !== "running") void context.resume().catch(() => {});
+        // When mixing is supported, queue only the chime for the deadline. Do not
+        // start an HTML media track or take exclusive audio focus at countdown start.
+        if (allowTimerAudioMixing(navigator)) {
+          const context = audioContext.current ??= new AudioContext();
+          if (context.state !== "running") void context.resume().catch(() => {});
+          scheduledAlarm.current = { ...scheduleRestChime(context, target - passed), startedAt: timestamp };
+        }
       } catch {
         // Keep the visual timer available when audio is unsupported.
       }
-      const track = scheduledRestAlarm(durationMs - elapsed);
-      setPlaybackFailed(false);
-      const player = alarmPlayer.current;
-      if (track && player) {
-        // Start one media track during the tap, with its first tone at the deadline.
-        const url = URL.createObjectURL(track);
-        const alarm = { player, url };
-        scheduledAlarm.current = alarm;
-        player.src = url;
-        void player.play().catch(() => {
-          if (scheduledAlarm.current !== alarm) return;
-          clearScheduledAlarm();
-          setPlaybackFailed(true);
-        });
-      }
+      timerStartedHere.current = timestamp;
+      try { window.sessionStorage.setItem(audioOwnerKey, String(timestamp)); }
+      catch { /* The active tab remains the alarm owner without storage. */ }
     }
     setNow(timestamp);
-    setStartedAt(timestamp);
+    writeTimer({ ...current, startedAt: timestamp });
   }
 
-  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsed > 0, changeMode, changeDuration, reset, toggle }}>
-    <audio ref={alarmPlayer} aria-hidden="true" />
+  async function enableNotifications() {
+    try {
+      setNotificationPermission(await enableRestNotifications());
+    } catch {
+      setNotificationPermission(restNotificationPermission());
+    }
+  }
+
+  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsedMs > 0, changeMode, changeDuration, reset: () => reset(), toggle, notificationPermission, enableNotifications }}>
     {children}
   </TimerContext.Provider>;
 }
@@ -200,7 +248,7 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
   const id = useId();
   const timer = useContext(TimerContext);
   if (!timer) return null;
-  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, changeMode, changeDuration, reset, toggle } = timer;
+  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, changeMode, changeDuration, reset, toggle, notificationPermission, enableNotifications } = timer;
   const restMode = mode === "rest";
   const timeLocked = running || finished;
   const action = <Button type="button" size={compact ? "small" : "default"} className={compact ? "w-24 shrink-0 whitespace-nowrap px-2!" : undefined}
@@ -239,6 +287,9 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
           </fieldset>}
         </div>
         {restMode && !validDuration && <p role="status" className="text-sm text-[var(--coral)]">1秒以上の休憩時間を入力してください。秒は0〜59で設定できます。</p>}
+        {restMode && notificationPermission === "default" && <Button type="button" size="small" variant="secondary" className="justify-self-start" onClick={() => void enableNotifications()}>終了通知を許可</Button>}
+        {restMode && notificationPermission === "granted" && <p className="text-xs text-[var(--muted)]">終了通知を許可済み</p>}
+        {restMode && <p className="text-xs leading-5 text-[var(--muted)]">端末がブラウザーを停止した場合、開き直すと終了を確認できます。</p>}
         {finished && !compact && <p role="status" className="text-sm font-semibold text-[var(--sage-deep)]">休憩時間が終了しました。</p>}
         {(!compact || !finished) && <div className="flex flex-wrap gap-2">
           {!compact && action}
