@@ -4,13 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { IScannerControls } from "@zxing/browser";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { lookupBarcodeProduct, normalizeBarcode, scaleBarcodeNutrition, type BarcodeNutrition, type BarcodeProduct } from "@/lib/food-barcode";
-import type { MealFoodItem } from "@/types/meal";
+import { barcodeNutritionForAmount, findRecordedBarcodeProduct, lookupBarcodeProduct, manualBarcodeProduct, normalizeBarcode, type BarcodeNutrition, type BarcodeProduct } from "@/lib/food-barcode";
+import type { MealEntry, MealFoodItem } from "@/types/meal";
 
 interface BarcodeMealEntryProps {
   onAddFood: (food: Omit<MealFoodItem, "id">) => Promise<void>;
   barcode: string;
   onBarcodeChange: (value: string) => void;
+  previousMeals: readonly MealEntry[];
 }
 
 type NutritionKey = keyof BarcodeNutrition;
@@ -36,7 +37,7 @@ function validAmount(value: string): boolean {
   return value.trim() !== "" && Number.isFinite(amount) && amount > 0 && amount <= 3000;
 }
 
-export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange }: BarcodeMealEntryProps) {
+export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange, previousMeals }: BarcodeMealEntryProps) {
   const [scanning, setScanning] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [product, setProduct] = useState<BarcodeProduct | null>(null);
@@ -48,7 +49,11 @@ export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange }: Barcod
   const [notice, setNotice] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const lookupAbort = useRef<AbortController | null>(null);
+  const previousMealsRef = useRef(previousMeals);
   const saveLock = useRef(false);
+  const canScale = product && unit === product.amountUnit && Object.values(product.per100).some((value) => value !== undefined);
+
+  useEffect(() => { previousMealsRef.current = previousMeals; }, [previousMeals]);
 
   const searchBarcode = useCallback(async (rawCode: string) => {
     lookupAbort.current?.abort();
@@ -64,24 +69,25 @@ export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange }: Barcod
     onBarcodeChange(code);
     setIsLookingUp(true);
     setNotice("商品を検索しています…");
+    const recorded = findRecordedBarcodeProduct(code, previousMealsRef.current);
+    let found = recorded;
+    let lookupFailed = false;
     try {
-      const found = await lookupBarcodeProduct(code, controller.signal);
-      if (controller.signal.aborted) return;
-      if (!found) {
-        setNotice("商品が見つかりませんでした。番号を確認するか、手入力から登録してください。");
-        return;
-      }
-      setProduct(found);
-      setName(found.name);
-      setAmount(String(found.suggestedAmount));
-      setUnit(found.amountUnit);
-      setDrafts(nutritionDrafts(scaleBarcodeNutrition(found.per100, found.suggestedAmount)));
-      setNotice(found.name ? "商品情報を確認し、食べた量と栄養値を直してから保存してください。" : "商品名が未登録です。パッケージを確認して入力してください。");
+      found ??= await lookupBarcodeProduct(code, controller.signal);
     } catch {
-      if (!controller.signal.aborted) setNotice("商品を検索できませんでした。通信状態を確認するか、手入力から登録してください。");
-    } finally {
-      if (!controller.signal.aborted) setIsLookingUp(false);
+      lookupFailed = true;
     }
+    if (controller.signal.aborted) return;
+    const result = found ?? manualBarcodeProduct(code);
+    setIsLookingUp(false);
+    setProduct(result);
+    setName(result.name);
+    setAmount(String(result.suggestedAmount));
+    setUnit(result.amountUnit);
+    setDrafts(nutritionDrafts(barcodeNutritionForAmount(result, result.suggestedAmount)));
+    if (recorded) setNotice("前回の記録を読み込みました。食べた量や栄養値を変更できます。");
+    else if (found) setNotice(found.name ? "食べた量と栄養値を確認してから保存してください。" : "商品名をパッケージで確認して入力してください。");
+    else setNotice(lookupFailed ? "商品情報を取得できませんでした。バーコードを残したまま入力できます。" : "商品が見つかりませんでした。商品名を入力して記録すると、次回から呼び出せます。");
   }, [onBarcodeChange]);
 
   useEffect(() => () => lookupAbort.current?.abort(), []);
@@ -119,7 +125,16 @@ export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange }: Barcod
 
   function changeAmount(value: string) {
     setAmount(value);
-    if (product && validAmount(value)) setDrafts(nutritionDrafts(scaleBarcodeNutrition(product.per100, Number(value))));
+    if (product && canScale && validAmount(value)) {
+      const scaled = barcodeNutritionForAmount(product, Number(value));
+      setDrafts((current) => {
+        const next = { ...current };
+        for (const [key] of nutritionFields) {
+          if (scaled[key] !== undefined) next[key] = String(scaled[key]);
+        }
+        return next;
+      });
+    }
   }
 
   async function saveProduct() {
@@ -143,7 +158,10 @@ export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange }: Barcod
         name: `${name.trim()}（${quantity}${unit}）`,
         ...nutrition,
         sourceBarcode: product.code,
-        ...(unit === "g" ? { portionGrams: quantity, portionUnit: unit, portionQuantity: quantity } : {}),
+        barcodeSource: product.source,
+        portionUnit: unit,
+        portionQuantity: quantity,
+        ...(unit === "g" ? { portionGrams: quantity } : {}),
       });
       setProduct(null);
       setScanning(false);
@@ -164,22 +182,22 @@ export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange }: Barcod
     </Button>
     {scanning && <div className="mt-3 overflow-hidden rounded-lg bg-black"><video ref={videoRef} autoPlay muted playsInline aria-label="バーコード読み取りカメラ" className="aspect-[4/3] w-full object-cover" /><p className="bg-[var(--ink)] px-3 py-2 text-center text-xs text-white">商品の線状バーコードを画面中央に合わせてください</p></div>}
     <label className="mt-4 block text-xs font-bold text-[var(--ink)]">バーコード番号を入力
-      <input value={barcode} onChange={(event) => { lookupAbort.current?.abort(); setIsLookingUp(false); onBarcodeChange(event.target.value); setProduct(null); setNotice(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); setScanning(false); void searchBarcode(barcode); } }} inputMode="numeric" autoComplete="off" placeholder="例：3017620422003" className="form-input mt-2" />
+      <input value={barcode} disabled={isSaving} onChange={(event) => { lookupAbort.current?.abort(); setIsLookingUp(false); onBarcodeChange(event.target.value); setProduct(null); setNotice(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); if (!isLookingUp && !isSaving) { setScanning(false); void searchBarcode(barcode); } } }} inputMode="numeric" autoComplete="off" placeholder="例：3017620422003" className="form-input mt-2" />
     </label>
     <Button type="button" className="mt-3 w-full" onClick={() => { setScanning(false); void searchBarcode(barcode); }} disabled={isLookingUp || isSaving || !normalizeBarcode(barcode)}>{isLookingUp ? "検索中…" : "商品を検索"}</Button>
     {product && <div className="mt-5 rounded-lg border border-[var(--line)] bg-white p-4">
-      <p className="text-xs font-bold text-[var(--sage-deep)]">検索した商品</p>
-      <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{product.name || "商品名未登録"}{product.brand ? ` · ${product.brand}` : ""}</p>
+      <p className="text-xs font-bold text-[var(--sage-deep)]">{product.name ? "商品情報" : "商品情報を入力"}</p>
+      {product.name && <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{product.name}{product.brand ? ` · ${product.brand}` : ""}</p>}
       {product.packageQuantity && <p className="mt-1 text-xs text-[var(--muted)]">内容量：{product.packageQuantity}</p>}
-      <a href={product.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-[var(--sage-deep)] underline">出典：Open Food Factsで商品情報を見る</a>
+      {product.sourceUrl && <a href={product.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-[var(--sage-deep)] underline">出典：{product.source === "manufacturer" ? "メーカー公式の商品情報" : "Open Food Facts"}</a>}
       <label className="mt-4 block text-xs font-bold text-[var(--ink)]">登録する商品名<input value={name} onChange={(event) => setName(event.target.value)} className="form-input mt-2" placeholder="商品名を入力" /></label>
-      <div className="mt-4 flex items-end gap-3"><label className="min-w-0 flex-1 text-xs font-bold text-[var(--ink)]">食べた量<input type="number" min="1" max="3000" step="any" inputMode="decimal" value={amount} onChange={(event) => changeAmount(event.target.value)} className="form-input mt-2" /></label><label className="text-xs font-bold text-[var(--ink)]">単位<select value={unit} onChange={(event) => setUnit(event.target.value as "g" | "ml")} className="form-input mt-2 min-w-20"><option value="g">g</option><option value="ml">ml</option></select></label></div>
-      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">100g／100mlあたりの登録値から計算します。</p>
+      <div className="mt-4 flex items-end gap-3"><label className="min-w-0 flex-1 text-xs font-bold text-[var(--ink)]">食べた量<input type="number" min="1" max="3000" step="any" inputMode="decimal" value={amount} onChange={(event) => changeAmount(event.target.value)} className="form-input mt-2" /></label><label className="text-xs font-bold text-[var(--ink)]">単位<select aria-label="食べた量の単位" value={unit} onChange={(event) => setUnit(event.target.value as "g" | "ml")} className="form-input mt-2 min-w-20"><option value="g">g</option><option value="ml">ml</option></select></label></div>
+      {canScale && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">食べた量に合わせて栄養値を計算します。</p>}
       <fieldset className="mt-4"><legend className="text-xs font-bold text-[var(--ink)]">登録する栄養値（修正できます）</legend><div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, suffix]) => <label key={key} className="min-w-0 text-xs font-medium text-[var(--muted)]">{label}（{suffix}）<input type="number" min="0" max="10000" step="any" inputMode="decimal" placeholder="未入力" value={drafts[key]} onChange={(event) => setDrafts((current) => ({ ...current, [key]: event.target.value }))} className="form-input mt-2 min-w-0" /></label>)}</div></fieldset>
       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">空欄は未入力として保存します。パッケージの表示と照らして確認してください。</p>
       <Button type="button" className="mt-4 w-full" onClick={() => void saveProduct()} disabled={!name.trim() || !validAmount(amount) || isSaving}>{isSaving ? "保存中…" : "この商品を食事に追加"}</Button>
     </div>}
     {notice && <p role="status" className="mt-3 text-sm leading-6 text-[var(--muted)]">{notice}</p>}
-    <p className="mt-4 text-xs leading-5 text-[var(--muted)]">カメラ映像は保存しません。商品検索時はバーコード番号だけをOpen Food Factsへ送信します。</p>
+    <p className="mt-4 text-xs leading-5 text-[var(--muted)]">カメラ映像は保存しません。アプリ内で商品が見つからない場合は、バーコード番号だけをOpen Food Factsへ送信します。</p>
   </section>;
 }
