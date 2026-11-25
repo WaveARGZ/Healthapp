@@ -18,12 +18,13 @@ export interface MealFoodItem {
   sourceFdcId?: number;
   /** The Japanese Standard Tables of Food Composition food number. */
   sourceFoodCode?: string;
-  /** Open Food Facts barcode used for a packaged product lookup. */
+  /** Barcode used to record a packaged product. */
   sourceBarcode?: string;
+  barcodeSource?: "open-food-facts" | "manufacturer" | "manual";
   /** Weight used for the initial nutrient calculation; the user can edit it before adding. */
   portionGrams?: number;
   /** Entered serving, kept separate from the estimated edible weight. */
-  portionUnit?: "g" | "個" | "本";
+  portionUnit?: "g" | "ml" | "個" | "本";
   portionQuantity?: number;
   gramsPerPiece?: number;
 }
@@ -57,5 +58,12 @@ export interface MealEntry {
   recordedAt: string;
   /** Local clock time (HH:mm). Optional for records saved before time tracking. */
   recordedTime?: string;
+  createdAt: string;
+}
+
+export interface MealMenuEntry {
+  id: string;
+  name: string;
+  items: Omit<MealFoodItem, "id">[];
   createdAt: string;
 }
