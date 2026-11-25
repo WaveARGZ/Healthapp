@@ -9,3 +9,11 @@ self.addEventListener("notificationclick", (event) => {
     else await self.clients.openWindow(workouts);
   })());
 });
+self.addEventListener("push", (event) => {
+  let tag;
+  try { tag = event.data?.json().notification?.tag; } catch { /* Use the standard rest alert. */ }
+  event.waitUntil(self.registration.showNotification("休憩時間が終了しました", {
+    body: "BodyMakeのタイマーを確認してください。",
+    tag: typeof tag === "string" && /^bodymake-rest-\d+$/.test(tag) ? tag : "bodymake-rest-push",
+  }));
+});

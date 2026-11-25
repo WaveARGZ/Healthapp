@@ -4,7 +4,8 @@ import { createContext, useContext, useEffect, useId, useRef, useState, useSyncE
 import { Button } from "@/components/ui/button";
 import { SelectInput, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
-import { allowTimerAudioMixing, scheduleRestChime } from "@/lib/workouts/rest-timer-audio";
+import { useWorkoutRestPush } from "@/hooks/use-workout-rest-push";
+import { allowTimerAudioMixing, playRestMediaAlarm, requestRestAlarmAudioFocus, scheduleRestChime } from "@/lib/workouts/rest-timer-audio";
 import { enableRestNotifications, restNotificationPermission, showRestNotification } from "@/lib/workouts/workout-timer-notifications";
 import { initialWorkoutTimer, restDurationMs, restoreWorkoutTimer, workoutTimerElapsed, type DurationUnit, type TimerMode, type WorkoutTimerState } from "@/lib/workouts/workout-timer-state";
 
@@ -24,6 +25,9 @@ const TimerContext = createContext<{
   toggle: (timestamp: number) => void;
   notificationPermission: NotificationPermission | "unsupported";
   enableNotifications: () => Promise<void>;
+  pushAvailable: boolean;
+  pushSubscribed: boolean;
+  pushStatus: "idle" | "pending" | "scheduled" | "error";
 } | null>(null);
 
 function clock(seconds: number) {
@@ -84,6 +88,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   const { mode, durationDraft, elapsedMs, startedAt } = timer;
   const [now, setNow] = useState(0);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("unsupported");
+  const push = useWorkoutRestPush();
   const audioContext = useRef<AudioContext | null>(null);
   const scheduledAlarm = useRef<ScheduledAlarm | null>(null);
   const timerStartedHere = useRef<number | null>(null);
@@ -100,50 +105,83 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
     const tick = () => setNow(Date.now());
     const firstTick = window.setTimeout(tick, 0);
     const interval = window.setInterval(tick, 200);
+    const deadline = restMode ? window.setTimeout(tick, Math.min(2_147_483_647, Math.max(0, startedAt + durationMs - elapsedMs - Date.now()))) : undefined;
     window.addEventListener("pageshow", tick);
     document.addEventListener("visibilitychange", tick);
     document.addEventListener("resume", tick);
     return () => {
       window.clearTimeout(firstTick);
+      window.clearTimeout(deadline);
       window.clearInterval(interval);
       window.removeEventListener("pageshow", tick);
       document.removeEventListener("visibilitychange", tick);
       document.removeEventListener("resume", tick);
     };
-  }, [running, startedAt]);
+  }, [durationMs, elapsedMs, restMode, running, startedAt]);
 
   useEffect(() => {
     if (!finished || startedAt === null) return;
     let alertedWhileHidden = false;
     let vibrated = false;
-    const alert = () => {
-      if (document.visibilityState !== "visible") {
-        if (!alertedWhileHidden && restNotificationPermission() === "granted") {
-          alertedWhileHidden = true;
-          void showRestNotification(startedAt).catch(() => { alertedWhileHidden = false; });
-        }
-        return;
-      }
-      if (!vibrated) {
-        navigator.vibrate?.([250, 150, 250]);
-        vibrated = true;
-      }
-      if (timerStartedHere.current !== startedAt && !ownsAudio(startedAt)) return;
+    let startedAudio = false;
+    let releaseFocus: (() => void) | null = null;
+    let media: ReturnType<typeof playRestMediaAlarm> | null = null;
+    const playChime = () => {
       try {
-        if (!audioContext.current) allowTimerAudioMixing(navigator);
         const context = audioContext.current ??= new AudioContext();
         const scheduled = scheduledAlarm.current;
-        if (context.state === "running" && scheduled && context.currentTime >= scheduled.playAt) return;
+        // Visibility changes can restore a suspended context. Only replace a
+        // chime that is still waiting on a browser audio clock that fell behind.
         if (context.state !== "running") void context.resume().catch(() => {});
+        if (scheduled && context.currentTime >= scheduled.playAt) return;
         releaseAlarm(scheduled);
         scheduledAlarm.current = null;
         scheduledAlarm.current = { ...scheduleRestChime(context, 0), startedAt };
       } catch { /* The timer still shows completion if the browser blocks audio. */ }
     };
+    const playMedia = (alarm: NonNullable<typeof media>) => {
+      void alarm.play().catch(() => {
+        if (media !== alarm) return;
+        media = null;
+        alarm.stop();
+        playChime();
+      });
+    };
+    const alert = () => {
+      const visible = document.visibilityState === "visible";
+      if (!visible && !alertedWhileHidden && restNotificationPermission() === "granted") {
+        alertedWhileHidden = true;
+        void showRestNotification(startedAt).catch(() => { alertedWhileHidden = false; });
+      }
+      if (visible && !vibrated) {
+        navigator.vibrate?.([250, 150, 250]);
+        vibrated = true;
+      }
+      if (timerStartedHere.current !== startedAt && !ownsAudio(startedAt)) return;
+      if (startedAudio) {
+        if (!media) playChime();
+        else if (visible && media.player.paused) playMedia(media);
+        return;
+      }
+      startedAudio = true;
+      releaseFocus = requestRestAlarmAudioFocus(navigator);
+      if (!releaseFocus) {
+        try {
+          media = playRestMediaAlarm();
+          playMedia(media);
+          return;
+        } catch { /* The browser may support only Web Audio. */ }
+      }
+      playChime();
+    };
     alert();
     document.addEventListener("visibilitychange", alert);
     return () => {
       document.removeEventListener("visibilitychange", alert);
+      const alarm = media;
+      media = null;
+      alarm?.stop();
+      releaseFocus?.();
       if (vibrated) navigator.vibrate?.(0);
     };
   }, [finished, startedAt]);
@@ -183,7 +221,9 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
 
   function reset(patch?: Pick<Partial<WorkoutTimerState>, "mode" | "durationDraft">) {
     clearScheduledAlarm();
-    writeTimer({ ...readTimer(), ...patch, startedAt: null, elapsedMs: 0 });
+    const current = readTimer();
+    if (current.mode === "rest" && current.startedAt !== null) push.cancel(current.startedAt);
+    writeTimer({ ...current, ...patch, startedAt: null, elapsedMs: 0 });
   }
 
   function changeMode(next: TimerMode) {
@@ -208,6 +248,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
     if (rest && !target) return;
     if (current.startedAt !== null) {
       clearScheduledAlarm();
+      if (rest) push.cancel(current.startedAt);
       writeTimer({ ...current, elapsedMs: passed, startedAt: null });
       return;
     }
@@ -226,6 +267,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
       timerStartedHere.current = timestamp;
       try { window.sessionStorage.setItem(audioOwnerKey, String(timestamp)); }
       catch { /* The active tab remains the alarm owner without storage. */ }
+      push.schedule(timestamp, timestamp + target - passed);
     }
     setNow(timestamp);
     writeTimer({ ...current, startedAt: timestamp });
@@ -233,13 +275,22 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
 
   async function enableNotifications() {
     try {
-      setNotificationPermission(await enableRestNotifications());
+      if (push.available) {
+        if (await push.enable()) {
+          const current = readTimer();
+          if (current.mode === "rest" && current.startedAt !== null) {
+            const endsAt = current.startedAt + restDurationMs(current.durationDraft) - current.elapsedMs;
+            if (endsAt > Date.now()) push.schedule(current.startedAt, endsAt);
+          }
+        }
+        setNotificationPermission(restNotificationPermission());
+      } else setNotificationPermission(await enableRestNotifications());
     } catch {
       setNotificationPermission(restNotificationPermission());
     }
   }
 
-  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsedMs > 0, changeMode, changeDuration, reset: () => reset(), toggle, notificationPermission, enableNotifications }}>
+  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsedMs > 0, changeMode, changeDuration, reset: () => reset(), toggle, notificationPermission, enableNotifications, pushAvailable: push.available, pushSubscribed: push.subscribed, pushStatus: push.status }}>
     {children}
   </TimerContext.Provider>;
 }
@@ -248,7 +299,7 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
   const id = useId();
   const timer = useContext(TimerContext);
   if (!timer) return null;
-  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, changeMode, changeDuration, reset, toggle, notificationPermission, enableNotifications } = timer;
+  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, changeMode, changeDuration, reset, toggle, notificationPermission, enableNotifications, pushAvailable, pushSubscribed, pushStatus } = timer;
   const restMode = mode === "rest";
   const timeLocked = running || finished;
   const action = <Button type="button" size={compact ? "small" : "default"} className={compact ? "w-24 shrink-0 whitespace-nowrap px-2!" : undefined}
@@ -287,9 +338,12 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
           </fieldset>}
         </div>
         {restMode && !validDuration && <p role="status" className="text-sm text-[var(--coral)]">1秒以上の休憩時間を入力してください。秒は0〜59で設定できます。</p>}
-        {restMode && notificationPermission === "default" && <Button type="button" size="small" variant="secondary" className="justify-self-start" onClick={() => void enableNotifications()}>終了通知を許可</Button>}
-        {restMode && notificationPermission === "granted" && <p className="text-xs text-[var(--muted)]">終了通知を許可済み</p>}
-        {restMode && <p className="text-xs leading-5 text-[var(--muted)]">端末がブラウザーを停止した場合、開き直すと終了を確認できます。</p>}
+        {restMode && (pushAvailable ? !pushSubscribed && notificationPermission !== "denied" : notificationPermission === "default") &&
+          <Button type="button" size="small" variant="secondary" className="justify-self-start" onClick={() => void enableNotifications()}>{pushAvailable ? "閉じている間の終了通知を許可" : "終了通知を許可"}</Button>}
+        {restMode && (pushSubscribed || !pushAvailable && notificationPermission === "granted") && <p className="text-xs text-[var(--muted)]">{pushSubscribed ? "閉じている間の終了通知を許可済み" : "終了通知を許可済み"}</p>}
+        {restMode && pushStatus === "scheduled" && running && <p role="status" className="text-xs text-[var(--sage-deep)]">終了通知を予約しました。</p>}
+        {restMode && pushStatus === "error" && <p role="status" className="text-xs text-[var(--coral)]">終了通知の接続に失敗しました。</p>}
+        {restMode && !pushSubscribed && <p className="text-xs leading-5 text-[var(--muted)]">端末がブラウザーを停止した場合、開き直すと終了を確認できます。</p>}
         {finished && !compact && <p role="status" className="text-sm font-semibold text-[var(--sage-deep)]">休憩時間が終了しました。</p>}
         {(!compact || !finished) && <div className="flex flex-wrap gap-2">
           {!compact && action}

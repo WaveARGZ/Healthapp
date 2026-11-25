@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allowTimerAudioMixing, scheduleRestChime } from "../lib/workouts/rest-timer-audio.ts";
+import { allowTimerAudioMixing, requestRestAlarmAudioFocus, scheduleRestChime } from "../lib/workouts/rest-timer-audio.ts";
 import { initialWorkoutTimer, restDurationMs, restoreWorkoutTimer, workoutTimerElapsed } from "../lib/workouts/workout-timer-state.ts";
 
 test("the chime uses mixable audio and begins at the deadline", () => {
@@ -24,6 +24,17 @@ test("the chime uses mixable audio and begins at the deadline", () => {
   assert.equal(chime.playAt, 21.25);
   assert.deepEqual(calls, [21.25]);
   assert.equal(source.loop, true);
+});
+
+test("the timer requests exclusive audio at the alarm and releases it when stopped", () => {
+  const browser = { audioSession: { type: "auto" } };
+  allowTimerAudioMixing(browser);
+  assert.equal(browser.audioSession.type, "ambient");
+  const release = requestRestAlarmAudioFocus(browser);
+  assert.equal(browser.audioSession.type, "playback");
+  release();
+  assert.equal(browser.audioSession.type, "ambient");
+  assert.equal(requestRestAlarmAudioFocus({}), null);
 });
 
 test("the rest deadline survives a hidden interval or reload independently of elapsed callbacks", () => {
