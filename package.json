@@ -25,6 +25,7 @@
     "test:static-ui": "node scripts/test-static-ui.mjs",
     "test:mobile-viewport": "node scripts/test-mobile-viewport.mjs",
     "test:workout-split": "node --experimental-strip-types --test scripts/test-workout-split.mjs",
+    "test:workout-timer": "node --experimental-strip-types --test scripts/test-rest-timer-audio.mjs scripts/test-workout-timer.mjs",
     "test:muscle-activity": "node --experimental-strip-types --test scripts/test-muscle-activity.mjs",
     "test:daily-burn": "node --experimental-strip-types --test scripts/test-daily-burn.mjs",
     "test:dashboard-nutrition": "node --experimental-strip-types --test scripts/test-meal-calories.mjs scripts/test-dashboard-nutrition.mjs",

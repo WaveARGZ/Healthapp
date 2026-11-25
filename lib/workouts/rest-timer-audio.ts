@@ -1,7 +1,33 @@
 const secondsPerAlarmCycle = 2;
 const wavSampleRate = 8000;
 const bytesPerSample = 2;
-const maxScheduledDelayMs = 30 * 60 * 1000;
+
+type AudioSession = { type: string };
+
+export function prepareRestAlarmSession(browser: Navigator) {
+  const session = (browser as Navigator & { audioSession?: AudioSession }).audioSession;
+  if (!session) return null;
+
+  const original = session.type;
+  let selected = original;
+  const select = (type: string) => {
+    try {
+      session.type = type;
+      selected = session.type;
+      return selected === type;
+    } catch {
+      return false;
+    }
+  };
+
+  if (!select("ambient")) return null;
+  return {
+    prioritize: () => select("playback"),
+    restore: () => {
+      if (session.type === selected) select(original);
+    },
+  };
+}
 
 export function alarmSamples(rate: number): Float32Array<ArrayBuffer> {
   const samples = new Float32Array(rate * secondsPerAlarmCycle);
@@ -16,13 +42,9 @@ export function alarmSamples(rate: number): Float32Array<ArrayBuffer> {
   return samples;
 }
 
-export function scheduledRestAlarm(delayMs: number): Blob | null {
-  // Keep the generated media bounded. Longer rests still use the on-screen alarm.
-  if (!Number.isFinite(delayMs) || delayMs <= 0 || delayMs > maxScheduledDelayMs) return null;
-  const silentSamples = Math.ceil(delayMs * wavSampleRate / 1000);
+export function restAlarmTrack(): Blob {
   const cycle = alarmSamples(wavSampleRate);
-  const repetitions = 15;
-  const dataBytes = (silentSamples + cycle.length * repetitions) * bytesPerSample;
+  const dataBytes = cycle.length * bytesPerSample;
 
   const header = new ArrayBuffer(44);
   const view = new DataView(header);
@@ -46,14 +68,5 @@ export function scheduledRestAlarm(delayMs: number): Blob | null {
     tone.setInt16(index * bytesPerSample, Math.round(sample * 32767), true);
   }
 
-  // Reuse the same chunks to avoid allocating a PCM array for the full wait.
-  const silentSecondBytes = wavSampleRate * bytesPerSample;
-  const silentSeconds = Math.floor(silentSamples / wavSampleRate);
-  const silentSecond = new Blob([new Uint8Array(silentSecondBytes)]);
-  const partialSecond = silentSecond.slice(0, (silentSamples % wavSampleRate) * bytesPerSample);
-  const alarmCycle = new Blob([tone.buffer]);
-  return new Blob([
-    header, ...Array<Blob>(silentSeconds).fill(silentSecond), partialSecond,
-    ...Array<Blob>(repetitions).fill(alarmCycle),
-  ], { type: "audio/wav" });
+  return new Blob([header, tone.buffer], { type: "audio/wav" });
 }
