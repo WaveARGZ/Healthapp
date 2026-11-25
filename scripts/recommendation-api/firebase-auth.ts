@@ -30,14 +30,16 @@ export class FirebaseAuthError extends Error {
   }
 }
 
-export interface FirebaseOwnerAuthConfig {
-  /** Explicit server-side OWNER_UID. No first-user enrollment or public-user mode. */
+export interface FirebaseAdviceAuthConfig {
+  /** Explicit server-side owner, retained for the safe owner-only fallback. */
   ownerUid?: string;
+  /** Server-only opt-in. Missing means owner-only; unknown values fail closed. */
+  accessMode?: string;
   /** Existing project's Firebase Web API key, not an Admin/service-account credential. */
   firebaseApiKey?: string;
 }
 
-export interface FirebaseOwnerAuthDependencies {
+export interface FirebaseAdviceAuthDependencies {
   fetch?: typeof globalThis.fetch;
   /** Milliseconds since epoch. Defaults to Date.now; injectable for RAM tests. */
   now?: () => number;
@@ -180,21 +182,22 @@ function certificateResolver(
 }
 
 /**
- * Owner-only pilot authenticator. Call inside the DO BEFORE reserving budget or calling OpenAI.
+ * Authenticate a production Google user BEFORE reserving budget or calling OpenAI.
  * Only {uid} escapes this function. No ID tokens, account responses, or user profiles are persisted.
  * Reference: firebase.google.com/docs/auth/admin/verify-id-tokens and /docs/reference/rest/auth.
  */
-export function createFirebaseOwnerVerifier(
-  config: FirebaseOwnerAuthConfig, dependencies: FirebaseOwnerAuthDependencies = {},
+export function createFirebaseAdviceVerifier(
+  config: FirebaseAdviceAuthConfig, dependencies: FirebaseAdviceAuthDependencies = {},
 ): (authorization: string | null) => Promise<{ uid: string }> {
   const { ownerUid, firebaseApiKey } = config;
+  const accessMode = config.accessMode ?? "owner";
   const fetchImpl = dependencies.fetch ?? globalThis.fetch;
   const now = dependencies.now ?? Date.now;
   const timeoutMs = dependencies.timeoutMs ?? FETCH_TIMEOUT_MS;
   const resolveKey = dependencies.resolveKey ?? certificateResolver(fetchImpl, now, timeoutMs, dependencies.importCertificate ?? importX509);
 
   return async (authorization) => {
-    if (!uid(ownerUid) || typeof firebaseApiKey !== "string" || !/^[A-Za-z0-9_-]{20,256}$/.test(firebaseApiKey)
+    if (!["owner", "authenticated"].includes(accessMode) || !uid(ownerUid) || typeof firebaseApiKey !== "string" || !/^[A-Za-z0-9_-]{20,256}$/.test(firebaseApiKey)
       || !Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > FETCH_TIMEOUT_MS) fail("auth_not_configured");
     if (authorization === null || authorization === "") fail("auth_required");
     if (typeof authorization !== "string" || authorization.length > MAX_TOKEN_LENGTH + 7) fail("invalid_auth_token");
@@ -222,7 +225,7 @@ export function createFirebaseOwnerVerifier(
       }));
     } catch { return fail("invalid_auth_token"); }
     const subject = checkedClaims(payload, Math.floor(checkedNow(now) / 1_000));
-    if (subject !== ownerUid) fail("auth_owner_only");
+    if (accessMode === "owner" && subject !== ownerUid) fail("auth_owner_only");
 
     // Signature checking alone does not detect revoked sessions or disabled/deleted accounts.
     // This fixed endpoint uses the user's token, not a new privileged Admin credential.

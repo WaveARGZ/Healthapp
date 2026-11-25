@@ -7,7 +7,7 @@
   "preview_urls": false,
   "send_metrics": false,
   "observability": { "enabled": false },
-  "vars": { "BODYMAKE_ADVICE_ENABLED": "false" },
+  "vars": { "BODYMAKE_ADVICE_ENABLED": "false", "BODYMAKE_ADVICE_ACCESS": "owner" },
   "durable_objects": { "bindings": [{ "name": "RECOMMENDATION_BUDGET", "class_name": "BodyMakeRecommendationBudget" }] },
   "migrations": [{ "tag": "lifetime-usd5-v1", "new_sqlite_classes": ["BodyMakeRecommendationBudget"] }]
 }
