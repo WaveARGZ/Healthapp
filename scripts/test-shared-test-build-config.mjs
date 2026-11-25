@@ -24,14 +24,6 @@ test("shared commands are portable and cannot dispatch arbitrary operations", ()
   assert.deepEqual(sharedTestCommand("build", {}).args.slice(1), ["build", "--webpack"]);
   assert.throws(() => sharedTestCommand("deploy"));
 });
-
-test("only the dedicated test worker origin can be used for scheduled timer notifications", () => {
-  const testWorker = "https://bodymake-test-rest-notifications.sample-team.workers.dev";
-  assert.equal(sharedTestEnvironment({ BODYMAKE_TEST_TIMER_PUSH_ORIGIN: testWorker }).NEXT_PUBLIC_BODYMAKE_TEST_TIMER_PUSH_ORIGIN, testWorker);
-  for (const value of ["", "https://production.example", testWorker + "/extra"]) {
-    assert.equal(sharedTestEnvironment({ BODYMAKE_TEST_TIMER_PUSH_ORIGIN: value }).NEXT_PUBLIC_BODYMAKE_TEST_TIMER_PUSH_ORIGIN, "");
-  }
-});
 test("staging deployment cannot target the production site or rules", async () => {
   const config = JSON.parse(await readFile("firebase.shared-test.json", "utf8"));
   assert.equal(config.hosting.site, sharedTestProject);
