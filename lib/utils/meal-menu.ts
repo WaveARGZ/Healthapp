@@ -1,16 +1,18 @@
 import type { MealEntry, MealFoodItem, MealMenuEntry } from "@/types/meal";
 
+export function mealMenuItem(item: Omit<MealFoodItem, "id">): Omit<MealFoodItem, "id"> {
+  const { name, calories, proteinG, fatG, carbsG, sourceBarcode, barcodeSource,
+    sourceFdcId, sourceFoodCode, portionGrams, portionUnit, portionQuantity, gramsPerPiece } = item;
+  return { name, calories, proteinG, fatG, carbsG, sourceBarcode, barcodeSource,
+    sourceFdcId, sourceFoodCode, portionGrams, portionUnit, portionQuantity, gramsPerPiece };
+}
+
 export function mealMenuItems(entry: MealEntry): MealMenuEntry["items"] {
   if (!entry.items?.length) {
     const { name, calories, proteinG, fatG, carbsG } = entry;
     return [{ name, calories, proteinG, fatG, carbsG }];
   }
-  return entry.items.map((item) => {
-    const { name, calories, proteinG, fatG, carbsG, sourceBarcode, barcodeSource,
-      sourceFdcId, sourceFoodCode, portionGrams, portionUnit, portionQuantity, gramsPerPiece } = item;
-    return { name, calories, proteinG, fatG, carbsG, sourceBarcode, barcodeSource,
-      sourceFdcId, sourceFoodCode, portionGrams, portionUnit, portionQuantity, gramsPerPiece };
-  });
+  return entry.items.map(mealMenuItem);
 }
 
 export function mealMenuKey(items: readonly Omit<MealFoodItem, "id">[]): string {

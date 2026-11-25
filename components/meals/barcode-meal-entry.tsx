@@ -4,11 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { IScannerControls } from "@zxing/browser";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import type { RenderMealMenuStar } from "@/components/meals/meal-menu-action";
 import { barcodeNutritionForAmount, findRecordedBarcodeProduct, lookupBarcodeProduct, manualBarcodeProduct, normalizeBarcode, type BarcodeNutrition, type BarcodeProduct } from "@/lib/food-barcode";
 import type { MealEntry, MealFoodItem } from "@/types/meal";
 
 interface BarcodeMealEntryProps {
   onAddFood: (food: Omit<MealFoodItem, "id">) => Promise<void>;
+  renderMenuStar: RenderMealMenuStar;
   barcode: string;
   onBarcodeChange: (value: string) => void;
   previousMeals: readonly MealEntry[];
@@ -37,7 +39,7 @@ function validAmount(value: string): boolean {
   return value.trim() !== "" && Number.isFinite(amount) && amount > 0 && amount <= 3000;
 }
 
-export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange, previousMeals }: BarcodeMealEntryProps) {
+export function BarcodeMealEntry({ onAddFood, renderMenuStar, barcode, onBarcodeChange, previousMeals }: BarcodeMealEntryProps) {
   const [scanning, setScanning] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [product, setProduct] = useState<BarcodeProduct | null>(null);
@@ -52,6 +54,21 @@ export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange, previous
   const previousMealsRef = useRef(previousMeals);
   const saveLock = useRef(false);
   const canScale = product && unit === product.amountUnit && Object.values(product.per100).some((value) => value !== undefined);
+  const nutrition: BarcodeNutrition = {};
+  for (const [key] of nutritionFields) {
+    if (drafts[key].trim() !== "") nutrition[key] = Number(drafts[key]);
+  }
+  const nutritionIsValid = Object.values(nutrition).every((value) => Number.isFinite(value) && value >= 0 && value <= 10000);
+  const quantity = Number(amount);
+  const food: Omit<MealFoodItem, "id"> | null = product && name.trim() && validAmount(amount) && nutritionIsValid ? {
+    name: `${name.trim()}（${quantity}${unit}）`,
+    ...nutrition,
+    sourceBarcode: product.code,
+    barcodeSource: product.source,
+    portionUnit: unit,
+    portionQuantity: quantity,
+    ...(unit === "g" ? { portionGrams: quantity } : {}),
+  } : null;
 
   useEffect(() => { previousMealsRef.current = previousMeals; }, [previousMeals]);
 
@@ -138,31 +155,15 @@ export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange, previous
   }
 
   async function saveProduct() {
-    if (!product || !name.trim() || !validAmount(amount) || saveLock.current) return;
-    const nutrition: BarcodeNutrition = {};
-    for (const [key] of nutritionFields) {
-      if (drafts[key].trim() === "") continue;
-      const value = Number(drafts[key]);
-      if (!Number.isFinite(value) || value < 0 || value > 10000) {
-        setNotice("カロリー・PFCは0〜10,000の数値で入力してください。");
-        return;
-      }
-      nutrition[key] = value;
+    if (!food || saveLock.current) {
+      if (!nutritionIsValid) setNotice("カロリー・PFCは0〜10,000の数値で入力してください。");
+      return;
     }
     saveLock.current = true;
     setIsSaving(true);
     setNotice("食事を記録しています…");
     try {
-      const quantity = Number(amount);
-      await onAddFood({
-        name: `${name.trim()}（${quantity}${unit}）`,
-        ...nutrition,
-        sourceBarcode: product.code,
-        barcodeSource: product.source,
-        portionUnit: unit,
-        portionQuantity: quantity,
-        ...(unit === "g" ? { portionGrams: quantity } : {}),
-      });
+      await onAddFood(food);
       setProduct(null);
       setScanning(false);
       setNotice(`${name.trim()}を食事に保存しました。`);
@@ -195,7 +196,8 @@ export function BarcodeMealEntry({ onAddFood, barcode, onBarcodeChange, previous
       {canScale && <p className="mt-2 text-xs leading-5 text-[var(--muted)]">食べた量に合わせて栄養値を計算します。</p>}
       <fieldset className="mt-4"><legend className="text-xs font-bold text-[var(--ink)]">登録する栄養値（修正できます）</legend><div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, suffix]) => <label key={key} className="min-w-0 text-xs font-medium text-[var(--muted)]">{label}（{suffix}）<input type="number" min="0" max="10000" step="any" inputMode="decimal" placeholder="未入力" value={drafts[key]} onChange={(event) => setDrafts((current) => ({ ...current, [key]: event.target.value }))} className="form-input mt-2 min-w-0" /></label>)}</div></fieldset>
       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">空欄は未入力として保存します。パッケージの表示と照らして確認してください。</p>
-      <Button type="button" className="mt-4 w-full" onClick={() => void saveProduct()} disabled={!name.trim() || !validAmount(amount) || isSaving}>{isSaving ? "保存中…" : "この商品を食事に追加"}</Button>
+      <div className="mt-4 flex justify-end">{renderMenuStar("barcode", isSaving ? null : food)}</div>
+      <Button type="button" className="mt-2 w-full" onClick={() => void saveProduct()} disabled={!name.trim() || !validAmount(amount) || isSaving}>{isSaving ? "保存中…" : "この商品を食事に追加"}</Button>
     </div>}
     {notice && <p role="status" className="mt-3 text-sm leading-6 text-[var(--muted)]">{notice}</p>}
     <p className="mt-4 text-xs leading-5 text-[var(--muted)]">カメラ映像は保存しません。アプリ内で商品が見つからない場合は、バーコード番号だけをOpen Food Factsへ送信します。</p>

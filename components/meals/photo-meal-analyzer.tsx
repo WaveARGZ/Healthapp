@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import type { RenderMealMenuStar } from "@/components/meals/meal-menu-action";
 import { analyzeFoodPhotoDetailed, type FoodPhotoCandidate } from "@/lib/food-ai/food-photo-analyzer";
 import { applyPhotoNutritionUplift, PHOTO_NUTRITION_UPLIFT } from "@/lib/food-ai/photo-nutrition-estimate";
 import { isSupportedFoodPhoto, sanitizeTrainingPhoto } from "@/lib/drive/google-drive-client";
@@ -17,6 +18,7 @@ import { photoDishName } from "@/lib/food-ai/photo-history";
 
 interface PhotoMealAnalyzerProps {
   onAddFood: (food: Omit<MealFoodItem, "id">) => Promise<void>;
+  renderMenuStar: RenderMealMenuStar;
   previousMeals?: readonly MealEntry[];
   historyLoading?: boolean;
 }
@@ -37,7 +39,7 @@ function toNutritionValues(food: Partial<NutritionValues>): Partial<NutritionVal
   return values;
 }
 
-export function PhotoMealAnalyzer({ onAddFood, previousMeals = [], historyLoading = false }: PhotoMealAnalyzerProps) {
+export function PhotoMealAnalyzer({ onAddFood, renderMenuStar, previousMeals = [], historyLoading = false }: PhotoMealAnalyzerProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<FoodPhotoCandidate[]>([]);
@@ -55,6 +57,18 @@ export function PhotoMealAnalyzer({ onAddFood, previousMeals = [], historyLoadin
   const submission = useRef<{ key: string; added: boolean } | null>(null);
   const previewUrl = useRef<string | null>(null);
   const analysisGeneration = useRef(0);
+  const name = confirmedFoodName.trim();
+  const portionIsValid = validPortion(amountQuantity, amountUnit, gramsPerPiece);
+  const nutritionIsValid = Object.values(nutrition).every((value) => value === undefined || Number.isFinite(value) && value >= 0 && value <= 10000);
+  const estimatedGrams = portionGrams(amountQuantity, amountUnit, gramsPerPiece);
+  const confirmedFood: Omit<MealFoodItem, "id"> | null = file && name && portionIsValid && nutritionIsValid ? {
+    name: `${name}（${amountUnit === "個" ? `${amountQuantity}個・約${estimatedGrams}g` : `${estimatedGrams}g`}）`,
+    ...nutrition,
+    portionGrams: estimatedGrams,
+    portionUnit: amountUnit,
+    portionQuantity: amountQuantity,
+    ...(amountUnit === "個" ? { gramsPerPiece } : {}),
+  } : null;
 
   useEffect(() => () => {
     analysisGeneration.current += 1;
@@ -158,10 +172,8 @@ export function PhotoMealAnalyzer({ onAddFood, previousMeals = [], historyLoadin
   }
 
   async function addConfirmedFood() {
-    const name = confirmedFoodName.trim();
-    if (!file || !name || isSaving || !validPortion(amountQuantity, amountUnit, gramsPerPiece)) return;
-    if (Object.values(nutrition).some((value) => value !== undefined && (!Number.isFinite(value) || value < 0 || value > 10000))) {
-      setStatusText("栄養値は0以上10,000以下の数値で入力してください。");
+    if (!confirmedFood || isSaving) {
+      if (!nutritionIsValid) setStatusText("栄養値は0以上10,000以下の数値で入力してください。");
       return;
     }
     const key = JSON.stringify([candidates.map((candidate) => candidate.id), name, nutrition, amountQuantity, amountUnit, gramsPerPiece]);
@@ -172,9 +184,8 @@ export function PhotoMealAnalyzer({ onAddFood, previousMeals = [], historyLoadin
     setIsSaving(true);
     setStatusText("食事を記録しています…");
     try {
-      const estimatedGrams = portionGrams(amountQuantity, amountUnit, gramsPerPiece);
       if (!currentSubmission.added) {
-        await onAddFood({ name: `${name}（${amountUnit === "個" ? `${amountQuantity}個・約${estimatedGrams}g` : `${estimatedGrams}g`}）`, ...nutrition, portionGrams: estimatedGrams, portionUnit: amountUnit, portionQuantity: amountQuantity, ...(amountUnit === "個" ? { gramsPerPiece } : {}) });
+        await onAddFood(confirmedFood);
         currentSubmission.added = true;
       }
       analysisGeneration.current += 1;
@@ -224,8 +235,14 @@ export function PhotoMealAnalyzer({ onAddFood, previousMeals = [], historyLoadin
       {candidates.some((candidate) => candidate.origin === "history") && <p className="mt-3 text-xs leading-6 text-[var(--muted)]">以前の料理名も写真と比較しています。前に登録した料理の栄養値は前回の入力値です。今回の量と数値を確認してください。</p>}
       <label className="mt-4 block text-xs font-bold text-[var(--ink)]">正しい料理名<input value={confirmedFoodName} onChange={(event) => setConfirmedFoodName(event.target.value)} placeholder="例：鶏むね肉の照り焼き" className="mt-2 h-12 w-full rounded border border-[var(--line)] bg-white px-3 text-base font-medium outline-none focus:border-[var(--sage-deep)]" /></label>
       <div className="mt-4"><p className="text-xs font-bold text-[var(--ink)]">食べた量</p><div className="mt-2 flex gap-2" role="group" aria-label="写真から登録する量の単位">{(["g", "個"] as const).map((value) => <button key={value} type="button" aria-pressed={amountUnit === value} onClick={() => changePortion(value, value === "g" ? portionGrams(amountQuantity, amountUnit, gramsPerPiece) : 1, gramsPerPiece)} className={`min-h-11 min-w-16 rounded border px-3 text-sm font-bold ${amountUnit === value ? "border-[var(--sage-deep)] bg-[var(--sage-soft)] text-[var(--sage-deep)]" : "border-[var(--line)] bg-white text-[var(--muted)]"}`}>{value}</button>)}</div><div className="mt-2 flex items-center gap-2"><input aria-label="写真から登録する食べた量" type="number" min="1" max={amountUnit === "g" ? "3000" : "100"} step="1" inputMode="numeric" value={amountQuantity || ""} onChange={(event) => changePortion(amountUnit, event.target.value === "" ? 0 : Number(event.target.value), gramsPerPiece)} className="form-input max-w-40" /><span className="text-sm text-[var(--muted)]">{amountUnit}</span></div>{amountUnit === "個" && <label className="mt-3 block text-xs font-medium text-[var(--ink)]">1個あたりの可食部（目安・変更可）<span className="mt-2 flex items-center gap-2"><input aria-label="写真の食品1個あたりの重さ" type="number" min="1" max="3000" step="1" inputMode="numeric" value={gramsPerPiece || ""} onChange={(event) => changePortion(amountUnit, amountQuantity, event.target.value === "" ? 0 : Number(event.target.value))} className="form-input max-w-40" /><span>g</span></span></label>}<p className="mt-2 text-xs text-[var(--muted)]">{amountUnit === "個" ? `${amountQuantity}個 ≒ ${portionGrams(amountQuantity, amountUnit, gramsPerPiece)}g。個体差があるため目安です。` : "量を変更すると初期推定値を再計算します。最後に栄養値を確認してください。"}</p>{!validPortion(amountQuantity, amountUnit, gramsPerPiece) && <p className="mt-2 text-xs text-[var(--coral)]">量と1個あたりの重さを確認してください（合計3,000gまで）。</p>}</div>
-      <fieldset className="mt-4"><legend className="text-xs font-bold leading-6 text-[var(--ink)]">食事に記録する栄養値（修正できます）</legend><div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="min-w-0 text-xs font-medium text-[var(--muted)]">{label}（{unit}）<input type="number" min="0" step="1" inputMode="decimal" placeholder="未入力" value={nutritionDrafts[key] ?? nutrition[key] ?? ""} onChange={(event) => { const draft = event.target.value; setNutritionDrafts((current) => ({ ...current, [key]: draft })); setNutrition((current) => ({ ...current, [key]: draft === "" ? undefined : Number(draft) })); setStatusText(""); }} className="mt-2 h-12 w-full min-w-0 rounded border border-[var(--line)] bg-white px-3 text-base font-medium text-[var(--ink)] outline-none focus:border-[var(--sage-deep)]" /></label>)}</div><button type="button" onClick={clearNutrition} disabled={isSaving} className="mt-3 min-h-11 rounded-lg border border-[var(--line)] bg-white px-4 text-xs font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)] disabled:opacity-50">カロリー・PFCを一括クリア</button><p className="mt-1 text-xs leading-5 text-[var(--muted)]">空欄は未入力として保存し、合計には含めません。</p></fieldset>
-      <Button type="button" className="mt-5 w-full" onClick={() => void addConfirmedFood()} disabled={!confirmedFoodName.trim() || isSaving || !validPortion(amountQuantity, amountUnit, gramsPerPiece)}>{isSaving ? "処理中…" : "食事に追加して保存"}</Button>
+      <fieldset className="mt-4"><legend className="text-xs font-bold leading-6 text-[var(--ink)]">食事に記録する栄養値（修正できます）</legend><div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{nutritionFields.map(([key, label, unit]) => <label key={key} className="min-w-0 text-xs font-medium text-[var(--muted)]">{label}（{unit}）<input type="number" min="0" step="any" inputMode="decimal" placeholder="未入力" value={nutritionDrafts[key] ?? nutrition[key] ?? ""} onChange={(event) => { const draft = event.target.value; setNutritionDrafts((current) => ({ ...current, [key]: draft })); setNutrition((current) => ({ ...current, [key]: draft === "" ? undefined : Number(draft) })); setStatusText(""); }} className="mt-2 h-12 w-full min-w-0 rounded border border-[var(--line)] bg-white px-3 text-base font-medium text-[var(--ink)] outline-none focus:border-[var(--sage-deep)]" /></label>)}</div>
+        <div className="mt-3 flex items-start gap-2">
+          <button type="button" onClick={clearNutrition} disabled={isSaving} className="min-h-11 min-w-0 rounded-lg border border-[var(--line)] bg-white px-2 text-xs font-semibold text-[var(--sage-deep)] hover:bg-[var(--sage-soft)] disabled:opacity-50">カロリー・PFCを一括クリア</button>
+          {renderMenuStar("photo", isSaving ? null : confirmedFood)}
+        </div>
+        <p className="mt-1 text-xs leading-5 text-[var(--muted)]">空欄は未入力として保存し、合計には含めません。</p>
+      </fieldset>
+      <Button type="button" className="mt-5 w-full" onClick={() => void addConfirmedFood()} disabled={!name || isSaving || !portionIsValid}>{isSaving ? "処理中…" : "食事に追加して保存"}</Button>
     </div> : null}
     {statusText && status !== "analyzing" ? <p role="status" className={`mt-3 break-words text-sm leading-6 ${status === "error" ? "text-[var(--coral)]" : "text-[var(--muted)]"}`}>{statusText}</p> : null}
     {savedMeal && !isSharedTestEnvironment && <div className="mt-4 rounded-lg border border-[var(--line)] bg-white p-3">
