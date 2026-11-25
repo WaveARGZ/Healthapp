@@ -261,6 +261,8 @@ html { scroll-padding-bottom: 180px; }
 /* Date fields have an intrinsic minimum width in iOS Safari. */
 input[type="date"], input[type="time"] { max-width: 100%; min-inline-size: 0; }
 input::-webkit-date-and-time-value { text-align: left; }
+input.weight-date-input { display: block; box-sizing: border-box; inline-size: 100%; min-inline-size: 0; max-inline-size: 100%; -webkit-appearance: none; appearance: none; }
+.weight-date-input::-webkit-date-and-time-value { min-inline-size: 0; }
 
 @media (min-width: 640px) {
   :root { --page-gutter: 40px; }
