@@ -136,6 +136,8 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   function reset() {
+    alarmSession.current?.restore();
+    alarmSession.current = null;
     setStartedAt(null);
     setElapsed(0);
   }
