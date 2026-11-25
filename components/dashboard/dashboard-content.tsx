@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MobileDashboard } from "@/components/dashboard/mobile-dashboard";
 import { WeeklyReview } from "@/components/dashboard/weekly-review";
 import { bodyMakeClient } from "@/lib/api/client";
-import { latestWeightEntry } from "@/lib/utils/current-weight";
+import { isBodyWeightKg, latestWeightEntry } from "@/lib/utils/current-weight";
 import { totalDailyBurn } from "@/lib/utils/daily-burn";
 import { estimateRestingCalories } from "@/lib/utils/daily-calorie-guide";
 import { toDateInputValue } from "@/lib/utils/date";
@@ -56,15 +56,17 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
     function refreshRecords() {
       if (!active || document.visibilityState !== "visible" || refreshingRecords) return;
       refreshingRecords = true;
-      void Promise.allSettled([bodyMakeClient.getWorkouts(), bodyMakeClient.getWeightEntries(), bodyMakeClient.getDailyBurnEntries()]).then(([workouts, weights, burns]) => {
+      void Promise.allSettled([bodyMakeClient.getProfile(), bodyMakeClient.getWorkouts(), bodyMakeClient.getWeightEntries(), bodyMakeClient.getDailyBurnEntries()]).then(([profile, workouts, weights, burns]) => {
         if (!active) return;
         setData((current) => ({
           ...current,
+          profile: profile.status === "fulfilled" ? profile.value : current.profile,
           workouts: workouts.status === "fulfilled" ? workouts.value : current.workouts,
           weights: weights.status === "fulfilled" ? weights.value : current.weights,
           weightsUnavailable: weights.status === "fulfilled" ? false : current.weightsUnavailable,
           burns: burns.status === "fulfilled" ? burns.value : current.burns,
         }));
+        if (profile.status === "fulfilled") setProfileLoadFailed(false);
         setWorkoutLoadFailed(workouts.status === "rejected");
         setBurnLoadFailed(burns.status === "rejected");
       }).finally(() => { refreshingRecords = false; });
@@ -100,15 +102,16 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
     };
   }, []);
 
+  const startingWeightKg = isBodyWeightKg(data.profile?.startingWeightKg) ? data.profile.startingWeightKg : undefined;
   const summary = useMemo(() => {
     const workouts = data.workouts.filter((entry) => entry.performedAt === today);
     const meals = data.meals.filter((entry) => entry.recordedAt === today);
     return {
-      currentWeightKg: latestWeightEntry(data.weights, today)?.weightKg ?? data.profile?.startingWeightKg,
+      currentWeightKg: latestWeightEntry(data.weights, today)?.weightKg ?? startingWeightKg,
       workouts, meals,
-      weightDone: data.weights.some((entry) => entry.measuredOn === today),
+      weightDone: data.weights.some((entry) => entry.measuredOn === today && isBodyWeightKg(entry.weightKg)),
     };
-  }, [data, today]);
+  }, [data, startingWeightKg, today]);
   const dailyCalories = useMemo(() => summarizeDailyCalories(data.meals, today), [data.meals, today]);
   const dailyMacros = useMemo(() => summarizeDailyMacros(data.meals, today), [data.meals, today]);
   const dailyFeedback = useMemo(() => summarizeDailyFeedback(dailyCalories, data.workouts, today), [dailyCalories, data.workouts, today]);
@@ -117,7 +120,7 @@ export function DashboardContent({ view = "dashboard" }: { view?: "dashboard" | 
   function restingOn(date: string) {
     const { profile, weights, weightsUnavailable } = data;
     if (!profile || weightsUnavailable) return null;
-    const weightKg = date === today ? summary.currentWeightKg : latestWeightEntry(weights, date)?.weightKg ?? profile.startingWeightKg;
+    const weightKg = date === today ? summary.currentWeightKg : latestWeightEntry(weights, date)?.weightKg ?? startingWeightKg;
     return estimateRestingCalories({ age: profile.age, gender: profile.gender, heightCm: profile.heightCm, weightKg });
   }
   const burnEntry = loading || burnLoadFailed ? undefined : data.burns.find((entry) => entry.performedAt === today);

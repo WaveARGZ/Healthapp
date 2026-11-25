@@ -9,7 +9,7 @@ import { summarizeDailyCalories } from "../lib/utils/meal-calories.ts";
 import { summarizeDailyMacros } from "../lib/utils/meal-macros.ts";
 import { burnMinusIntake, totalDailyBurn } from "../lib/utils/daily-burn.ts";
 import { estimateDailyCalorieGuide, estimateDailyMacroGuide, estimateRestingCalories } from "../lib/utils/daily-calorie-guide.ts";
-import { latestWeightEntry } from "../lib/utils/current-weight.ts";
+import { compareWeightEntriesNewest, isBodyWeightKg, latestWeightEntry } from "../lib/utils/current-weight.ts";
 
 // Actual aggregation, parent prop wiring, and rendered shared component, using
 // synthetic records in RAM. No account, browser storage, network, or file writes.
@@ -20,7 +20,7 @@ const empty = { recordedAt: day };
 const partialNotice = "カロリーと収支は入力済み分で計算しています。未入力の料理・食事は含みません。";
 const macroNotice = "PFCは入力済み分の合計です。未入力の栄養素は含みません。";
 
-function load(relativePath, modules) {
+function load(relativePath, modules, globals = {}) {
   const source = ts.transpileModule(readFileSync(new URL(relativePath, root), "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
@@ -31,6 +31,7 @@ function load(relativePath, modules) {
       assert.ok(Object.hasOwn(modules, id), `Unexpected dependency: ${id}`);
       return modules[id];
     },
+    ...globals,
   });
   return exports;
 }
@@ -58,7 +59,7 @@ function renderDashboard(meals, { loading = false, mealUnavailable = false, burn
     "@/components/dashboard/mobile-dashboard": { MobileDashboard },
     "@/components/dashboard/weekly-review": { WeeklyReview: () => null },
     "@/lib/api/client": { bodyMakeClient: {} },
-    "@/lib/utils/current-weight": { latestWeightEntry },
+    "@/lib/utils/current-weight": { isBodyWeightKg, latestWeightEntry },
     "@/lib/utils/daily-burn": { totalDailyBurn },
     "@/lib/utils/daily-calorie-guide": { estimateRestingCalories },
     "@/lib/utils/date": { formatToday: () => day, toDateInputValue: () => day },
@@ -280,4 +281,78 @@ test("the daily balance adds resting expenditure using the latest weight only fo
   assert.match(missingProfile, /基礎代謝を推定できないため、収支は未計算です/);
   const missingWeights = renderDashboard(meals, { profile, weightsUnavailable: true, burns: [activity] });
   assert.match(missingWeights, /収支 — kcal。収支は未計算/);
+});
+
+test("editing the initial weight updates calorie, PFC and resting targets when there is no measurement", () => {
+  const profile = { age: 30, gender: "male", heightCm: 170, startingWeightKg: 82, goal: "build-muscle" };
+  const meals = [{ ...known, calories: 1800 }];
+  const burns = [{ performedAt: day, caloriesBurned: 400, burnScope: "activity" }];
+  const html = renderDashboard(meals, { profile, burns });
+  assert.match(html, /1日の摂取目安.*2,550～2,900 kcal/);
+  assert.match(html, /目安：130～145 g/);
+  assert.match(html, /基礎代謝 <span[^>]*>1,750 kcal/);
+  assert.match(html, /収支 \+338 kcal/);
+});
+
+test("progress shows the initial weight as an undated reference and compares the latest measurement to it", () => {
+  let history = { entries: [], startingWeightKg: 72, today: day, loading: false, weightsUnavailable: false, profileUnavailable: false };
+  const date = { formatDate: (value) => value };
+  const { WeightTrendChart } = load("components/progress/weight-trend-chart.tsx", {
+    ...sharedModules, "@/lib/utils/date": date, "@/components/ui/empty-state": { EmptyState: () => null },
+  });
+  const { ProgressOverview } = load("components/progress/progress-overview.tsx", {
+    ...sharedModules, "@/lib/utils/date": date, "@/components/ui/icon": { Icon: () => null },
+    "@/components/ui/page-header": { PageHeader: () => null }, "@/components/progress/weight-trend-chart": { WeightTrendChart },
+    "@/hooks/use-weight-history": { useWeightHistory: () => history }, "@/lib/utils/current-weight": { isBodyWeightKg },
+  });
+  const initial = renderToStaticMarkup(ProgressOverview());
+  assert.match(initial, /初期設定の体重/);
+  assert.match(initial, /体重の変化。初期設定、72キログラム/);
+  assert.doesNotMatch(initial, /初期設定、72キログラム。2026|数値を一覧で見る/);
+
+  history = { ...history, entries: [
+    { id: "future", measuredOn: "2026-11-16", createdAt: "2026-11-15T10:00:00Z", weightKg: 95 },
+    { id: "recorded", measuredOn: day, createdAt: "2026-11-15T09:00:00Z", weightKg: 70.5 },
+  ] };
+  const measured = renderToStaticMarkup(ProgressOverview());
+  assert.match(measured, /初期設定、72キログラム。2026-11-15、70.5キログラム/);
+  assert.match(measured, /-1\.5<span[^>]*>kg/);
+  assert.match(measured, /初期設定から/);
+  assert.doesNotMatch(measured, /95キログラム/);
+});
+
+test("weight screens reload both the initial setting and measurements after returning or saving", async () => {
+  const listeners = new Map();
+  const events = {
+    addEventListener: (event, handler) => listeners.set(event, handler),
+    removeEventListener: (event) => listeners.delete(event),
+  };
+  let history;
+  let mount;
+  let initialWeight = 72;
+  let entries = [];
+  const { useWeightHistory } = load("hooks/use-weight-history.ts", {
+    react: {
+      useState: (initialize) => [history = initialize(), (update) => { history = update(history); }],
+      useRef: (current) => ({ current }), useCallback: (callback) => callback,
+      useEffect: (effect) => { mount = effect; },
+    },
+    "@/lib/utils/current-weight": { compareWeightEntriesNewest, isBodyWeightKg },
+    "@/lib/utils/date": { toDateInputValue: () => day },
+    "@/lib/api/client": { bodyMakeClient: { getProfile: async () => ({ startingWeightKg: initialWeight }), getWeightEntries: async () => entries } },
+  }, { window: events, document: { ...events, visibilityState: "visible" } });
+  const { refresh } = useWeightHistory();
+  const unmount = mount();
+  await new Promise(setImmediate);
+  assert.equal(history.startingWeightKg, 72);
+  assert.equal(history.loading, false);
+  initialWeight = 71;
+  listeners.get("focus")();
+  await new Promise(setImmediate);
+  assert.equal(history.startingWeightKg, 71);
+  entries = [{ id: "new", measuredOn: day, weightKg: 70.5 }];
+  await refresh();
+  assert.equal(latestWeightEntry(history.entries, day).weightKg, 70.5);
+  unmount();
+  assert.equal(listeners.size, 0);
 });
