@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useId, useRef, useState, type Rea
 import { Button } from "@/components/ui/button";
 import { SelectInput, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
+import { useWorkoutRestPush } from "@/hooks/use-workout-rest-push";
 import { alarmSamples, prepareRestAlarmSession, restAlarmTrack } from "@/lib/workouts/rest-timer-audio";
 
 const timeFields = [{ unit: "minutes", label: "分" }, { unit: "seconds", label: "秒" }] as const;
@@ -22,6 +23,7 @@ const TimerContext = createContext<{
   changeDuration: (unit: DurationUnit, value: string) => void;
   reset: () => void;
   toggle: (timestamp: number) => void;
+  endNotification: ReturnType<typeof useWorkoutRestPush>;
 } | null>(null);
 
 function clock(seconds: number) {
@@ -37,6 +39,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   const audioContext = useRef<AudioContext | null>(null);
   const alarmPlayer = useRef<HTMLAudioElement>(null);
   const alarmSession = useRef<ReturnType<typeof prepareRestAlarmSession>>(null);
+  const endNotification = useWorkoutRestPush();
   const restMode = mode === "rest";
   const durationMs = (Number(durationDraft.minutes) * 60 + Number(durationDraft.seconds)) * 1000;
   const validDuration = Number.isSafeInteger(durationMs) && durationMs > 0 && Number(durationDraft.seconds) < 60;
@@ -136,6 +139,13 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   function reset() {
+    if (restMode && startedAt !== null) {
+      endNotification.cancel(startedAt);
+    }
+    if (!finished) {
+      alarmSession.current?.restore();
+      alarmSession.current = null;
+    }
     setStartedAt(null);
     setElapsed(0);
   }
@@ -159,6 +169,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
     }
     if (restMode && !validDuration) return;
     if (startedAt !== null) {
+      if (restMode) endNotification.cancel(startedAt);
       alarmSession.current?.restore();
       alarmSession.current = null;
       setElapsed(elapsed + Math.max(0, timestamp - startedAt));
@@ -166,6 +177,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (restMode) {
+      endNotification.schedule(timestamp, timestamp + durationMs - elapsed);
       // Unlock Web Audio from the tap without starting a media track or a tone.
       alarmSession.current = prepareRestAlarmSession(navigator);
       try {
@@ -179,7 +191,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
     setStartedAt(timestamp);
   }
 
-  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsed > 0, changeMode, changeDuration, reset, toggle }}>
+  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsed > 0, changeMode, changeDuration, reset, toggle, endNotification }}>
     <audio ref={alarmPlayer} aria-hidden="true" loop />
     {children}
   </TimerContext.Provider>;
@@ -189,7 +201,7 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
   const id = useId();
   const timer = useContext(TimerContext);
   if (!timer) return null;
-  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, changeMode, changeDuration, reset, toggle } = timer;
+  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, changeMode, changeDuration, reset, toggle, endNotification } = timer;
   const restMode = mode === "rest";
   const timeLocked = running || finished;
   const action = <Button type="button" size={compact ? "small" : "default"} className={compact ? "w-24 shrink-0 whitespace-nowrap px-2!" : undefined}
@@ -228,6 +240,13 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
           </fieldset>}
         </div>
         {restMode && !validDuration && <p role="status" className="text-sm text-[var(--coral)]">1秒以上の休憩時間を入力してください。秒は0〜59で設定できます。</p>}
+        {restMode && endNotification.available && !endNotification.subscribed &&
+          <Button type="button" size="small" variant="secondary" className="justify-self-start" disabled={timeLocked}
+            onClick={() => void endNotification.enable()}>画面を閉じたときの終了通知を許可</Button>}
+        {restMode && endNotification.subscribed && endNotification.status === "idle" && <p className="text-xs text-[var(--muted)]">終了通知を許可済み</p>}
+        {restMode && running && endNotification.status === "pending" && <p role="status" className="text-xs text-[var(--muted)]">終了通知を予約中</p>}
+        {restMode && running && endNotification.status === "scheduled" && <p role="status" className="text-xs text-[var(--sage-deep)]">画面を閉じても終了を通知します。</p>}
+        {restMode && endNotification.status === "error" && <p role="status" className="text-xs text-[var(--coral)]">終了通知を設定できませんでした。端末の通知設定と通信状態を確認してください。</p>}
         {finished && !compact && <p role="status" className="text-sm font-semibold text-[var(--sage-deep)]">休憩時間が終了しました。</p>}
         {(!compact || !finished) && <div className="flex flex-wrap gap-2">
           {!compact && action}

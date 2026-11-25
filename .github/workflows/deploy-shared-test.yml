@@ -19,6 +19,7 @@ jobs:
     timeout-minutes: 20
     env:
       NEXT_TELEMETRY_DISABLED: "1"
+      BODYMAKE_TEST_TIMER_PUSH_ORIGIN: ${{ vars.BODYMAKE_TEST_TIMER_PUSH_ORIGIN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,8 +30,11 @@ jobs:
       - run: npm run lint
       - run: npm run test:team-runtime
       - run: npm run test:shared-test
+      - run: node --experimental-strip-types --test scripts/test-rest-timer-audio.mjs
       - run: npm run build:shared-test
       - run: npm run test:shared-test-build
+      - run: npm ci --prefix scripts/workout-timer-push
+      - run: npm test --prefix scripts/workout-timer-push
       - uses: actions/upload-artifact@v4
         with:
           name: shared-test-static
