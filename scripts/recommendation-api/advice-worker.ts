@@ -1,4 +1,4 @@
-import { createFirebaseOwnerVerifier, FirebaseAuthError } from "./firebase-auth.ts";
+import { createFirebaseAdviceVerifier, FirebaseAuthError } from "./firebase-auth.ts";
 import { AdviceBudgetError, adviceBudget, initializeAdviceBudget, reserveAdvice, settleAdvice } from "./advice-budget.ts";
 import { createAdviceProvider, verifyAdviceConnection, validateOpenAiAccount, AdviceApiError, apiFail, type AdviceProvider } from "./advice-provider.ts";
 import type { CloudflareSqliteStorage } from "./cloudflare-budget-store.ts";
@@ -11,6 +11,7 @@ type Namespace = { idFromName(name: string): unknown; get(id: unknown): { fetch(
 export interface AdviceEnvironment {
   RECOMMENDATION_BUDGET?: Namespace;
   BODYMAKE_ADVICE_ENABLED?: string;
+  BODYMAKE_ADVICE_ACCESS?: string;
   OPENAI_API_KEY?: string; OWNER_UID?: string; FIREBASE_WEB_API_KEY?: string; SUBJECT_HMAC_KEY?: string;
   INITIALIZE_SECRET?: string;
   // Set only from an actual billing audit of the SAME organization/project as the stored key.
@@ -83,7 +84,7 @@ export class BodyMakeRecommendationBudget {
   private verify:(value:string|null)=>Promise<{uid:string}>;
   constructor(ctx:{storage:CloudflareSqliteStorage},env:AdviceEnvironment,deps:Dependencies={}) {
     this.storage=ctx.storage;this.env=env;this.deps=deps;
-    this.verify=deps.verifyAuthorization??createFirebaseOwnerVerifier({ownerUid:env.OWNER_UID,firebaseApiKey:env.FIREBASE_WEB_API_KEY});
+    this.verify=deps.verifyAuthorization??createFirebaseAdviceVerifier({ownerUid:env.OWNER_UID,firebaseApiKey:env.FIREBASE_WEB_API_KEY,accessMode:env.BODYMAKE_ADVICE_ACCESS});
   }
   async fetch(r:Request):Promise<Response> {
     try {

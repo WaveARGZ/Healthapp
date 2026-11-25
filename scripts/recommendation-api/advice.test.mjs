@@ -247,3 +247,37 @@ test("removing the admin secret rejects at the entry Worker before any warm Dura
   assert.equal((await workerEntry.fetch(r(),e)).status,401);assert.equal(forwarded,0);
   assert.equal((await workerEntry.fetch(r(),{...e,INITIALIZE_SECRET:"a".repeat(64)})).status,200);assert.equal(forwarded,1);
 });
+
+test("public users have separate cooldowns but share the durable allowance across restarts", async t => {
+  const s = await store(t, 750000); let calls = 0;
+  const dependencies = {
+    verifyAuthorization: async header => ({uid: header.slice(7)}), now: () => NOW,
+    provider: async () => { calls++; return {advice: advice(), usage: {costMicros: 250000, inputTokens: 922000, outputTokens: 1800}}; },
+  };
+  const configuration = {...env(), BODYMAKE_ADVICE_ACCESS: "authenticated", CREDIT_ALLOCATION_MICROS: "750000"};
+  const api = () => new BodyMakeRecommendationBudget({storage: s}, configuration, dependencies);
+  const asUser = user => { const r=request(); r.headers.set("Authorization", "Bearer " + user); return r; };
+  assert.equal((await api().fetch(asUser("synthetic-one"))).status, 200);
+  const limited = await api().fetch(asUser("synthetic-one"));
+  assert.equal(limited.status, 429); assert.equal((await limited.json()).error, "rate_limited");
+  assert.equal((await api().fetch(asUser("synthetic-two"))).status, 200);
+  const subjects = s.db.prepare("SELECT subject FROM bodymake_advice_calls_v2").all().map(r => r.subject);
+  assert.equal(new Set(subjects).size, 2);
+  assert.ok(subjects.every(v => /^[a-f0-9]{64}$/.test(v) && !v.includes("synthetic")));
+  assert.equal(adviceBudget(s).estimatedMicros, 500000);
+  assert.equal((await api().fetch(asUser("synthetic-three"))).status, 200);
+  const exhausted = await api().fetch(asUser("synthetic-four"));
+  assert.equal(exhausted.status, 429); assert.equal((await exhausted.json()).error, "credit_exhausted");
+  assert.equal(calls, 3); assert.equal(adviceBudget(s).remainingMicros, 0);
+});
+test("the per-user twenty-call limit does not spend another user's allowance or reset the total", async t => {
+  const s=await store(t); const first="c".repeat(64), second="d".repeat(64);
+  for(let i=0;i<20;i++) {
+    const c={...call(),subject:first}; await reserveAdvice(s,c,NOW+i*30000);
+    await settleAdvice(s,c.id,{costMicros:100,inputTokens:100,outputTokens:100});
+  }
+  await assert.rejects(reserveAdvice(s,{...call(),subject:first},NOW+600000), /rate_limited/);
+  const c={...call(),subject:second}; await reserveAdvice(s,c,NOW+600000);
+  await settleAdvice(s,c.id,{costMicros:100,inputTokens:100,outputTokens:100});
+  assert.equal(adviceBudget(s).estimatedMicros,2100);
+});
