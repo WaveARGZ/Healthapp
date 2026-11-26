@@ -66,6 +66,9 @@ jobs:
       - name: Verify workout timer audio cleanup in memory
         run: npm run test:workout-timer
 
+      - name: Verify timer notification scheduling and isolation in memory
+        run: npm run test:timer-push
+
       - name: Verify muscle activity window and region mapping
         run: npm run test:muscle-activity
 
