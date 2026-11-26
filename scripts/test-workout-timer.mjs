@@ -53,6 +53,7 @@ function harness({ sessionType = "auto", supported = true, wakeLockApi } = {}) {
     "@/components/ui/icon": { Icon: "span" },
     "@/lib/workouts/rest-timer-audio": audio,
     "@/lib/workouts/timer-wake-lock": wakeLock,
+    "@/lib/workouts/use-timer-push": { useTimerPush: () => ({ status: "unavailable", enabled: false }) },
   };
   const exports = {};
   vm.runInNewContext(source, {

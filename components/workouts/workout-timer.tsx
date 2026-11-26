@@ -6,6 +6,7 @@ import { SelectInput, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { alarmSamples, prepareRestAlarmSession, restAlarmTrack } from "@/lib/workouts/rest-timer-audio";
 import { keepTimerScreenAwake, type TimerWakeStatus } from "@/lib/workouts/timer-wake-lock";
+import { useTimerPush } from "@/lib/workouts/use-timer-push";
 
 const timeFields = [{ unit: "minutes", label: "分" }, { unit: "seconds", label: "秒" }] as const;
 type TimerMode = "rest" | "cardio";
@@ -22,6 +23,7 @@ const TimerContext = createContext<{
   keepAwake: boolean;
   wakeStatus: TimerWakeStatus;
   setKeepAwake: (enabled: boolean) => void;
+  push: ReturnType<typeof useTimerPush>;
   changeMode: (mode: TimerMode) => void;
   changeDuration: (unit: DurationUnit, value: string) => void;
   reset: () => void;
@@ -50,6 +52,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   const finished = restMode && validDuration && milliseconds >= durationMs;
   const running = startedAt !== null && !finished;
   const seconds = restMode ? (validDuration ? Math.max(0, Math.ceil((durationMs - milliseconds) / 1000)) : 0) : Math.floor(milliseconds / 1000);
+  const push = useTimerPush({ rest: restMode, running, startedAt, durationMs, elapsed });
 
   useEffect(() => {
     if (!running || !keepAwake) return;
@@ -192,7 +195,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
     setStartedAt(timestamp);
   }
 
-  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsed > 0, keepAwake, wakeStatus, setKeepAwake, changeMode, changeDuration, reset, toggle }}>
+  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsed > 0, keepAwake, wakeStatus, setKeepAwake, push, changeMode, changeDuration, reset, toggle }}>
     <audio ref={alarmPlayer} aria-hidden="true" loop />
     {children}
   </TimerContext.Provider>;
@@ -202,7 +205,7 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
   const id = useId();
   const timer = useContext(TimerContext);
   if (!timer) return null;
-  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, keepAwake, wakeStatus, setKeepAwake, changeMode, changeDuration, reset, toggle } = timer;
+  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, keepAwake, wakeStatus, setKeepAwake, push, changeMode, changeDuration, reset, toggle } = timer;
   const restMode = mode === "rest";
   const timeLocked = running || finished;
   const action = <Button type="button" size={compact ? "small" : "default"} className={compact ? "w-24 shrink-0 whitespace-nowrap px-2!" : undefined}
@@ -247,7 +250,11 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
           計測中は画面の自動消灯を防ぐ
         </label>
         {keepAwake && running && <p role="status" className="text-xs text-[var(--muted)]">{wakeStatus === "active" ? "画面の点灯を維持しています。バッテリー消費が増えます。" : wakeStatus === "requesting" ? "画面の点灯を維持できるか確認中…" : "この端末・現在の設定では点灯を維持できていません。自動消灯にご注意ください。"}</p>}
-        <p className="text-xs leading-relaxed text-[var(--muted)]">BodyMake内の画面移動中も計測を続けます。他のアプリやロック画面には表示されず、終了音も鳴らない場合があります。戻ると経過時間を反映します。ページを再読み込み・終了すると計測はリセットされます。</p>
+        {restMode && push.status !== "unavailable" && <div className="space-y-2">
+          <Button type="button" size="small" variant="secondary" disabled={push.status === "off" || push.status === "preparing" || push.status === "subscribing"} onClick={() => { void (push.enabled ? push.disable() : push.enable()); }}>{push.enabled ? "終了通知をオフ" : "終了通知をオン"}</Button>
+          <p role="status" className="text-xs leading-relaxed text-[var(--muted)]">{push.status === "scheduled" ? "終了通知を予約しました。通信状況やiPhoneの通知設定により届かない場合があります。" : push.status === "saving" ? "通知予約を更新中です。" : push.status === "failed" ? "通知を設定または更新できませんでした。通信と通知設定を確認してください。停止の変更が届かない場合、通知が届くことがあります。" : push.enabled ? "休憩タイマー開始時に終了通知を予約します。" : "通知をオンにすると、他のアプリを使っている間も終了をお知らせします。"}</p>
+        </div>}
+        <p className="text-xs leading-relaxed text-[var(--muted)]">BodyMake内の画面移動中も計測を続けます。他のアプリやロック画面にはタイマー自体は表示されず、終了音も鳴らない場合があります。ページを再読み込み・終了すると計測はリセットされます。</p>
         {(!compact || !finished) && <div className="flex flex-wrap gap-2">
           {!compact && action}
           {!finished && <Button type="button" size={compact ? "small" : "default"} variant="secondary" onClick={reset}>リセット</Button>}
@@ -265,6 +272,7 @@ export function WorkoutTimerDock() {
   return <aside aria-label="計測中のタイマー" className="workout-timer-dock sticky top-0 z-30 border-b border-[var(--line)] bg-white">
     <div className="safe-gutters mx-auto flex min-h-14 max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 py-2">
       <span className="min-w-0 flex-1 text-sm font-semibold">{timer.finished ? "休憩終了" : timer.mode === "rest" ? "休憩タイマー" : "有酸素タイマー"}{!timer.running && !timer.finished ? "（停止中）" : ""}</span>
+      {timer.push.enabled && timer.push.status === "failed" && <span role="status" className="text-xs text-[var(--coral)]">通知を更新できません</span>}
       <output role="timer" aria-label={timer.mode === "rest" ? "休憩の残り時間" : "有酸素の経過時間"} className="metric text-lg tabular-nums text-[var(--sage-deep)]">{clock(timer.seconds)}</output>
       <Button type="button" size="small" onClick={() => timer.toggle(Date.now())}>{timer.finished ? "音を止める" : timer.running ? "一時停止" : "再開"}</Button>
       {!timer.finished && <Button type="button" size="small" variant="secondary" onClick={timer.reset}>終了</Button>}

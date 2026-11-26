@@ -1,0 +1,1 @@
+{ "name": "bodymake-timer-local-test", "main": "local-harness.ts", "compatibility_date": "2026-11-04", "durable_objects": { "bindings": [{ "name": "TIMER_MAILBOX", "class_name": "TimerMailbox" }] }, "migrations": [{ "tag": "local-v1", "new_sqlite_classes": ["TimerMailbox"] }] }
