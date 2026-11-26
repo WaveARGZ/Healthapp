@@ -24,6 +24,16 @@ test("shared commands are portable and cannot dispatch arbitrary operations", ()
   assert.deepEqual(sharedTestCommand("build", {}).args.slice(1), ["build", "--webpack"]);
   assert.throws(() => sharedTestCommand("deploy"));
 });
+
+test("shared test only accepts the meal reminder worker and clears inherited connections", () => {
+  const env = { NEXT_PUBLIC_BODYMAKE_TEST_MEAL_REMINDER_ORIGIN: "https://production.example.test" };
+  assert.equal(sharedTestEnvironment(env).NEXT_PUBLIC_BODYMAKE_TEST_MEAL_REMINDER_ORIGIN, "");
+  const origin = "https://bodymake-test-meal-reminders.bodymake-team.workers.dev";
+  assert.equal(sharedTestEnvironment({ BODYMAKE_TEST_MEAL_REMINDER_ORIGIN: origin }).NEXT_PUBLIC_BODYMAKE_TEST_MEAL_REMINDER_ORIGIN, origin);
+  for (const invalid of [origin + "/api", "https://bodymake-timer-push.bodymake-team.workers.dev"]) {
+    assert.equal(sharedTestEnvironment({ BODYMAKE_TEST_MEAL_REMINDER_ORIGIN: invalid }).NEXT_PUBLIC_BODYMAKE_TEST_MEAL_REMINDER_ORIGIN, "");
+  }
+});
 test("staging deployment cannot target the production site or rules", async () => {
   const config = JSON.parse(await readFile("firebase.shared-test.json", "utf8"));
   assert.equal(config.hosting.site, sharedTestProject);

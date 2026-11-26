@@ -10,6 +10,7 @@ export const sharedTestProject = "bodymake-test-14a3f";
 // Security Rules enforce the private developer allowlist and each user's UID.
 export function sharedTestEnvironment(environment = process.env) {
   const env = { ...environment };
+  const reminderOrigin = environment.BODYMAKE_TEST_MEAL_REMINDER_ORIGIN ?? "";
   const names = ["BACKEND", "AUTH_DOMAIN", "CLIENT_ID", "API_URL", "CALLBACK_URL", "LOGOUT_URL",
     "GOOGLE_SIGN_IN_ENABLED", "FIREBASE_API_KEY", "FIREBASE_AUTH_DOMAIN", "FIREBASE_MOBILE_AUTH_DOMAIN",
     "FIREBASE_PROJECT_ID", "FIREBASE_APP_ID", "FIREBASE_STANDALONE_AUTH_DOMAIN", "TRAINING_ENDPOINT", "GOOGLE_DRIVE_CLIENT_ID"];
@@ -29,6 +30,7 @@ export function sharedTestEnvironment(environment = process.env) {
     NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_APP_ID: "1:282829370973:web:cc1dd833014fe13f043fb4",
     NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_AUTH_DOMAIN: `${sharedTestProject}.firebaseapp.com`,
     NEXT_PUBLIC_BODYMAKE_TEST_FIREBASE_STANDALONE_AUTH_DOMAIN: `${sharedTestProject}.web.app`,
+    NEXT_PUBLIC_BODYMAKE_TEST_MEAL_REMINDER_ORIGIN: /^https:\/\/bodymake-test-meal-reminders\.[a-z0-9-]+\.workers\.dev$/.test(reminderOrigin) ? reminderOrigin : "",
     NEXT_TELEMETRY_DISABLED: "1",
   };
 }

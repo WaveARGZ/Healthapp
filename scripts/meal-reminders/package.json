@@ -1,0 +1,12 @@
+{
+  "name": "bodymake-test-meal-reminders",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test *.test.mjs"
+  },
+  "dependencies": {
+    "jose": "6.2.15",
+    "web-push": "4.0.0"
+  }
+}
