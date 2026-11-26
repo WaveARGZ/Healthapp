@@ -12,6 +12,7 @@ import { isFirebaseConfigured, isFirebaseSelected } from "@/lib/firebase/config"
 import { watchFirebaseUser } from "@/lib/auth/firebase-session";
 import { firebaseLoginDestination } from "@/lib/auth/firebase-login-destination";
 import { profileSetupPath, type ProfileDestination } from "@/lib/auth/profile-destination";
+import { WorkoutTimerDock, WorkoutTimerProvider } from "@/components/workouts/workout-timer";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -62,13 +63,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (!recordsReady) return <main className="setup-page"><div className="setup-content"><Logo /><h1 className="setup-title mt-8">ログイン確認</h1><p className="mt-4 text-sm text-[var(--muted)]">ログイン状態を確認しています…</p></div></main>;
   return (
-    <MobileViewport>
-      <a href="#main-content" className="sr-only z-50 bg-white p-3 focus:not-sr-only focus:fixed">本文へ移動</a>
-      <AppTopBar showWeeklyReview={pathname !== "/weekly-review"} />
-      <div className="mx-auto max-w-7xl lg:grid lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-8 lg:px-10 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-12">
-        <BottomNav onOpenTab={openTab} />
-        <main key={`${pathname}:${tabVisit}`} id="main-content" data-recording={recording} className="app-content mx-auto w-full min-w-0 max-w-[940px]">{children}</main>
-      </div>
-    </MobileViewport>
+    <WorkoutTimerProvider>
+      <MobileViewport>
+        <a href="#main-content" className="sr-only z-50 bg-white p-3 focus:not-sr-only focus:fixed">本文へ移動</a>
+        <AppTopBar showWeeklyReview={pathname !== "/weekly-review"} />
+        <WorkoutTimerDock />
+        <div className="mx-auto max-w-7xl lg:grid lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-8 lg:px-10 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-12">
+          <BottomNav onOpenTab={openTab} />
+          <main key={`${pathname}:${tabVisit}`} id="main-content" data-recording={recording} className="app-content mx-auto w-full min-w-0 max-w-[940px]">{children}</main>
+        </div>
+      </MobileViewport>
+    </WorkoutTimerProvider>
   );
 }

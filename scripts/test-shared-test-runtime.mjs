@@ -308,6 +308,7 @@ test("a Firebase session restored on a records URL goes to setup before renderin
       "@/components/layout/bottom-nav": { BottomNav: "BottomNav" },
       "@/components/ui/page-header": { AppTopBar: "AppTopBar" },
       "@/components/layout/mobile-viewport": { MobileViewport: "MobileViewport" },
+      "@/components/workouts/workout-timer": { WorkoutTimerProvider: "WorkoutTimerProvider", WorkoutTimerDock: "WorkoutTimerDock" },
       "@/components/ui/logo": { Logo: "Logo" },
       "@/lib/auth/cognito-session": {},
       "@/lib/cloud/config": { isCloudConfigured: false },
@@ -325,7 +326,9 @@ test("a Firebase session restored on a records URL goes to setup before renderin
     effects.length = 0;
     const view = AppShell({ children: "records" });
     effects[1]();
-    assert.equal(view.type, destination === setupPath ? "main" : "MobileViewport");
+    assert.equal(view.type, destination === setupPath ? "main" : "WorkoutTimerProvider");
+    assert.equal(Boolean(findElement(view, (node) => node.type === "MobileViewport")), destination === "/dashboard");
+    assert.equal(Boolean(findElement(view, (node) => node.type === "WorkoutTimerDock")), destination === "/dashboard");
     assert.deepEqual(redirects, destination === setupPath ? [setupPath] : []);
     unsubscribe();
   }
@@ -391,6 +394,7 @@ test("bottom tabs reset same-page state and scroll only when the destination is 
     "@/components/layout/bottom-nav": { BottomNav },
     "@/components/ui/page-header": { AppTopBar: "AppTopBar" },
     "@/components/layout/mobile-viewport": { MobileViewport: "MobileViewport" },
+    "@/components/workouts/workout-timer": { WorkoutTimerProvider: "WorkoutTimerProvider", WorkoutTimerDock: "WorkoutTimerDock" },
     "@/components/ui/logo": {}, "@/lib/auth/cognito-session": {}, "@/lib/auth/firebase-session": {},
     "@/lib/auth/firebase-login-destination": {}, "@/lib/auth/profile-destination": {},
   }, { window: browser });
@@ -403,8 +407,11 @@ test("bottom tabs reset same-page state and scroll only when the destination is 
     return prevented;
   };
   const initial = render();
+  assert.equal(initial.type, "WorkoutTimerProvider");
   assert.equal(pressTab(initial, "/workouts"), true);
   const reset = render();
+  assert.equal(reset.type, initial.type);
+  assert.equal(reset.key, initial.key, "tab reselection must not replace the timer provider");
   assert.notEqual(mainKey(reset), mainKey(initial));
   assert.deepEqual(replacedPaths, ["/Healthapp/workouts/"]);
   assert.deepEqual(scrolls, [[0, 0]]);
@@ -413,7 +420,10 @@ test("bottom tabs reset same-page state and scroll only when the destination is 
   assert.equal(mainKey(render()), mainKey(reset));
   assert.equal(scrolls.length, 1);
   path = "/meals/";
-  assert.equal(mainKey(render()), "/meals:1");
+  const meals = render();
+  assert.equal(mainKey(meals), "/meals:1");
+  assert.equal(meals.type, initial.type);
+  assert.equal(meals.key, initial.key, "route changes must not replace the timer provider");
   assert.deepEqual(scrolls, [[0, 0], [0, 0]]);
 });
 
