@@ -216,6 +216,7 @@ html { scroll-padding-bottom: 180px; }
     .exercise-dialog:has([data-workout-set-editor]) .exercise-dialog-panel { height: 100%; max-height: 100%; }
   }
   @media (max-width: 1023px) {
+    [data-records-viewport]:is([data-keyboard-open="true"], [data-text-editing="true"], :has([aria-modal="true"])) .workout-timer-dock { display: none; }
     [data-records-viewport]:is([data-keyboard-open="true"], [data-text-editing="true"], :has([aria-modal="true"])) .mobile-nav { display: none; }
     [data-records-viewport]:has([aria-modal="true"]) .record-actions { visibility: hidden; }
     [data-records-viewport]:is([data-keyboard-open="true"], [data-text-editing="true"]):not(:has([aria-modal="true"])) .record-actions {

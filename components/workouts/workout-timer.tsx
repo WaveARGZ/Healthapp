@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SelectInput, TextInput } from "@/components/ui/form-fields";
 import { Icon } from "@/components/ui/icon";
 import { alarmSamples, prepareRestAlarmSession, restAlarmTrack } from "@/lib/workouts/rest-timer-audio";
+import { keepTimerScreenAwake, type TimerWakeStatus } from "@/lib/workouts/timer-wake-lock";
 
 const timeFields = [{ unit: "minutes", label: "分" }, { unit: "seconds", label: "秒" }] as const;
 type TimerMode = "rest" | "cardio";
@@ -18,6 +19,9 @@ const TimerContext = createContext<{
   running: boolean;
   finished: boolean;
   hasElapsed: boolean;
+  keepAwake: boolean;
+  wakeStatus: TimerWakeStatus;
+  setKeepAwake: (enabled: boolean) => void;
   changeMode: (mode: TimerMode) => void;
   changeDuration: (unit: DurationUnit, value: string) => void;
   reset: () => void;
@@ -34,6 +38,8 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   const [elapsed, setElapsed] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
+  const [keepAwake, setKeepAwake] = useState(false);
+  const [wakeStatus, setWakeStatus] = useState<TimerWakeStatus>("released");
   const audioContext = useRef<AudioContext | null>(null);
   const alarmPlayer = useRef<HTMLAudioElement>(null);
   const alarmSession = useRef<ReturnType<typeof prepareRestAlarmSession>>(null);
@@ -44,6 +50,11 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
   const finished = restMode && validDuration && milliseconds >= durationMs;
   const running = startedAt !== null && !finished;
   const seconds = restMode ? (validDuration ? Math.max(0, Math.ceil((durationMs - milliseconds) / 1000)) : 0) : Math.floor(milliseconds / 1000);
+
+  useEffect(() => {
+    if (!running || !keepAwake) return;
+    return keepTimerScreenAwake(navigator.wakeLock, document, setWakeStatus);
+  }, [keepAwake, running]);
 
   useEffect(() => {
     if (!running || startedAt === null) return;
@@ -181,7 +192,7 @@ export function WorkoutTimerProvider({ children }: { children: ReactNode }) {
     setStartedAt(timestamp);
   }
 
-  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsed > 0, changeMode, changeDuration, reset, toggle }}>
+  return <TimerContext.Provider value={{ mode, durationDraft, seconds, validDuration, running, finished, hasElapsed: elapsed > 0, keepAwake, wakeStatus, setKeepAwake, changeMode, changeDuration, reset, toggle }}>
     <audio ref={alarmPlayer} aria-hidden="true" loop />
     {children}
   </TimerContext.Provider>;
@@ -191,7 +202,7 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
   const id = useId();
   const timer = useContext(TimerContext);
   if (!timer) return null;
-  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, changeMode, changeDuration, reset, toggle } = timer;
+  const { mode, durationDraft, seconds, validDuration, running, finished, hasElapsed, keepAwake, wakeStatus, setKeepAwake, changeMode, changeDuration, reset, toggle } = timer;
   const restMode = mode === "rest";
   const timeLocked = running || finished;
   const action = <Button type="button" size={compact ? "small" : "default"} className={compact ? "w-24 shrink-0 whitespace-nowrap px-2!" : undefined}
@@ -231,6 +242,12 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
         </div>
         {restMode && !validDuration && <p role="status" className="text-sm text-[var(--coral)]">1秒以上の休憩時間を入力してください。秒は0〜59で設定できます。</p>}
         {finished && !compact && <p role="status" className="text-sm font-semibold text-[var(--sage-deep)]">休憩時間が終了しました。</p>}
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" checked={keepAwake} onChange={(event) => setKeepAwake(event.target.checked)} className="size-4 shrink-0 accent-[var(--sage-deep)]" />
+          計測中は画面の自動消灯を防ぐ
+        </label>
+        {keepAwake && running && <p role="status" className="text-xs text-[var(--muted)]">{wakeStatus === "active" ? "画面の点灯を維持しています。バッテリー消費が増えます。" : wakeStatus === "requesting" ? "画面の点灯を維持できるか確認中…" : "この端末・現在の設定では点灯を維持できていません。自動消灯にご注意ください。"}</p>}
+        <p className="text-xs leading-relaxed text-[var(--muted)]">BodyMake内の画面移動中も計測を続けます。他のアプリやロック画面には表示されず、終了音も鳴らない場合があります。戻ると経過時間を反映します。ページを再読み込み・終了すると計測はリセットされます。</p>
         {(!compact || !finished) && <div className="flex flex-wrap gap-2">
           {!compact && action}
           {!finished && <Button type="button" size={compact ? "small" : "default"} variant="secondary" onClick={reset}>リセット</Button>}
@@ -240,4 +257,17 @@ export function WorkoutTimer({ compact = false }: { compact?: boolean }) {
     {compact && action}
     {compact && finished && <span role="status" className="sr-only">休憩時間が終了しました。</span>}
   </div>;
+}
+
+export function WorkoutTimerDock() {
+  const timer = useContext(TimerContext);
+  if (!timer || (!timer.running && !timer.finished && !timer.hasElapsed)) return null;
+  return <aside aria-label="計測中のタイマー" className="workout-timer-dock sticky top-0 z-30 border-b border-[var(--line)] bg-white">
+    <div className="safe-gutters mx-auto flex min-h-14 max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 py-2">
+      <span className="min-w-0 flex-1 text-sm font-semibold">{timer.finished ? "休憩終了" : timer.mode === "rest" ? "休憩タイマー" : "有酸素タイマー"}{!timer.running && !timer.finished ? "（停止中）" : ""}</span>
+      <output role="timer" aria-label={timer.mode === "rest" ? "休憩の残り時間" : "有酸素の経過時間"} className="metric text-lg tabular-nums text-[var(--sage-deep)]">{clock(timer.seconds)}</output>
+      <Button type="button" size="small" onClick={() => timer.toggle(Date.now())}>{timer.finished ? "音を止める" : timer.running ? "一時停止" : "再開"}</Button>
+      {!timer.finished && <Button type="button" size="small" variant="secondary" onClick={timer.reset}>終了</Button>}
+    </div>
+  </aside>;
 }

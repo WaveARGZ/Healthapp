@@ -5,14 +5,21 @@ import vm from "node:vm";
 import ts from "typescript";
 import * as jsxRuntime from "react/jsx-runtime";
 import * as audio from "../lib/workouts/rest-timer-audio.ts";
+import * as wakeLock from "../lib/workouts/timer-wake-lock.ts";
 
 const source = ts.transpileModule(readFileSync(new URL("../components/workouts/workout-timer.tsx", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2020 },
 }).outputText;
 
 // Actual provider events/effect cleanup with RAM-only browser/audio mocks.
-function harness({ sessionType = "auto", supported = true } = {}) {
+function harness({ sessionType = "auto", supported = true, wakeLockApi } = {}) {
   const states = [], refs = [], effects = [], pending = [], intervals = new Set();
+  const listeners = new Map();
+  const document = {
+    visibilityState: "visible",
+    addEventListener(name, callback) { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(callback); },
+    removeEventListener(name, callback) { listeners.get(name)?.delete(callback); },
+  };
   const session = { type: sessionType }, sounds = { started: 0, stopped: 0, closed: 0 };
   let stateIndex = 0, refIndex = 0, effectIndex = 0, now = 1000;
   class AudioContext {
@@ -45,13 +52,14 @@ function harness({ sessionType = "auto", supported = true } = {}) {
     "@/components/ui/form-fields": { SelectInput: "select", TextInput: "input" },
     "@/components/ui/icon": { Icon: "span" },
     "@/lib/workouts/rest-timer-audio": audio,
+    "@/lib/workouts/timer-wake-lock": wakeLock,
   };
   const exports = {};
   vm.runInNewContext(source, {
     exports, require(id) { assert.ok(Object.hasOwn(modules, id), id); return modules[id]; },
     AudioContext, Date: { now: () => now },
-    navigator: supported ? { audioSession: session } : {},
-    document: { visibilityState: "visible", addEventListener() {}, removeEventListener() {} },
+    navigator: { ...(supported ? { audioSession: session } : {}), wakeLock: wakeLockApi },
+    document,
     window: {
       setInterval(fn) { intervals.add(fn); return fn; }, clearInterval(fn) { intervals.delete(fn); },
       setTimeout() { return 1; }, clearTimeout() {}, addEventListener() {}, removeEventListener() {},
@@ -70,6 +78,8 @@ function harness({ sessionType = "auto", supported = true } = {}) {
     session, sounds, render, act,
     toggle() { return act((timer) => timer.toggle(now)); },
     advance(ms) { now += ms; for (const tick of [...intervals]) tick(); return render(); },
+    suspend(ms) { now += ms; },
+    visibility(value) { document.visibilityState = value; for (const callback of [...(listeners.get("visibilitychange") ?? [])]) callback(); return render(); },
     unmount() { for (const effect of effects) effect.cleanup?.(); },
   };
 }
@@ -130,4 +140,66 @@ test("reset and completion remain usable when Audio Session is unsupported", () 
   h.toggle();
   assert.equal(h.sounds.stopped, 1);
   h.unmount();
+});
+
+test("returning to a suspended page catches up the countdown and the cardio elapsed time", () => {
+  const rest = harness();
+  rest.toggle(); rest.visibility("hidden"); rest.suspend(95000);
+  assert.equal(rest.render().seconds, 90, "browser ticks were suspended");
+  assert.equal(rest.visibility("visible").finished, true);
+  assert.equal(rest.render().seconds, 0);
+  assert.equal(rest.sounds.started, 1);
+  rest.unmount();
+  const cardio = harness();
+  cardio.act((timer) => timer.changeMode("cardio"));
+  cardio.toggle(); cardio.visibility("hidden"); cardio.suspend(65000);
+  assert.equal(cardio.visibility("visible").seconds, 65);
+  assert.equal(cardio.sounds.started, 0);
+  cardio.unmount();
+});
+
+test("screen wake is opt-in and releases on pause, completion, and unmount", async () => {
+  let requested = 0, released = 0;
+  const wakeLockApi = { async request() {
+    requested++;
+    return { released: false, addEventListener() {}, removeEventListener() {}, async release() { released++; } };
+  } };
+  const h = harness({ wakeLockApi });
+  h.toggle(); await Promise.resolve(); assert.equal(requested, 0);
+  h.act((timer) => timer.setKeepAwake(true)); await Promise.resolve();
+  assert.equal(h.render().wakeStatus, "active");
+  assert.equal(requested, 1);
+  h.toggle(); assert.equal(released, 1);
+  h.toggle(); await Promise.resolve();
+  h.advance(90000); assert.equal(released, 2);
+  h.act((timer) => timer.reset());
+  h.toggle(); await Promise.resolve(); h.unmount();
+  assert.equal(released, 3);
+});
+
+test("wake lock handles visibility, revocation, denial, and late completion without leaking a lock", async () => {
+  const listeners = new Map(), reports = [], locks = [];
+  const page = { visibilityState: "visible", addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: (name) => listeners.delete(name) };
+  const api = { async request() {
+    const events = new Map();
+    const lock = { released: false, addEventListener: (name, fn) => events.set(name, fn), removeEventListener: (name) => events.delete(name), async release() { lock.released = true; events.get("release")?.(); }, revoke() { lock.released = true; events.get("release")?.(); } };
+    locks.push(lock); return lock;
+  } };
+  const cleanup = wakeLock.keepTimerScreenAwake(api, page, (value) => reports.push(value));
+  await Promise.resolve(); assert.equal(reports.at(-1), "active");
+  page.visibilityState = "hidden"; listeners.get("visibilitychange")();
+  assert.equal(locks[0].released, true);
+  page.visibilityState = "visible"; listeners.get("visibilitychange")();
+  await Promise.resolve(); assert.equal(locks.length, 2);
+  locks[1].revoke(); assert.equal(reports.at(-1), "released");
+  cleanup(); assert.equal(listeners.size, 0);
+  wakeLock.keepTimerScreenAwake(undefined, page, (value) => reports.push(value))();
+  assert.equal(reports.at(-1), "unavailable");
+  const denied = wakeLock.keepTimerScreenAwake({ request: async () => { throw Error("low power"); } }, page, (value) => reports.push(value));
+  await Promise.resolve(); assert.equal(reports.at(-1), "unavailable"); denied();
+  let grant;
+  const late = wakeLock.keepTimerScreenAwake({ request: () => new Promise((resolve) => { grant = resolve; }) }, page, (value) => reports.push(value));
+  late(); const count = reports.length;
+  const lock = await api.request(); grant(lock); await Promise.resolve();
+  assert.equal(lock.released, true); assert.equal(reports.length, count);
 });
