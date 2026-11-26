@@ -5,26 +5,16 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 import { GoogleDriveSettings } from "@/components/settings/google-drive-settings";
-import { MealReminderSetting } from "@/components/settings/meal-reminder-setting";
 import { clearDemoSession } from "@/lib/auth/demo-session";
 import { signOutCloud } from "@/lib/auth/cognito-session";
-import { isCloudConfigured, isSharedTestEnvironment } from "@/lib/cloud/config";
+import { isCloudConfigured } from "@/lib/cloud/config";
 import { isFirebaseSelected } from "@/lib/firebase/config";
 import { signOutFirebase } from "@/lib/auth/firebase-session";
-import { stopMealReminders } from "@/lib/meals/meal-reminder-client";
 
 const logoutClass = "text-link px-2 text-[var(--coral)] hover:underline";
 
 export function SettingsList() {
   const router = useRouter();
-
-  async function logout() {
-    // Stop account-specific reminders where possible without blocking sign-out.
-    if (isSharedTestEnvironment) await stopMealReminders().catch(() => {});
-    await signOutFirebase();
-    router.replace("/bodymake");
-  }
-
   return <>
     <PageHeader title="設定" />
     <div className="space-y-5">
@@ -35,7 +25,6 @@ export function SettingsList() {
           <Icon name="chevron-right" className="size-5 shrink-0 text-[var(--sage-deep)]" />
         </Link>
       </section>
-      {isSharedTestEnvironment && isFirebaseSelected && <MealReminderSetting />}
       <section className="panel text-sm leading-7 text-[var(--muted)]" aria-labelledby="information-title">
         <h2 id="information-title" className="section-title">記録とプライバシー</h2>
         <details id="data" className="mt-3 border-t border-[var(--line)]">
@@ -56,7 +45,7 @@ export function SettingsList() {
     <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-3">
       <span className="text-sm text-[var(--muted)]">BodyMake / 開発版</span>
       {isFirebaseSelected
-        ? <button type="button" onClick={() => void logout()} className={logoutClass}>ログアウト</button>
+        ? <button type="button" onClick={() => void signOutFirebase().then(() => router.replace("/bodymake"))} className={logoutClass}>ログアウト</button>
         : isCloudConfigured
           ? <button type="button" onClick={signOutCloud} className={logoutClass}>ログアウト</button>
           : <Link href="/bodymake" onClick={clearDemoSession} className={logoutClass}>ログアウト</Link>}
